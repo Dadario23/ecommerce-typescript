@@ -26,7 +26,7 @@ export async function GET(req: Request) {
     if (mode === "suggest") {
       const products = await Product.find(filter)
         .limit(5)
-        .select("name slug imageUrl price")
+        .select("name slug imageUrl images price")
         .lean();
 
       return NextResponse.json(products);
