@@ -50,6 +50,7 @@ export default function AdminPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
 
   const categories = [
+    "Audio",
     "Televisores",
     "Celulares",
     "Juguetes",

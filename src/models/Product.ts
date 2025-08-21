@@ -31,12 +31,11 @@ const ProductSchema: Schema = new Schema(
 
 // Middleware para generar slug automáticamente desde el nombre
 ProductSchema.pre<IProduct>("validate", function (next) {
-  if (this.isModified("name")) {
-    this.slug = this.name
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/(^-|-$)+/g, "");
-  }
+  // Siempre regenerar slug a partir del name
+  this.slug = this.name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)+/g, "");
   next();
 });
 
