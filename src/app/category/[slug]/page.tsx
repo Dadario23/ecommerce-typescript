@@ -35,7 +35,7 @@ export default function CategoryPage() {
   const { slug } = useParams();
   const [products, setProducts] = useState<Product[]>([]);
   const [page, setPage] = useState(1);
-  const itemsPerPage = 4;
+  const itemsPerPage = 15;
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -95,7 +95,7 @@ export default function CategoryPage() {
           {loading ? (
             <p>Cargando productos...</p>
           ) : paginatedProducts.length > 0 ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {paginatedProducts.map((product) => (
                 <ProductCard key={product._id} product={product} />
               ))}

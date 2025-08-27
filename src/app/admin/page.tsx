@@ -51,7 +51,7 @@ export default function AdminPage() {
 
   const categories = [
     "Audio",
-    "Televisores",
+    "TV-Video-Foto",
     "Celulares",
     "Juguetes",
     "Herramientas",

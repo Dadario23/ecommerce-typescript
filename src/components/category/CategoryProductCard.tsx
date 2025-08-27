@@ -18,7 +18,7 @@ export default function ProductCard({ product }: any) {
         <img
           src={product.imageUrl} // ✅ corregido a imageUrl
           alt={product.name}
-          className="w-full h-40 object-contain mb-4"
+          className="w-full h-72 object-contain"
         />
 
         <h3 className="font-medium text-sm mb-2">{product.name}</h3>

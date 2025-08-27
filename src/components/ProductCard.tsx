@@ -1,25 +1,37 @@
-import Link from "next/link";
-import { Card, CardContent, CardFooter } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+"use client";
 
-export default function ProductCard({ product }: { product: any }) {
+import { Button } from "@/components/ui/button";
+import { IProduct } from "@/models/Product";
+import { useCartUI } from "@/store/useCartUI"; // ✅ usamos el store real
+import { useCartStore } from "@/store/useCartStore";
+interface ProductBuyActionsProps {
+  product: IProduct;
+}
+
+export default function ProductBuyActions({ product }: ProductBuyActionsProps) {
+  const addToCart = useCartStore((state) => state.addToCart);
+  const openCart = useCartUI((state) => state.open);
+
+  const handleBuy = () => {
+    addToCart({
+      id: String(product._id),
+      name: product.name,
+      price: product.price,
+      image: product.imageUrl,
+      quantity: 1,
+    });
+
+    openCart(); // ✅ abrimos el Drawer al comprar
+  };
+
   return (
-    <Card>
-      <CardContent className="p-4">
-        <img
-          src={product.image}
-          alt={product.name}
-          className="w-full h-40 object-cover"
-        />
-        <h3 className="mt-2 font-semibold">{product.name}</h3>
-        <p className="text-sm text-gray-600">${product.price}</p>
-      </CardContent>
-      <CardFooter className="flex justify-between">
-        <Link href={`/product/${product.slug}`}>
-          <Button variant="secondary">Ver más</Button>
-        </Link>
-        <Button>Comprar</Button>
-      </CardFooter>
-    </Card>
+    <div className="flex flex-col gap-3 mt-4">
+      <Button
+        onClick={handleBuy}
+        className="w-full bg-[#1E3A8A] hover:bg-[#1E40AF] text-white text-lg py-6 rounded-lg shadow-md transition-all"
+      >
+        Comprar
+      </Button>
+    </div>
   );
 }

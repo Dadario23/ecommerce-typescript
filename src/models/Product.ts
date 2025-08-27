@@ -10,6 +10,7 @@ export interface IProduct extends Document {
   images?: string[]; // galería opcional
   category: string;
   brand?: string;
+  stock?: number;
   sku?: string;
 }
 
@@ -25,6 +26,7 @@ const ProductSchema: Schema = new Schema(
     category: { type: String, required: true },
     brand: { type: String },
     sku: { type: String },
+    stock: { type: Number, default: 0 },
   },
   { timestamps: true }
 );
