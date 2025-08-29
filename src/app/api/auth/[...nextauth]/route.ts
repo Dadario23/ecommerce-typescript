@@ -71,17 +71,17 @@ export const authOptions: AuthOptions = {
       return true;
     },
     async redirect({ url, baseUrl }) {
-      console.log("NextAuth redirect called with:", { url, baseUrl });
+      // console.log("NextAuth redirect called with:", { url, baseUrl });
 
       // ✅ Verifica si la URL es una ruta dentro de nuestra aplicación
       const callbackUrl = new URL(url, baseUrl);
 
       if (callbackUrl.origin === baseUrl) {
-        console.log("Allowing custom callbackUrl:", callbackUrl.pathname);
+        //console.log("Allowing custom callbackUrl:", callbackUrl.pathname);
         return callbackUrl.pathname; // Devuelve solo la ruta (ej: /order)
       }
 
-      console.log("Redirecting to home");
+      // console.log("Redirecting to home");
       return "/";
     },
     async session({ session, token }) {

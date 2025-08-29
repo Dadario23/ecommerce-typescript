@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { FcGoogle } from "react-icons/fc";
 import Link from "next/link";
 import { useState } from "react";
+import { Loader2 } from "lucide-react"; // 👈 Spinner minimalista
 
 // ✅ Esquema de validación con Zod
 const loginSchema = z.object({
@@ -20,7 +21,7 @@ const loginSchema = z.object({
 type LoginFormData = z.infer<typeof loginSchema>;
 
 interface LoginFormProps {
-  fromCart?: boolean; // 👈 Nueva prop
+  fromCart?: boolean;
 }
 
 export default function LoginForm({ fromCart = false }: LoginFormProps) {
@@ -33,6 +34,7 @@ export default function LoginForm({ fromCart = false }: LoginFormProps) {
   });
 
   const [errorMessage, setErrorMessage] = useState("");
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false); // 👈 Nuevo estado
 
   const onSubmit = async (data: LoginFormData) => {
     setErrorMessage("");
@@ -42,18 +44,18 @@ export default function LoginForm({ fromCart = false }: LoginFormProps) {
     const res = await signIn("credentials", {
       email: data.email,
       password: data.password,
-      callbackUrl: callbackUrl, // ✅ Sin redirect: false
+      callbackUrl,
     });
 
     if (res?.error) {
       setErrorMessage("Credenciales incorrectas ❌");
     }
-    // ✅ NextAuth se encargará de la redirección
   };
 
   const handleGoogleSignIn = () => {
+    setIsGoogleLoading(true);
     const callbackUrl = fromCart ? "/order" : "/";
-    signIn("google", { callbackUrl });
+    signIn("google", { callbackUrl }).catch(() => setIsGoogleLoading(false));
   };
 
   return (
@@ -94,7 +96,14 @@ export default function LoginForm({ fromCart = false }: LoginFormProps) {
 
         {/* Botón login */}
         <Button type="submit" disabled={isSubmitting} className="w-full">
-          {isSubmitting ? "Ingresando..." : "Ingresar"}
+          {isSubmitting ? (
+            <div className="flex items-center justify-center gap-2">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Ingresando...
+            </div>
+          ) : (
+            "Ingresar"
+          )}
         </Button>
       </form>
 
@@ -102,10 +111,21 @@ export default function LoginForm({ fromCart = false }: LoginFormProps) {
       <Button
         type="button"
         variant="outline"
-        className="w-full flex items-center gap-2"
+        disabled={isGoogleLoading}
+        className="w-full flex items-center justify-center gap-2"
         onClick={handleGoogleSignIn}
       >
-        <FcGoogle className="text-xl" /> Iniciar sesión con Google
+        {isGoogleLoading ? (
+          <>
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Conectando...
+          </>
+        ) : (
+          <>
+            <FcGoogle className="text-xl" />
+            Iniciar sesión con Google
+          </>
+        )}
       </Button>
 
       {/* Links */}

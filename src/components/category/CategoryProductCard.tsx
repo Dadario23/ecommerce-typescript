@@ -1,8 +1,8 @@
 import Link from "next/link";
 
 export default function ProductCard({ product }: any) {
-  console.log("Renderizando ProductCard:", product); // 👀 para debug
-
+  /* console.log("Renderizando ProductCard:", product); // 👀 para debug
+   */
   return (
     <Link
       href={`/products/${product.slug}`} // ✅ ahora usa slug y la carpeta correcta

@@ -14,6 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useCartStore } from "@/store/useCartStore"; // ✅ Usamos el store directo
+import Spinner from "@/components/ui/Spinner";
 
 // ✅ Interfaz para los items del carrito
 interface CartItem {
@@ -94,9 +95,8 @@ export default function CheckoutPage() {
   if (status === "loading" || isLoading) {
     return (
       <div className="pt-[120px] flex flex-col items-center justify-center min-h-screen">
-        <h2 className="text-xl font-semibold text-gray-700 mb-4">
-          Cargando...
-        </h2>
+        <Spinner />
+        <p className="mt-4 text-gray-600">Cargando tu pedido...</p>
       </div>
     );
   }
@@ -131,7 +131,7 @@ export default function CheckoutPage() {
   };
 
   return (
-    <div className="pt-[120px] container max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8 pb-8">
+    <div className="pt-[160px] container max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8 pb-8">
       {/* Formulario */}
       <Card className="md:col-span-2 shadow-md">
         <CardHeader>

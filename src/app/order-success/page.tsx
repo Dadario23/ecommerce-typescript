@@ -35,11 +35,11 @@ export default function OrderSuccessPage() {
   };
 
   const handleViewOrders = () => {
-    router.push("/");
+    router.push("/account/orders");
   };
 
   return (
-    <div className="pt-[120px] min-h-screen bg-gradient-to-b from-green-50 to-white">
+    <div className="pt-[140px] min-h-screen bg-gradient-to-b from-green-50 to-white">
       <div className="container max-w-2xl mx-auto px-4">
         <Card className="shadow-lg border-0">
           <CardHeader className="text-center pb-4">

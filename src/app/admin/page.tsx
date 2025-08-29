@@ -50,10 +50,12 @@ export default function AdminPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
 
   const categories = [
-    "Audio",
     "TV-Video-Foto",
     "Celulares",
+    "Informática",
+    "Gaming",
     "Juguetes",
+    "Audio",
     "Herramientas",
     "Bazar",
     "Bicicletas",
@@ -84,6 +86,22 @@ export default function AdminPage() {
     e.preventDefault();
     setLoading(true);
     setMessage("");
+
+    // Validar formato de precios
+    if (isNaN(parseFloat(price)) || parseFloat(price) <= 0) {
+      setMessage("Error: Por favor ingrese un precio válido");
+      setLoading(false);
+      return;
+    }
+
+    if (
+      compareAtPrice &&
+      (isNaN(parseFloat(compareAtPrice)) || parseFloat(compareAtPrice) <= 0)
+    ) {
+      setMessage("Error: Por favor ingrese un precio de comparación válido");
+      setLoading(false);
+      return;
+    }
 
     try {
       // Procesar las imágenes adicionales
@@ -216,31 +234,72 @@ export default function AdminPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="price">Precio *</Label>
-                <Input
-                  id="price"
-                  type="number"
-                  step="0.01"
-                  value={price}
-                  onChange={(e) => setPrice(e.target.value)}
-                  required
-                />
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="price">Precio *</Label>
+              <Input
+                id="price"
+                type="text"
+                inputMode="decimal"
+                value={price}
+                onChange={(e) => {
+                  // Permitir solo números y un punto decimal
+                  const value = e.target.value.replace(/[^0-9.]/g, "");
 
-              <div className="space-y-2">
-                <Label htmlFor="compareAtPrice">
-                  Precio de comparación (opcional)
-                </Label>
-                <Input
-                  id="compareAtPrice"
-                  type="number"
-                  step="0.01"
-                  value={compareAtPrice}
-                  onChange={(e) => setCompareAtPrice(e.target.value)}
-                />
-              </div>
+                  // Evitar múltiples puntos decimales
+                  const decimalCount = (value.match(/\./g) || []).length;
+                  if (decimalCount <= 1) {
+                    setPrice(value);
+                  }
+                }}
+                onBlur={(e) => {
+                  // Formatear al perder el foco
+                  let value = e.target.value;
+                  if (value && !isNaN(parseFloat(value))) {
+                    // Asegurar formato correcto con dos decimales
+                    const numValue = parseFloat(value);
+                    setPrice(numValue.toFixed(2));
+                  } else if (value === "") {
+                    setPrice("");
+                  }
+                }}
+                placeholder="0.00"
+                required
+              />
+              <p className="text-sm text-gray-500">
+                Use punto como separador decimal
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="compareAtPrice">
+                Precio de comparación (opcional)
+              </Label>
+              <Input
+                id="compareAtPrice"
+                type="text"
+                inputMode="decimal"
+                value={compareAtPrice}
+                onChange={(e) => {
+                  const value = e.target.value.replace(/[^0-9.]/g, "");
+                  const decimalCount = (value.match(/\./g) || []).length;
+                  if (decimalCount <= 1) {
+                    setCompareAtPrice(value);
+                  }
+                }}
+                onBlur={(e) => {
+                  let value = e.target.value;
+                  if (value && !isNaN(parseFloat(value))) {
+                    const numValue = parseFloat(value);
+                    setCompareAtPrice(numValue.toFixed(2));
+                  } else if (value === "") {
+                    setCompareAtPrice("");
+                  }
+                }}
+                placeholder="0.00"
+              />
+              <p className="text-sm text-gray-500">
+                Use punto como separador decimal
+              </p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { useCartStore } from "@/store/useCartStore"; // ✅ Usamos el store directo
 import { useSession } from "next-auth/react";
+import Spinner from "@/components/ui/Spinner";
 
 // ✅ Interfaz para los items del carrito
 interface CartItem {
@@ -63,9 +64,8 @@ export default function PedidoPage() {
   if (status === "loading" || isLoading) {
     return (
       <div className="pt-[120px] flex flex-col items-center justify-center min-h-screen">
-        <h2 className="text-xl font-semibold text-gray-700 mb-4">
-          Cargando...
-        </h2>
+        <Spinner />
+        <p className="mt-4 text-gray-600">Cargando tu pedido...</p>
       </div>
     );
   }
@@ -83,7 +83,7 @@ export default function PedidoPage() {
   }
 
   return (
-    <div className="pt-[120px] container max-w-3xl mx-auto pb-8">
+    <div className="pt-[160px] container max-w-3xl mx-auto pb-8">
       <Card className="shadow-md">
         <CardHeader>
           <CardTitle className="text-2xl font-bold text-center">

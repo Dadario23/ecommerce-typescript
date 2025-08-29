@@ -30,6 +30,7 @@ export default function CategoryBlock({
           src={bannerImage}
           alt={bannerTitle}
           fill
+          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
           className="object-cover"
         />
         <div className="absolute bottom-2 left-2 bg-blue-900 text-white px-3 py-1 rounded-md font-semibold">

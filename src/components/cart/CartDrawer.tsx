@@ -15,17 +15,17 @@ import { Button } from "@/components/ui/button";
 import { useCartStore } from "@/store/useCartStore";
 import { useCartUI } from "@/store/useCartUI";
 import { Trash2 } from "lucide-react";
-import AuthModal from "@/components/auth/AuthModal"; // ✅ Importamos el AuthModal
+import AuthModal from "@/components/auth/AuthModal";
 
 export default function CartDrawer() {
   const router = useRouter();
-  const { data: session, status } = useSession();
-  const items = useCartStore((state) => state.items);
+  const { status } = useSession();
   const { isOpen, close } = useCartUI();
+
+  const items = useCartStore((state) => state.items);
   const removeFromCart = useCartStore((state) => state.removeFromCart);
   const updateQuantity = useCartStore((state) => state.updateQuantity);
 
-  // ✅ Estado para controlar el modal de autenticación
   const [authModalOpen, setAuthModalOpen] = useState(false);
 
   const totalItems = items.reduce((acc, item) => acc + item.quantity, 0);
@@ -35,28 +35,41 @@ export default function CartDrawer() {
   );
 
   const handleCheckout = () => {
-    console.log("[CartDrawer] Click en Finalizar pedido");
-    console.log("[CartDrawer] Estado de sesión:", status);
-
-    // ✅ Verificamos autenticación al finalizar pedido
     if (status === "authenticated") {
-      console.log("[CartDrawer] Usuario autenticado, redirigiendo a /order");
       close();
       router.push("/order");
     } else {
-      console.log(
-        "[CartDrawer] Usuario no autenticado, abriendo modal de auth"
-      );
       setAuthModalOpen(true);
     }
   };
 
-  // ✅ Cerrar auth modal cuando se autentica
+  // ✅ Sync con backend al eliminar un producto
+  const handleRemoveItem = async (id: string) => {
+    removeFromCart(id); // ✅ siempre actualizamos el estado local (Zustand)
+
+    if (status !== "authenticated") {
+      // 🚫 No intentamos hablar con el backend
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/cart/${id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+
+      const data = await res.json();
+
+      if (!data.success) {
+        console.error("Error al eliminar en backend:", data.error);
+      }
+    } catch (err) {
+      console.error("Error al sincronizar carrito:", err);
+    }
+  };
+
   useEffect(() => {
     if (authModalOpen && status === "authenticated") {
-      console.log(
-        "[CartDrawer] Usuario autenticado, cerrando modal y redirigiendo"
-      );
       setAuthModalOpen(false);
       close();
       router.push("/order");
@@ -89,44 +102,58 @@ export default function CartDrawer() {
                     key={item.id}
                     className="flex items-center gap-4 border-b pb-4"
                   >
-                    {/* Imagen */}
                     <img
                       src={item.image}
                       alt={item.name}
                       className="w-16 h-16 object-cover rounded border"
                     />
-
-                    {/* Info */}
                     <div className="flex-1">
                       <h3 className="text-sm font-medium line-clamp-2">
                         {item.name}
                       </h3>
                       <div className="flex items-center gap-2 mt-2">
-                        {/* Selector de cantidad */}
-                        <select
-                          value={item.quantity}
-                          onChange={(e) =>
-                            updateQuantity(item.id, Number(e.target.value))
-                          }
-                          className="border rounded px-2 py-1 text-sm"
-                        >
-                          {Array.from({ length: 10 }).map((_, i) => (
-                            <option key={i + 1} value={i + 1}>
-                              {i + 1}
-                            </option>
-                          ))}
-                        </select>
+                        <div className="flex items-center border rounded-md">
+                          {/* Botón - */}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 rounded-none"
+                            onClick={() =>
+                              updateQuantity(
+                                item.id,
+                                Math.max(1, item.quantity - 1)
+                              )
+                            }
+                          >
+                            –
+                          </Button>
 
-                        {/* Precio */}
+                          {/* Cantidad */}
+                          <span className="w-8 text-center text-sm">
+                            {item.quantity}
+                          </span>
+
+                          {/* Botón + */}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 rounded-none"
+                            onClick={() =>
+                              updateQuantity(item.id, item.quantity + 1)
+                            }
+                          >
+                            +
+                          </Button>
+                        </div>
+
+                        {/* Precio del producto */}
                         <span className="font-semibold text-sm">
                           ${(item.price * item.quantity).toLocaleString()}
                         </span>
                       </div>
                     </div>
-
-                    {/* Botón eliminar */}
                     <button
-                      onClick={() => removeFromCart(item.id)}
+                      onClick={() => handleRemoveItem(item.id)}
                       className="text-gray-400 hover:text-red-500 transition"
                     >
                       <Trash2 className="w-5 h-5" />
@@ -153,12 +180,13 @@ export default function CartDrawer() {
                   <span>${totalPrice.toLocaleString()}</span>
                 </div>
 
+                {/* Botón único */}
                 <Button
                   onClick={handleCheckout}
                   className="w-full bg-[#1E3A8A] hover:bg-[#1E40AF] text-white py-6 text-base"
                   disabled={items.length === 0}
                 >
-                  Finalizar el pedido
+                  Finalizar pedido
                 </Button>
               </>
             )}
@@ -174,7 +202,6 @@ export default function CartDrawer() {
         </SheetContent>
       </Sheet>
 
-      {/* ✅ Modal de autenticación */}
       <AuthModal
         open={authModalOpen}
         onOpenChange={setAuthModalOpen}

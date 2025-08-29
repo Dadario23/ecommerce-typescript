@@ -18,7 +18,13 @@ export default function ProductCard({
   return (
     <div className="border rounded-lg shadow-sm p-4 flex flex-col items-center text-center bg-white">
       <div className="w-full h-40 relative">
-        <Image src={image} alt={title} fill className="object-contain" />
+        <Image
+          src={image}
+          alt={title}
+          fill
+          sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
+          className="object-contain"
+        />
       </div>
       <h3 className="mt-3 text-sm font-medium">{title}</h3>
       <p className="text-gray-700 text-sm mt-1">Oferta débito o efectivo</p>
