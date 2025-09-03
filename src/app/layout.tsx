@@ -1,10 +1,11 @@
+// src/app/layout.tsx
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import Navbar from "@/components/Navbar";
 import AuthProvider from "@/providers/SessionProvider";
 import CartDrawer from "@/components/cart/CartDrawer";
 import { CartProvider } from "@/providers/CartProvider";
+import LayoutWrapper from "@/components/LayoutWrapper";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -34,8 +35,7 @@ export default function RootLayout({
         <AuthProvider>
           <CartProvider>
             <CartDrawer />
-            <Navbar />
-            {children}
+            <LayoutWrapper>{children}</LayoutWrapper>
           </CartProvider>
         </AuthProvider>
       </body>

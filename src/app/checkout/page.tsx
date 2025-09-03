@@ -30,6 +30,7 @@ const checkoutSchema = z.object({
   email: z.string().email("Correo electrónico inválido"),
   address: z.string().min(5, "La dirección es obligatoria"),
   city: z.string().min(2, "La ciudad es obligatoria"),
+  state: z.string().min(2, "El estado/provincia es obligatorio"), // ← Agregar esto
   postalCode: z.string().min(4, "El código postal es obligatorio"),
   country: z.string().min(2, "El país es obligatorio"),
   paymentMethod: z.string().refine((val) => ["card", "cash"].includes(val), {
@@ -44,6 +45,7 @@ export default function CheckoutPage() {
   const { data: session, status } = useSession();
   const items = useCartStore((state) => state.items);
   const clearCart = useCartStore((state) => state.clearCart);
+  const [selectedAddress, setSelectedAddress] = useState<any>(null);
 
   // ✅ Estado para manejar carga y evitar errores
   const [isLoading, setIsLoading] = useState(true);
@@ -113,20 +115,38 @@ export default function CheckoutPage() {
     );
   }
 
+  // Modificar el onSubmit para usar la dirección seleccionada
   const onSubmit = async (data: CheckoutForm) => {
-    console.log("Datos del checkout:", data, items);
+    const orderData = {
+      ...data,
+      shippingAddress: selectedAddress || {
+        firstName: data.name.split(" ")[0],
+        lastName: data.name.split(" ").slice(1).join(" "),
+        street: data.address,
+        city: data.city,
+        state: data.state,
+        zipCode: data.postalCode,
+        country: data.country,
+        phone: "", // Podrías agregar campo de teléfono al formulario
+      },
+      items,
+      total,
+    };
 
     try {
-      // Aquí iría integración con API/pasarela de pago
-      // Simulamos un proceso de pago
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      const res = await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(orderData),
+      });
 
-      alert("Pedido confirmado ✅");
-      clearCart();
-      router.push("/order-success"); // ✅ Página de confirmación de pedido
+      if (res.ok) {
+        alert("Pedido confirmado ✅");
+        clearCart();
+        router.push("/order-success");
+      }
     } catch (error) {
       console.error("Error processing order:", error);
-      alert("Error al procesar el pedido. Intenta nuevamente.");
     }
   };
 
@@ -187,6 +207,19 @@ export default function CheckoutPage() {
                 />
                 {errors.city && (
                   <p className="text-sm text-red-500">{errors.city.message}</p>
+                )}
+              </div>
+              <div>
+                <Label htmlFor="state">Estado/Provincia</Label>
+                <Input
+                  id="state"
+                  {...register("state")}
+                  placeholder="Tu estado/provincia"
+                />
+                {errors.state && (
+                  <p className="text-sm text-red-500">
+                    {errors.state?.message}
+                  </p>
                 )}
               </div>
               <div>
