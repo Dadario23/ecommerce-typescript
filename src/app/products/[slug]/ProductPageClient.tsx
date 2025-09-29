@@ -1,12 +1,12 @@
 "use client";
 
 import { IProduct } from "@/models/Product";
-import ProductBreadcrumb from "@/components/product/ProductBreadcrumb";
-import ProductGallery from "@/components/product/ProductGallery";
-import ProductInfo from "@/components/product/ProductInfo";
-import ProductBuyActions from "@/components/product/ProductBuyActions";
-import ProductShipping from "@/components/product/ProductShipping";
-import ProductTabs from "@/components/product/ProductTabs";
+import ProductBreadcrumb from "@/components/products/ProductBreadcrumb";
+import ProductGallery from "@/components/products/ProductGallery";
+import ProductInfo from "@/components/products/ProductInfo";
+import ProductBuyActions from "@/components/products/ProductBuyActions";
+import ProductShipping from "@/components/products/ProductShipping";
+import ProductTabs from "@/components/products/ProductTabs";
 
 export default function ProductPageClient({ product }: { product: IProduct }) {
   return (

@@ -6,6 +6,7 @@ import AuthProvider from "@/providers/SessionProvider";
 import CartDrawer from "@/components/cart/CartDrawer";
 import { CartProvider } from "@/providers/CartProvider";
 import LayoutWrapper from "@/components/LayoutWrapper";
+import { ToastProvider } from "@/hooks/use-toast";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -33,10 +34,12 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <AuthProvider>
-          <CartProvider>
-            <CartDrawer />
-            <LayoutWrapper>{children}</LayoutWrapper>
-          </CartProvider>
+          <ToastProvider>
+            <CartProvider>
+              <CartDrawer />
+              <LayoutWrapper>{children}</LayoutWrapper>
+            </CartProvider>
+          </ToastProvider>
         </AuthProvider>
       </body>
     </html>
