@@ -1,4 +1,3 @@
-// src/app/dashboard/categories/new/page.tsx
 "use client";
 
 import { useState } from "react";
@@ -14,10 +13,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Upload } from "lucide-react";
+import { Upload, Link as LinkIcon } from "lucide-react";
 
 export default function NewCategoryPage() {
   const [thumbnail, setThumbnail] = useState<File | null>(null);
+  const [thumbnailUrl, setThumbnailUrl] = useState("");
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [loading, setLoading] = useState(false);
@@ -26,7 +26,23 @@ export default function NewCategoryPage() {
   const handleThumbnailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files?.[0]) {
       setThumbnail(e.target.files[0]);
+      setThumbnailUrl(""); // Reset URL si suben archivo
     }
+  };
+
+  const handleThumbnailUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setThumbnailUrl(e.target.value);
+    setThumbnail(null); // Reset file si usan URL
+  };
+
+  const getPreviewImage = () => {
+    if (thumbnail) {
+      return URL.createObjectURL(thumbnail);
+    }
+    if (thumbnailUrl) {
+      return thumbnailUrl;
+    }
+    return null;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -41,11 +57,23 @@ export default function NewCategoryPage() {
       setLoading(true);
       setError(null);
 
-      const newCategory = {
+      const newCategory: any = {
         name,
         description,
         status: "published",
       };
+
+      // Agregar thumbnail si se proporcionó URL
+      if (thumbnailUrl.trim()) {
+        newCategory.thumbnail = thumbnailUrl.trim();
+      }
+
+      // TODO: Manejar upload de archivo si se seleccionó
+      if (thumbnail) {
+        // Aquí iría la lógica para subir el archivo
+        console.log("Subir archivo:", thumbnail);
+        // Por ahora solo usamos la URL
+      }
 
       const res = await fetch("/api/categories", {
         method: "POST",
@@ -55,9 +83,11 @@ export default function NewCategoryPage() {
 
       if (res.ok) {
         console.log("Categoría creada con éxito");
-        // reset form
+        // Reset form
         setName("");
         setDescription("");
+        setThumbnail(null);
+        setThumbnailUrl("");
       } else {
         const err = await res.json();
         setError(err.message || "Error al crear categoría");
@@ -68,6 +98,8 @@ export default function NewCategoryPage() {
       setLoading(false);
     }
   };
+
+  const previewImage = getPreviewImage();
 
   return (
     <main className="p-6 space-y-6">
@@ -91,28 +123,72 @@ export default function NewCategoryPage() {
             <CardHeader>
               <CardTitle>Thumbnail</CardTitle>
             </CardHeader>
-            <CardContent>
-              <label className="flex flex-col items-center justify-center border-2 border-dashed rounded-lg p-6 cursor-pointer hover:bg-gray-50 transition">
-                {thumbnail ? (
+            <CardContent className="space-y-4">
+              {/* Preview */}
+              <div className="flex justify-center">
+                {previewImage ? (
                   <img
-                    src={URL.createObjectURL(thumbnail)}
-                    alt="thumbnail preview"
-                    className="w-32 h-32 object-cover rounded"
+                    src={previewImage}
+                    alt="Vista previa"
+                    className="w-32 h-32 object-cover rounded border"
                   />
                 ) : (
-                  <div className="flex flex-col items-center text-center text-muted-foreground">
-                    <Upload className="w-8 h-8 mb-2" />
-                    <span>Click to upload</span>
-                    <span className="text-xs">*.png, *.jpg, *.jpeg</span>
+                  <div className="w-32 h-32 border-2 border-dashed rounded flex items-center justify-center text-muted-foreground">
+                    <span className="text-sm text-center">Vista previa</span>
                   </div>
                 )}
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleThumbnailChange}
-                  className="hidden"
-                />
-              </label>
+              </div>
+
+              {/* Upload de archivo */}
+              <div>
+                <Label htmlFor="file-upload" className="text-sm font-medium">
+                  Subir imagen
+                </Label>
+                <label className="flex flex-col items-center justify-center border-2 border-dashed rounded-lg p-4 cursor-pointer hover:bg-gray-50 transition mt-1">
+                  <Upload className="w-6 h-6 mb-1 text-muted-foreground" />
+                  <span className="text-sm">Click para subir</span>
+                  <span className="text-xs text-muted-foreground">
+                    *.png, *.jpg, *.jpeg
+                  </span>
+                  <input
+                    id="file-upload"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleThumbnailChange}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+
+              {/* Separador O */}
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-300" />
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-2 bg-white text-gray-500">O</span>
+                </div>
+              </div>
+
+              {/* URL de imagen */}
+              <div>
+                <Label htmlFor="thumbnail-url" className="text-sm font-medium">
+                  Pegar URL de imagen
+                </Label>
+                <div className="flex items-center gap-2 mt-1">
+                  <LinkIcon className="w-4 h-4 text-muted-foreground" />
+                  <Input
+                    id="thumbnail-url"
+                    placeholder="https://ejemplo.com/imagen.jpg"
+                    value={thumbnailUrl}
+                    onChange={handleThumbnailUrlChange}
+                    className="flex-1"
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Pegar URL de imagen externa (Cloudinary, S3, etc.)
+                </p>
+              </div>
             </CardContent>
           </Card>
 
@@ -122,7 +198,7 @@ export default function NewCategoryPage() {
               <CardTitle>Status</CardTitle>
             </CardHeader>
             <CardContent>
-              <Select defaultValue="published">
+              <Select defaultValue="published" name="status">
                 <SelectTrigger>
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
@@ -140,7 +216,7 @@ export default function NewCategoryPage() {
               <CardTitle>Store Template</CardTitle>
             </CardHeader>
             <CardContent>
-              <Select defaultValue="default">
+              <Select defaultValue="default" name="template">
                 <SelectTrigger>
                   <SelectValue placeholder="Select template" />
                 </SelectTrigger>
@@ -169,8 +245,7 @@ export default function NewCategoryPage() {
                   onChange={(e) => setName(e.target.value)}
                   required
                 />
-                {error && <p className="text-sm text-red-500">{error}</p>}
-
+                {error && <p className="text-sm text-red-500 mt-1">{error}</p>}
                 <p className="text-xs text-muted-foreground mt-1">
                   A category name is required and recommended to be unique.
                 </p>
@@ -179,6 +254,8 @@ export default function NewCategoryPage() {
                 <Label htmlFor="description">Description</Label>
                 <Textarea
                   id="description"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
                   placeholder="Type your text here..."
                   rows={5}
                 />
@@ -197,7 +274,11 @@ export default function NewCategoryPage() {
             <CardContent className="space-y-4">
               <div>
                 <Label htmlFor="metaTitle">Meta Tag Title</Label>
-                <Input id="metaTitle" placeholder="Meta tag name" />
+                <Input
+                  id="metaTitle"
+                  placeholder="Meta tag name"
+                  name="metaTitle"
+                />
                 <p className="text-xs text-muted-foreground mt-1">
                   Set a meta tag title. Recommended to be simple and precise
                   keywords.
@@ -209,6 +290,7 @@ export default function NewCategoryPage() {
                   id="metaDescription"
                   placeholder="Type your text here..."
                   rows={4}
+                  name="metaDescription"
                 />
                 <p className="text-xs text-muted-foreground mt-1">
                   Set a meta tag description to the category for increased SEO
@@ -220,6 +302,7 @@ export default function NewCategoryPage() {
                 <Input
                   id="metaKeywords"
                   placeholder="keyword1, keyword2, ..."
+                  name="metaKeywords"
                 />
                 <p className="text-xs text-muted-foreground mt-1">
                   Separate the keywords by adding a comma between each keyword.

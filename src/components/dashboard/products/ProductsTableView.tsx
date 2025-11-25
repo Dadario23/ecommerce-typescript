@@ -1,4 +1,3 @@
-// src/components/dashboard/products/ProductsTableView.tsx
 import {
   Table,
   TableBody,
@@ -19,6 +18,14 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { MoreHorizontal, Edit, Eye, Trash2, ArrowUpDown } from "lucide-react";
 import { Product } from "@/types/product";
 import { SortConfig } from "@/types/product";
+
+// ✅ Helper para normalizar categorías
+function getCategoryName(category: any): string {
+  if (!category) return "Sin categoría";
+  if (typeof category === "string") return category;
+  if (typeof category === "object" && "name" in category) return category.name;
+  return "Sin categoría";
+}
 
 interface ProductsTableViewProps {
   products: Product[];
@@ -129,7 +136,7 @@ export function ProductsTableView({
                     {product.name}
                   </span>
                   <p className="text-xs text-gray-500 break-words">
-                    {product.category}
+                    {getCategoryName(product.category)}
                   </p>
                 </div>
               </TableCell>

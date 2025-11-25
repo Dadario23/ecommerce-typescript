@@ -14,43 +14,47 @@ import {
 } from "@/components/ui/dropdown-menu";
 import NavbarSearch from "./NavbarSearch";
 import { useSession, signOut } from "next-auth/react";
-import { useCartWithSession } from "@/hooks/useCartWithSession"; // ✅ solo sincroniza
+import { useCartWithSession } from "@/hooks/useCartWithSession";
 import { useCartUI } from "@/store/useCartUI";
 import { useCartStore } from "@/store/useCartStore";
 
-const categories = [
-  "Ofertas del Mes",
-  "TV - Video - Foto",
-  "Celulares",
-  "Informática",
-  "Gaming",
-  "Audio",
-  "Muebles",
-  "Hogar",
-  "Climatización",
-  "Electrodomésticos",
-  "Salud",
-  "Infantiles",
-  "Jardín",
-];
+interface Category {
+  _id: string;
+  name: string;
+  slug?: string;
+}
 
 export default function Navbar() {
   const router = useRouter();
   const sp = useSearchParams();
   const { data: session, status } = useSession();
 
-  // ✅ sincronizamos carrito al iniciar
   const { isLoading } = useCartWithSession();
-
-  // ✅ usamos el estado global de productos
   const itemsCount = useCartStore((state) =>
     state.items.reduce((acc, item) => acc + item.quantity, 0)
   );
-
   const { toggle } = useCartUI();
 
   const [q, setQ] = useState(sp.get("q") || "");
   const [results, setResults] = useState<any[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
+
+  // Cargar categorías dinámicas
+  useEffect(() => {
+    async function fetchCategories() {
+      try {
+        const res = await fetch("/api/categories/public");
+        const data = await res.json();
+        setCategories(data.categories || []);
+      } catch (error) {
+        console.error("Error fetching categories:", error);
+      } finally {
+        setCategoriesLoading(false);
+      }
+    }
+    fetchCategories();
+  }, []);
 
   useEffect(() => setQ(sp.get("q") || ""), [sp]);
 
@@ -71,13 +75,15 @@ export default function Navbar() {
     return () => clearTimeout(delay);
   }, [q]);
 
-  const onCategoryClick = (cat: string) => {
-    const slug = cat
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .toLowerCase()
-      .replace(/[\s-]+/g, "-")
-      .replace(/^-+|-+$/g, "");
+  const onCategoryClick = (category: Category) => {
+    const slug =
+      category.slug ||
+      category.name
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase()
+        .replace(/[\s-]+/g, "-")
+        .replace(/^-+|-+$/g, "");
     router.push(`/category/${slug}`);
   };
 
@@ -166,15 +172,34 @@ export default function Navbar() {
       </div>
 
       <nav className="flex flex-wrap md:flex-nowrap md:overflow-x-auto overflow-x-hidden px-4 bg-gray-50 text-sm shadow-sm scrollbar-hide">
-        {categories.map((cat) => (
-          <button
-            key={cat}
-            onClick={() => onCategoryClick(cat)}
-            className="px-4 py-2 whitespace-nowrap text-gray-700 hover:bg-gray-100 rounded"
-          >
-            {cat}
-          </button>
-        ))}
+        {/* "Ofertas del Mes" siempre visible */}
+        <button
+          onClick={() => router.push("/category/ofertas-del-mes")}
+          className="px-4 py-2 whitespace-nowrap text-red-600 font-semibold hover:bg-gray-100 transition-colors rounded"
+        >
+          Ofertas del Mes
+        </button>
+
+        {/* Categorías dinámicas desde la base de datos */}
+        {categoriesLoading
+          ? // Skeletons mientras cargan las categorías
+            [...Array(6)].map((_, i) => (
+              <div
+                key={i}
+                className="px-4 py-2 whitespace-nowrap text-gray-400 animate-pulse"
+              >
+                <div className="h-4 bg-gray-300 rounded w-16"></div>
+              </div>
+            ))
+          : categories.map((category) => (
+              <button
+                key={category._id}
+                onClick={() => onCategoryClick(category)}
+                className="px-4 py-2 whitespace-nowrap text-gray-700 hover:bg-gray-100 hover:text-blue-600 transition-colors rounded"
+              >
+                {category.name}
+              </button>
+            ))}
       </nav>
     </header>
   );

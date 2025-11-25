@@ -27,17 +27,10 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination";
-
-interface Category {
-  _id: string;
-  name: string;
-  description?: string;
-  type: "Automated" | "Manual";
-  thumbnail?: string;
-}
+import { normalizeCategories, CategoryOption } from "@/lib/normalizeCategories";
 
 export default function CategoriesPage() {
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [categories, setCategories] = useState<CategoryOption[]>([]);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
@@ -45,7 +38,6 @@ export default function CategoriesPage() {
 
   const perPage = 5;
 
-  // Traer categorías de la API
   async function fetchCategories() {
     try {
       setLoading(true);
@@ -53,8 +45,9 @@ export default function CategoriesPage() {
       if (!res.ok) throw new Error("Error al cargar categorías");
       const data = await res.json();
 
-      // Normalizar: si el endpoint devuelve { categories: [...] }
-      setCategories(Array.isArray(data) ? data : data.categories || []);
+      setCategories(
+        normalizeCategories(Array.isArray(data) ? data : data.categories || [])
+      );
     } catch (err: any) {
       setError(err.message || "Error desconocido");
     } finally {
@@ -66,7 +59,6 @@ export default function CategoriesPage() {
     fetchCategories();
   }, []);
 
-  // Filtrado y paginación
   const filtered = categories.filter((cat) =>
     cat.name.toLowerCase().includes(search.toLowerCase())
   );
@@ -75,7 +67,6 @@ export default function CategoriesPage() {
 
   return (
     <main className="p-6 space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Categories</h1>
         <Button asChild>
@@ -98,15 +89,11 @@ export default function CategoriesPage() {
         </CardHeader>
 
         <CardContent>
-          {/* Loading state */}
           {loading && <p className="text-gray-500">Loading categories...</p>}
-
-          {/* Error state */}
           {error && (
             <p className="text-red-500">Error loading categories: {error}</p>
           )}
 
-          {/* Tabla */}
           {!loading && !error && (
             <div className="rounded-md border overflow-x-auto">
               <Table>
@@ -121,42 +108,24 @@ export default function CategoriesPage() {
                 <TableBody>
                   {paginated.map((cat) => (
                     <TableRow key={cat._id}>
-                      {/* Checkbox */}
                       <TableCell>
                         <input type="checkbox" />
                       </TableCell>
-
-                      {/* Imagen + Nombre + Descripción */}
                       <TableCell className="flex items-center gap-3">
                         <img
-                          src={cat.thumbnail || "/images/placeholder.png"}
+                          src={"/images/placeholder.png"}
                           alt={cat.name}
                           className="h-10 w-10 rounded-md object-cover border"
                         />
                         <div>
                           <p className="font-medium">{cat.name}</p>
-                          {cat.description && (
-                            <p className="text-sm text-gray-500">
-                              {cat.description}
-                            </p>
-                          )}
                         </div>
                       </TableCell>
-
-                      {/* Tipo */}
                       <TableCell>
-                        <Badge
-                          className={`${
-                            cat.type === "Automated"
-                              ? "bg-green-100 text-green-700"
-                              : "bg-blue-100 text-blue-700"
-                          }`}
-                        >
-                          {cat.type}
+                        <Badge className="bg-blue-100 text-blue-700">
+                          Manual
                         </Badge>
                       </TableCell>
-
-                      {/* Acciones */}
                       <TableCell className="text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
@@ -191,7 +160,6 @@ export default function CategoriesPage() {
             </div>
           )}
 
-          {/* Paginación */}
           {!loading && totalPages > 1 && (
             <div className="mt-4">
               <Pagination>

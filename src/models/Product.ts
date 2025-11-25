@@ -1,14 +1,15 @@
+// src/models/Product.ts
 import mongoose, { Schema, Document } from "mongoose";
 
 export interface IProduct extends Document {
   name: string;
   slug: string;
   price: number;
-  compareAtPrice?: number; // precio tachado opcional
+  compareAtPrice?: number;
   description: string;
-  imageUrl: string; // imagen principal
-  images?: string[]; // galería opcional
-  category: string;
+  imageUrl: string;
+  images?: string[];
+  category: { _id: string; name: string } | string; // ✅ flexible
   brand?: string;
   stock?: number;
   sku?: string;
@@ -17,13 +18,13 @@ export interface IProduct extends Document {
 const ProductSchema: Schema = new Schema(
   {
     name: { type: String, required: true },
-    slug: { type: String, required: true, unique: true }, // para URL amigable
+    slug: { type: String, required: true, unique: true },
     price: { type: Number, required: true },
-    compareAtPrice: { type: Number }, // precio tachado (ej. 999 antes 799)
+    compareAtPrice: { type: Number },
     description: { type: String, required: true },
     imageUrl: { type: String, required: true },
-    images: [{ type: String }], // lista de imágenes
-    category: { type: String, required: true },
+    images: [{ type: String }],
+    category: { type: Schema.Types.ObjectId, ref: "Category", required: false },
     brand: { type: String },
     sku: { type: String },
     stock: { type: Number, default: 0 },
@@ -31,9 +32,8 @@ const ProductSchema: Schema = new Schema(
   { timestamps: true }
 );
 
-// Middleware para generar slug automáticamente desde el nombre
+// Middleware para generar slug automáticamente desde el name
 ProductSchema.pre<IProduct>("validate", function (next) {
-  // Siempre regenerar slug a partir del name
   this.slug = this.name
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")

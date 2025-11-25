@@ -21,7 +21,14 @@ interface Product {
   name: string;
   price: number;
   imageUrl?: string;
-  category: string;
+  category: any;
+}
+
+function getCategoryName(category: any): string {
+  if (!category) return "Sin categoría";
+  if (typeof category === "string") return category;
+  if (typeof category === "object" && "name" in category) return category.name;
+  return "Sin categoría";
 }
 
 function normalize(str: string) {
@@ -30,6 +37,16 @@ function normalize(str: string) {
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase();
 }
+
+// Mapeo de slugs a palabras clave en los nombres de productos
+const CATEGORY_KEYWORDS: { [key: string]: string[] } = {
+  celulares: ["celular", "moto", "galaxy", "smartphone", "mobile", "iphone"],
+  televisores: ["tv", "televisor", "smart tv", "pantalla"],
+  gaming: ["gamer", "gaming", "game", "victus", "zowie"],
+  computacion: ["notebook", "laptop", "monitor", "pc", "computadora"],
+  audio: ["auricular", "parlante", "audio", "sonido", "headphone"],
+  hogar: ["electrodoméstico", "hogar", "cocina", "lavarropas"],
+};
 
 export default function CategoryClient({ slug }: { slug: string }) {
   const [products, setProducts] = useState<Product[]>([]);
@@ -42,6 +59,7 @@ export default function CategoryClient({ slug }: { slug: string }) {
       try {
         const res = await fetch("/api/products");
         const data = await res.json();
+        console.log("📦 Productos cargados:", data.length);
         setProducts(data);
       } catch (error) {
         console.error("Error al cargar productos:", error);
@@ -53,9 +71,46 @@ export default function CategoryClient({ slug }: { slug: string }) {
   }, []);
 
   const normalizedSlug = normalize(decodeURIComponent(slug));
-  const filteredProducts = products.filter(
-    (p) => normalize(p.category) === normalizedSlug
-  );
+
+  // ✅ FILTRADO POR NOMBRE - solución inmediata
+  const filteredProducts = products.filter((product) => {
+    const productName = normalize(product.name);
+    const productCategory = normalize(getCategoryName(product.category));
+
+    // 1. Primero buscar por categoría asignada
+    if (productCategory === normalizedSlug) {
+      return true;
+    }
+
+    // 2. Si no tiene categoría, buscar por palabras clave en el nombre
+    const keywords = CATEGORY_KEYWORDS[normalizedSlug] || [normalizedSlug];
+    const matchesByName = keywords.some((keyword) =>
+      productName.includes(normalize(keyword))
+    );
+
+    if (matchesByName) {
+      console.log("✅ Producto encontrado por nombre:", {
+        nombre: product.name,
+        categoriaAsignada: getCategoryName(product.category),
+        keyword: keywords.find((k) => productName.includes(normalize(k))),
+      });
+      return true;
+    }
+
+    return false;
+  });
+
+  console.log("🔍 Debug Filtrado:", {
+    slugBuscado: normalizedSlug,
+    totalProductos: products.length,
+    productosFiltrados: filteredProducts.length,
+    palabrasClave: CATEGORY_KEYWORDS[normalizedSlug] || [normalizedSlug],
+    productosEncontrados: filteredProducts.map((p) => ({
+      name: p.name,
+      category: getCategoryName(p.category),
+      price: p.price,
+    })),
+  });
 
   const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
   const start = (page - 1) * itemsPerPage;
@@ -90,24 +145,48 @@ export default function CategoryClient({ slug }: { slug: string }) {
             {decodeURIComponent(slug)}
           </h1>
 
+          {/* Información de debug */}
+          {process.env.NODE_ENV === "development" && (
+            <div className="mb-4 p-3 bg-blue-50 rounded text-sm">
+              <strong>Debug:</strong> {filteredProducts.length} productos de{" "}
+              {products.length} totales
+              <br />
+              <strong>Palabras clave usadas:</strong>{" "}
+              {CATEGORY_KEYWORDS[normalizedSlug]?.join(", ") || normalizedSlug}
+            </div>
+          )}
+
           {/* Grid de productos */}
           {loading ? (
-            // ✅ Skeletons mientras cargan los productos
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {Array.from({ length: itemsPerPage }).map((_, idx) => (
                 <ProductCardSkeleton key={idx} />
               ))}
             </div>
           ) : paginatedProducts.length > 0 ? (
-            // ✅ Productos cargados
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {paginatedProducts.map((product) => (
                 <ProductCard key={product._id} product={product} />
               ))}
             </div>
           ) : (
-            // ✅ Si no hay productos
-            <p>No hay productos disponibles en esta categoría.</p>
+            <div className="text-center py-8">
+              <p className="text-gray-500 mb-4">
+                No hay productos disponibles en esta categoría.
+              </p>
+              <div className="text-sm text-gray-400 space-y-1">
+                <p>Categoría: "{decodeURIComponent(slug)}"</p>
+                <p>Total productos: {products.length}</p>
+                <p>
+                  Con categoría asignada:{" "}
+                  {
+                    products.filter(
+                      (p) => getCategoryName(p.category) !== "Sin categoría"
+                    ).length
+                  }
+                </p>
+              </div>
+            </div>
           )}
 
           {/* Paginación */}

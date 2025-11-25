@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { SlidersHorizontal, X } from "lucide-react";
+import { normalizeCategories, CategoryOption } from "@/lib/normalizeCategories";
 
 interface Filters {
   search: string;
@@ -23,8 +24,8 @@ interface Filters {
 interface ProductsFiltersProps {
   filters: Filters;
   onFiltersChange: (filters: Filters) => void;
-  categories: string[];
-  className?: string; // ✅ opcional
+  categories: any[]; // 👈 puede venir mezclado desde API
+  className?: string;
 }
 
 export function ProductsFilters({
@@ -32,6 +33,10 @@ export function ProductsFilters({
   onFiltersChange,
   categories,
 }: ProductsFiltersProps) {
+  // ✅ Normalizamos siempre que renderizamos
+  const normalizedCategories: CategoryOption[] =
+    normalizeCategories(categories);
+
   const hasActiveFilters = Object.values(filters).some(
     (value) => value !== "" && value !== "all" && value !== "0"
   );
@@ -64,6 +69,7 @@ export function ProductsFilters({
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* 🔍 Buscar */}
         <Input
           className="w-full"
           placeholder="Buscar por nombre o SKU..."
@@ -73,6 +79,7 @@ export function ProductsFilters({
           }
         />
 
+        {/* 📂 Categoría */}
         <Select
           value={filters.category}
           onValueChange={(value) =>
@@ -84,14 +91,18 @@ export function ProductsFilters({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todas las categorías</SelectItem>
-            {categories.map((category) => (
-              <SelectItem key={category} value={category}>
-                {category}
+            {normalizedCategories.map((category, idx) => (
+              <SelectItem
+                key={category._id || `cat-${idx}`}
+                value={category._id}
+              >
+                {category.name}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
 
+        {/* 📌 Estado */}
         <Select
           value={filters.status}
           onValueChange={(value) =>
@@ -108,6 +119,7 @@ export function ProductsFilters({
           </SelectContent>
         </Select>
 
+        {/* 📦 Stock */}
         <Select
           value={filters.stock}
           onValueChange={(value) =>
@@ -125,6 +137,7 @@ export function ProductsFilters({
           </SelectContent>
         </Select>
 
+        {/* 💲 Precio mínimo */}
         <Input
           type="number"
           placeholder="Precio mínimo"
@@ -134,6 +147,7 @@ export function ProductsFilters({
           }
         />
 
+        {/* 💲 Precio máximo */}
         <Input
           type="number"
           placeholder="Precio máximo"
@@ -143,6 +157,7 @@ export function ProductsFilters({
           }
         />
 
+        {/* ⭐ Rating */}
         <Select
           value={filters.minRating}
           onValueChange={(value) =>

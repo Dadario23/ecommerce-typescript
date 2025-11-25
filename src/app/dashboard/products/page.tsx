@@ -17,6 +17,14 @@ import { ProductsPagination } from "@/components/dashboard/products/ProductsPagi
 import { ConfirmModal } from "@/components/dashboard/shared/ConfirmModal";
 import { Product } from "@/types/product";
 
+// ✅ Helper para normalizar categorías
+function getCategoryName(category: any): string {
+  if (!category) return "Sin categoría";
+  if (typeof category === "string") return category;
+  if (typeof category === "object" && "name" in category) return category.name;
+  return "Sin categoría";
+}
+
 // Hook para detectar mobile
 function useIsMobile() {
   const [isMobile, setIsMobile] = useState(false);
@@ -74,10 +82,10 @@ export default function ProductsPage() {
 
   const debouncedSearch = useDebounce(filters.search, 300);
 
-  // categories deduced from products
+  // ✅ categorías deducidas de los productos (usando getCategoryName)
   const categories = useMemo(() => {
     const uniqueCategories = Array.from(
-      new Set(products.map((p) => p.category))
+      new Set(products.map((p) => getCategoryName(p.category)))
     );
     return ["all", ...uniqueCategories];
   }, [products]);
@@ -105,7 +113,7 @@ export default function ProductsPage() {
     fetchProducts();
   }, [fetchProducts]);
 
-  // reset pagina cuando cambian filtros / búsqueda
+  // reset página cuando cambian filtros / búsqueda
   useEffect(() => {
     setCurrentPage(1);
   }, [
@@ -118,7 +126,7 @@ export default function ProductsPage() {
     filters.minRating,
   ]);
 
-  // ajustar currentPage si itemsPerPage cambia (ej: ponemos menos items por página)
+  // ajustar currentPage si itemsPerPage cambia
   useEffect(() => {
     setCurrentPage((prev) =>
       Math.min(prev, Math.max(1, Math.ceil(products.length / itemsPerPage)))
@@ -133,7 +141,9 @@ export default function ProductsPage() {
         product.sku?.toLowerCase().includes(debouncedSearch.toLowerCase());
 
       const matchesCategory =
-        filters.category === "all" || product.category === filters.category;
+        filters.category === "all" ||
+        getCategoryName(product.category) === filters.category;
+
       const matchesStatus =
         filters.status === "all" ||
         (filters.status === "active" ? product.isActive : !product.isActive);
@@ -168,10 +178,8 @@ export default function ProductsPage() {
       const aValue = a[sortConfig.key];
       const bValue = b[sortConfig.key];
 
-      // manejo simple para strings/numbers/undefined
       if (aValue === undefined || bValue === undefined) return 0;
 
-      // convertir a string si es necesario para comparar
       if (typeof aValue === "string" && typeof bValue === "string") {
         return sortConfig.direction === "asc"
           ? aValue.localeCompare(bValue)
@@ -184,7 +192,6 @@ export default function ProductsPage() {
           : bValue - aValue;
       }
 
-      // fallback
       return 0;
     });
 
@@ -255,7 +262,6 @@ export default function ProductsPage() {
       });
       if (response.ok) {
         toast({ title: "Éxito", description: "Producto eliminado" });
-        // si el producto eliminado estaba en la página actual y dejamos página vacía, retroceder 1 página
         const remaining = filteredAndSortedProducts.length - 1;
         const newTotalPages = Math.max(1, Math.ceil(remaining / itemsPerPage));
         if (currentPage > newTotalPages) setCurrentPage(newTotalPages);
@@ -307,9 +313,11 @@ export default function ProductsPage() {
       headers.join(","),
       ...filteredAndSortedProducts.map(
         (p) =>
-          `"${p.name}","${p.sku || ""}",${p.price},${p.stock || 0},"${
-            p.category
-          }","${p.isActive ? "Activo" : "Inactivo"}"`
+          `"${p.name}","${p.sku || ""}",${p.price},${
+            p.stock || 0
+          },"${getCategoryName(p.category)}","${
+            p.isActive ? "Activo" : "Inactivo"
+          }"`
       ),
     ].join("\n");
 
@@ -373,7 +381,6 @@ export default function ProductsPage() {
             onDelete={() => handleBulkAction("delete")}
           />
 
-          {/* view toggle only on desktop */}
           {!isMobile && (
             <div className="flex justify-end mb-4">
               <div className="flex border rounded-md overflow-hidden">
@@ -397,7 +404,6 @@ export default function ProductsPage() {
             </div>
           )}
 
-          {/* grid on mobile OR when user selected grid */}
           {isMobile || viewMode === "grid" ? (
             <ProductsGridView
               products={paginatedProducts}

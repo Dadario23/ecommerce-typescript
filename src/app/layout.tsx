@@ -7,6 +7,7 @@ import CartDrawer from "@/components/cart/CartDrawer";
 import { CartProvider } from "@/providers/CartProvider";
 import LayoutWrapper from "@/components/LayoutWrapper";
 import { ToastProvider } from "@/hooks/use-toast";
+import DebugImageRequests from "@/components/DebugImageRequests";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -37,6 +38,7 @@ export default function RootLayout({
           <ToastProvider>
             <CartProvider>
               <CartDrawer />
+              <DebugImageRequests />
               <LayoutWrapper>{children}</LayoutWrapper>
             </CartProvider>
           </ToastProvider>

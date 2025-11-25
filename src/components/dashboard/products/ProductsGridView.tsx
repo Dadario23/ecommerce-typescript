@@ -1,4 +1,3 @@
-// src/components/dashboard/products/ProductsGridView.tsx
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -10,6 +9,14 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { MoreHorizontal, Edit, Eye, Trash2 } from "lucide-react";
 import { Product } from "@/types/product";
+
+// ✅ Helper para normalizar categorías
+function getCategoryName(category: any): string {
+  if (!category) return "Sin categoría";
+  if (typeof category === "string") return category;
+  if (typeof category === "object" && "name" in category) return category.name;
+  return "Sin categoría";
+}
 
 interface ProductsGridViewProps {
   products: Product[];
@@ -63,7 +70,9 @@ export function ProductsGridView({
               <h3 className="font-semibold text-sm line-clamp-2">
                 {product.name}
               </h3>
-              <p className="text-xs text-gray-500">{product.category}</p>
+              <p className="text-xs text-gray-500">
+                {getCategoryName(product.category)}
+              </p>
 
               <div className="flex flex-wrap gap-1">
                 {product.sku && (

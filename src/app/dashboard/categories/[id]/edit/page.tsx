@@ -14,6 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { LinkIcon } from "lucide-react";
 
 export default function EditCategoryPage() {
   const { id } = useParams();
@@ -78,6 +79,51 @@ export default function EditCategoryPage() {
       >
         {/* Columna izquierda */}
         <div className="space-y-6">
+          {/* Thumbnail */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Thumbnail</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Preview */}
+              <div className="flex justify-center">
+                {category.thumbnail ? (
+                  <img
+                    src={category.thumbnail}
+                    alt="Vista previa"
+                    className="w-32 h-32 object-cover rounded border"
+                  />
+                ) : (
+                  <div className="w-32 h-32 border-2 border-dashed rounded flex items-center justify-center text-muted-foreground">
+                    <span className="text-sm text-center">Sin imagen</span>
+                  </div>
+                )}
+              </div>
+
+              {/* URL de imagen */}
+              <div>
+                <Label htmlFor="thumbnail" className="text-sm font-medium">
+                  URL de la imagen
+                </Label>
+                <div className="flex items-center gap-2 mt-1">
+                  <LinkIcon className="w-4 h-4 text-muted-foreground" />
+                  <Input
+                    id="thumbnail"
+                    placeholder="https://ejemplo.com/imagen.jpg"
+                    value={category.thumbnail || ""}
+                    onChange={(e) =>
+                      setCategory({ ...category, thumbnail: e.target.value })
+                    }
+                    className="flex-1"
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  URL de imagen externa (Cloudinary, S3, etc.)
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Status */}
           <Card>
             <CardHeader>
