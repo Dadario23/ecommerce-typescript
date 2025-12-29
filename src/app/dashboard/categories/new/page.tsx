@@ -26,32 +26,45 @@ export default function NewCategoryPage() {
   const handleThumbnailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files?.[0]) {
       setThumbnail(e.target.files[0]);
-      setThumbnailUrl(""); // Reset URL si suben archivo
+      setThumbnailUrl("");
     }
   };
 
   const handleThumbnailUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setThumbnailUrl(e.target.value);
-    setThumbnail(null); // Reset file si usan URL
+    setThumbnail(null);
   };
 
   const getPreviewImage = () => {
-    if (thumbnail) {
-      return URL.createObjectURL(thumbnail);
-    }
-    if (thumbnailUrl) {
-      return thumbnailUrl;
-    }
+    if (thumbnail) return URL.createObjectURL(thumbnail);
+    if (thumbnailUrl) return thumbnailUrl;
     return null;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    /* ===== VALIDACIONES (SOLO LÓGICA) ===== */
     if (!name.trim()) {
       setError("El nombre de la categoría es obligatorio");
       return;
     }
+
+    if (name.trim().length < 3) {
+      setError("El nombre debe tener al menos 3 caracteres");
+      return;
+    }
+
+    if (!thumbnail && !thumbnailUrl.trim()) {
+      setError("Debes subir una imagen o ingresar una URL");
+      return;
+    }
+
+    if (description && description.trim().length < 10) {
+      setError("La descripción debe tener al menos 10 caracteres");
+      return;
+    }
+    /* ===================================== */
 
     try {
       setLoading(true);
@@ -63,16 +76,12 @@ export default function NewCategoryPage() {
         status: "published",
       };
 
-      // Agregar thumbnail si se proporcionó URL
       if (thumbnailUrl.trim()) {
         newCategory.thumbnail = thumbnailUrl.trim();
       }
 
-      // TODO: Manejar upload de archivo si se seleccionó
       if (thumbnail) {
-        // Aquí iría la lógica para subir el archivo
         console.log("Subir archivo:", thumbnail);
-        // Por ahora solo usamos la URL
       }
 
       const res = await fetch("/api/categories", {
@@ -82,8 +91,6 @@ export default function NewCategoryPage() {
       });
 
       if (res.ok) {
-        console.log("Categoría creada con éxito");
-        // Reset form
         setName("");
         setDescription("");
         setThumbnail(null);
@@ -124,7 +131,6 @@ export default function NewCategoryPage() {
               <CardTitle>Thumbnail</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* Preview */}
               <div className="flex justify-center">
                 {previewImage ? (
                   <img
@@ -139,7 +145,6 @@ export default function NewCategoryPage() {
                 )}
               </div>
 
-              {/* Upload de archivo */}
               <div>
                 <Label htmlFor="file-upload" className="text-sm font-medium">
                   Subir imagen
@@ -160,7 +165,6 @@ export default function NewCategoryPage() {
                 </label>
               </div>
 
-              {/* Separador O */}
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">
                   <div className="w-full border-t border-gray-300" />
@@ -170,7 +174,6 @@ export default function NewCategoryPage() {
                 </div>
               </div>
 
-              {/* URL de imagen */}
               <div>
                 <Label htmlFor="thumbnail-url" className="text-sm font-medium">
                   Pegar URL de imagen
@@ -243,13 +246,13 @@ export default function NewCategoryPage() {
                   id="name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  required
                 />
                 {error && <p className="text-sm text-red-500 mt-1">{error}</p>}
                 <p className="text-xs text-muted-foreground mt-1">
                   A category name is required and recommended to be unique.
                 </p>
               </div>
+
               <div>
                 <Label htmlFor="description">Description</Label>
                 <Textarea
@@ -284,6 +287,7 @@ export default function NewCategoryPage() {
                   keywords.
                 </p>
               </div>
+
               <div>
                 <Label htmlFor="metaDescription">Meta Tag Description</Label>
                 <Textarea
@@ -297,6 +301,7 @@ export default function NewCategoryPage() {
                   ranking.
                 </p>
               </div>
+
               <div>
                 <Label htmlFor="metaKeywords">Meta Tag Keywords</Label>
                 <Input
@@ -311,9 +316,9 @@ export default function NewCategoryPage() {
             </CardContent>
           </Card>
 
-          {/* Botón Guardar */}
+          {/* Botón */}
           <div className="flex justify-end">
-            <Button type="submit" disabled={loading}>
+            <Button type="submit">
               {loading ? "Creando..." : "Guardar Categoría"}
             </Button>
           </div>

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import Product from "@/models/Product";
+import Category from "@/models/Category";
 
 export async function GET(req: Request) {
   try {
@@ -9,16 +10,24 @@ export async function GET(req: Request) {
 
     const query = searchParams.get("query") || "";
     const mode = searchParams.get("mode") || "suggest"; // 👈 Nuevo parámetro
+    // 1️⃣ Buscar categorías cuyo nombre coincida con el query
+    const matchedCategories = await Category.find({
+      name: { $regex: query, $options: "i" },
+    })
+      .select("_id")
+      .lean();
+
+    // 2️⃣ Extraer solo los IDs
+    const categoryIds = matchedCategories.map((cat) => cat._id);
 
     if (!query.trim()) {
       return NextResponse.json([]);
     }
 
-    // Construimos la búsqueda: nombre o categoría
     const filter = {
       $or: [
         { name: { $regex: query, $options: "i" } },
-        { category: { $regex: query, $options: "i" } },
+        ...(categoryIds.length > 0 ? [{ category: { $in: categoryIds } }] : []),
       ],
     };
 

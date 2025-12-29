@@ -12,7 +12,7 @@ async function getCategories() {
     const res = await fetch(
       `${process.env.NEXTAUTH_URL}/api/categories/public`,
       {
-        next: { revalidate: 3600 }, // Revalidar cada hora
+        cache: "no-store", // ⬅️ CLAVE
       }
     );
 

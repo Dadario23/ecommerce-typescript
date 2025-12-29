@@ -113,7 +113,7 @@ export default function CategoriesPage() {
                       </TableCell>
                       <TableCell className="flex items-center gap-3">
                         <img
-                          src={"/images/placeholder.png"}
+                          src={cat.thumbnail || "/images/placeholder.png"}
                           alt={cat.name}
                           className="h-10 w-10 rounded-md object-cover border"
                         />
@@ -121,6 +121,7 @@ export default function CategoriesPage() {
                           <p className="font-medium">{cat.name}</p>
                         </div>
                       </TableCell>
+
                       <TableCell>
                         <Badge className="bg-blue-100 text-blue-700">
                           Manual

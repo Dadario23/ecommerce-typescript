@@ -14,33 +14,12 @@ interface CategoriesGridProps {
   categories: Category[];
 }
 
-// Imágenes por defecto para categorías sin thumbnail
-const DEFAULT_IMAGES: { [key: string]: string } = {
-  Celulares: "https://m.media-amazon.com/images/I/510T1rLLZGL._AC_SL1000_.jpg",
-  Televisores:
-    "https://de2kqc9pq55cj.cloudfront.net/fit-in/700x700/filters:fill(FFFFFF):quality(90):format(webp)/_img_productos/smart-tv-xion-40-xi-led40smart-foto1.jpg",
-  Computación:
-    "https://acdn-us.mitiendanube.com/stores/003/998/438/products/-80f435231f1866e4f317092992919117-1024-1024.webp",
-  Gaming:
-    "https://www.pngall.com/wp-content/uploads/5/PlayStation-5-PNG-Free-Download.png",
-  Audio:
-    "https://www.lg.com/ar/images/equipos-de-musica/md05877776/gallery/CM4460_Z01_130917.jpg",
-  Hogar:
-    "https://i.pinimg.com/1200x/53/0b/73/530b73b40dbb92fb2c247b1f6c5ef76a.jpg",
-  Electrodomésticos:
-    "https://i.pinimg.com/736x/52/64/a1/5264a12da4977ca3d9fb06daa492184a.jpg",
-  Informatica:
-    "https://acdn-us.mitiendanube.com/stores/003/998/438/products/-80f435231f1866e4f317092992919117-1024-1024.webp",
-  Electrónicos:
-    "https://i.pinimg.com/736x/52/64/a1/5264a12da4977ca3d9fb06daa492184a.jpg",
-};
-
 // SVG placeholder como data URL (SIEMPRE disponible)
 const PLACEHOLDER_SVG =
   "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 64 64' fill='none'%3E%3Crect width='64' height='64' fill='%23f3f4f6'/%3E%3Cpath d='M32 28C33.1 28 34 27.1 34 26C34 24.9 33.1 24 32 24C30.9 24 30 24.9 30 26C30 27.1 30.9 28 32 28ZM32 40C36.4 40 40 36.4 40 32C40 27.6 36.4 24 32 24C27.6 24 24 27.6 24 32C24 36.4 27.6 40 32 40Z' fill='%239ca3af'/%3E%3C/svg%3E";
 
 function getCategoryImage(category: Category): string {
-  // 1. Si tiene thumbnail válido en la base de datos, usarlo
+  // 1. Thumbnail desde la base de datos (SIEMPRE prioridad)
   if (
     category.thumbnail &&
     category.thumbnail.trim() !== "" &&
@@ -49,12 +28,7 @@ function getCategoryImage(category: Category): string {
     return category.thumbnail;
   }
 
-  // 2. Si existe en DEFAULT_IMAGES, usarlo
-  if (DEFAULT_IMAGES[category.name]) {
-    return DEFAULT_IMAGES[category.name];
-  }
-
-  // 3. SIEMPRE devolver data URL, NUNCA una ruta de archivo
+  // 2. Placeholder final (sin lógica por nombre)
   return PLACEHOLDER_SVG;
 }
 
@@ -98,7 +72,6 @@ export default function CategoriesGrid({ categories }: CategoriesGridProps) {
       console.log(`- ${category.name}:`, {
         hasThumbnail: !!category.thumbnail,
         thumbnail: category.thumbnail,
-        defaultImage: DEFAULT_IMAGES[category.name],
         finalImage: imageUrl,
         usesPlaceholder: imageUrl === PLACEHOLDER_SVG,
       });

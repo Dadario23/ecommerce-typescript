@@ -41,7 +41,9 @@ export default function SearchPage() {
         );
 
         const data = await res.json();
-        setProducts(data);
+        console.log("Resultados de búsqueda:", data);
+
+        setProducts(Array.isArray(data) ? data : []);
       } catch (error) {
         console.error("Error al buscar productos:", error);
       } finally {
