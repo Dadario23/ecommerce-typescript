@@ -40,7 +40,7 @@ const checkoutSchema = z.object({
 
 type CheckoutForm = z.infer<typeof checkoutSchema>;
 
-export default function CheckoutClien() {
+export default function CheckoutClient() {
   const router = useRouter();
   const { data: session, status } = useSession();
   const items = useCartStore((state) => state.items);

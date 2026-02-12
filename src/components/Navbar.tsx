@@ -26,16 +26,17 @@ interface Category {
 
 export default function Navbar() {
   const router = useRouter();
-  const sp = useSearchParams();
+  /* const searchParams = useSearchParams(); */
   const { data: session, status } = useSession();
 
   const { isLoading } = useCartWithSession();
   const itemsCount = useCartStore((state) =>
-    state.items.reduce((acc, item) => acc + item.quantity, 0)
+    state.items.reduce((acc, item) => acc + item.quantity, 0),
   );
   const { toggle } = useCartUI();
 
-  const [q, setQ] = useState(sp.get("q") || "");
+  // 🔥 NO leer searchParams en render inicial
+  const [q, setQ] = useState("");
   const [results, setResults] = useState<any[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
@@ -56,13 +57,12 @@ export default function Navbar() {
     fetchCategories();
   }, []);
 
-  useEffect(() => setQ(sp.get("q") || ""), [sp]);
-
   useEffect(() => {
     if (q.length < 2) {
       setResults([]);
       return;
     }
+
     const delay = setTimeout(async () => {
       try {
         const res = await fetch(`/api/products/search?query=${q}`);
@@ -72,6 +72,7 @@ export default function Navbar() {
         console.error("Error buscando productos:", err);
       }
     }, 300);
+
     return () => clearTimeout(delay);
   }, [q]);
 
@@ -84,6 +85,7 @@ export default function Navbar() {
         .toLowerCase()
         .replace(/[\s-]+/g, "-")
         .replace(/^-+|-+$/g, "");
+
     router.push(`/category/${slug}`);
   };
 
