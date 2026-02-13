@@ -6,7 +6,7 @@ panel de administración y render dinámico desde servidor.
 
 ## 🚀 Tecnologías
 
-- Next.js 14 (App Router)
+- Next.js 15 (App Router)
 - TypeScript
 - MongoDB Atlas + Mongoose
 - NextAuth.js
@@ -42,7 +42,7 @@ docs/images.md
 
 ## 🌐 Demo
 
-👉 https://TU-PROYECTO.vercel.app
+👉 https://ecommerce-typescript-x6ux.vercel.app/
 
 ## 🛠️ Instalación local
 
