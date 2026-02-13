@@ -127,7 +127,7 @@ export default function CheckoutClient() {
         state: data.state,
         zipCode: data.postalCode,
         country: data.country,
-        phone: "", // Podrías agregar campo de teléfono al formulario
+        phone: "",
       },
       items,
       total,
@@ -140,11 +140,17 @@ export default function CheckoutClient() {
         body: JSON.stringify(orderData),
       });
 
-      if (res.ok) {
-        alert("Pedido confirmado ✅");
-        clearCart();
-        router.push("/order-success");
+      if (!res.ok) {
+        throw new Error("Error al crear la orden");
       }
+
+      const createdOrder = await res.json();
+
+      // 🔥 Limpiar carrito
+      clearCart();
+
+      // 🚀 Redirigir directamente al resumen con id
+      router.push(`/order-success?orderId=${createdOrder._id}`);
     } catch (error) {
       console.error("Error processing order:", error);
     }
