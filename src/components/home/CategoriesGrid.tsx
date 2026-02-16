@@ -48,7 +48,7 @@ export default function CategoriesGrid({ categories }: CategoriesGridProps) {
   const handleImageError = (categoryId: string, imageUrl: string) => {
     console.error(
       `❌ Error cargando imagen para categoría ${categoryId}:`,
-      imageUrl
+      imageUrl,
     );
     setImageErrors((prev) => new Set(prev).add(categoryId));
   };
@@ -88,10 +88,10 @@ export default function CategoriesGrid({ categories }: CategoriesGridProps) {
 
   return (
     <div className="bg-gray-100 mt-6 p-6 rounded-lg">
-      <h2 className="text-2xl font-bold text-center mb-6">
+      {/* <h2 className="text-2xl font-bold text-center mb-6">
         Nuestras Categorías
-      </h2>
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-6 text-center">
+      </h2> */}
+      <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6 text-center">
         {categories.map((category) => {
           const slug = generateSlug(category);
           const imageUrl = getFinalImageUrl(category);
@@ -102,13 +102,12 @@ export default function CategoriesGrid({ categories }: CategoriesGridProps) {
               href={`/category/${slug}`}
               className="flex flex-col items-center cursor-pointer group hover:scale-105 transition-transform duration-200"
             >
-              <div className="w-20 h-20 rounded-full border-2 border-white bg-white group-hover:border-blue-500 transition-colors duration-200 overflow-hidden flex items-center justify-center">
+              <div className="w-36 h-36 rounded-full border-2 border-white bg-white group-hover:border-blue-500 transition-colors duration-200 overflow-hidden flex items-center justify-center">
                 <img
                   src={imageUrl}
                   alt={category.name}
-                  className="w-16 h-16 object-contain"
+                  className="w-42 h-42 object-contain"
                   onError={() => handleImageError(category._id, imageUrl)}
-                  // 👇 Prevenir que el navegador cachee mal las imágenes
                   key={`${category._id}-${imageUrl}`}
                 />
               </div>

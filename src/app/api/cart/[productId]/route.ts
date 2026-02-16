@@ -6,7 +6,7 @@ import { connectDB } from "@/lib/mongodb";
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { productId: string } }
+  context: { params: Promise<{ productId: string }> },
 ) {
   try {
     await connectDB();
@@ -16,12 +16,12 @@ export async function DELETE(
       return NextResponse.json({ error: "No autenticado" }, { status: 401 });
     }
 
-    const { productId } = params;
+    const { productId } = await context.params;
 
     const cart = await Cart.findOneAndUpdate(
       { userId: session.user.id },
-      { $pull: { items: { id: productId } } }, // 👈 elimina solo ese producto
-      { new: true }
+      { $pull: { items: { id: productId } } },
+      { new: true },
     );
 
     return NextResponse.json({
@@ -32,7 +32,7 @@ export async function DELETE(
     console.error("[API CART] Error al eliminar producto:", error);
     return NextResponse.json(
       { error: "Error interno del servidor" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

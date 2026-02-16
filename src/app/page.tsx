@@ -13,7 +13,7 @@ async function getCategories() {
       `${process.env.NEXTAUTH_URL}/api/categories/public`,
       {
         cache: "no-store", // ⬅️ CLAVE
-      }
+      },
     );
 
     if (!res.ok) {
@@ -32,8 +32,10 @@ export default async function HomePage() {
   const categories = await getCategories();
 
   return (
-    <main className="pt-[140px] px-4 max-w-7xl mx-auto">
-      <Carousel />
+    <main className="pt-20 md:pt-32 px-4 max-w-7xl mx-auto">
+      <div className="hidden md:block">
+        <Carousel />
+      </div>
 
       {/* Barra de beneficios */}
       <BenefitsBar />

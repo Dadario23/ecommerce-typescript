@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 
 export default function ProductCard({ product }: any) {
@@ -15,11 +16,14 @@ export default function ProductCard({ product }: any) {
           </span>
         )}
 
-        <img
-          src={product.imageUrl} // ✅ corregido a imageUrl
-          alt={product.name}
-          className="w-full h-72 object-contain"
-        />
+        <div className="relative w-full aspect-square mb-3 overflow-hidden rounded-md">
+          <Image
+            src={product.imageUrl}
+            alt={product.name}
+            fill
+            className="object-cover transition-transform duration-300 group-hover:scale-105"
+          />
+        </div>
 
         <h3 className="font-medium text-sm mb-2">{product.name}</h3>
         {product.brand && (
