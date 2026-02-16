@@ -11,7 +11,7 @@ export async function GET() {
     // Solo categorías publicadas, con campos básicos
     const categories = await Category.find(
       { status: "published" },
-      "name slug description thumbnail"
+      "name slug description thumbnail",
     ).sort({ name: 1 });
 
     return NextResponse.json({ categories });
@@ -19,7 +19,7 @@ export async function GET() {
     console.error("Error fetching public categories:", error);
     return NextResponse.json(
       { error: "Error al obtener categorías" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

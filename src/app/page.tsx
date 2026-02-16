@@ -4,24 +4,27 @@ import CatalogBanner from "@/components/home/CatalogBanner";
 import HomeProductsSection from "@/components/home/HomeProductsSection";
 import CategoriesGrid from "@/components/home/CategoriesGrid";
 
-// Esto hace que la página sea dinámica y siempre tenga las categorías actualizadas
+import { connectDB } from "@/lib/mongodb";
+import { initModels } from "@/lib/initModels";
+import Category from "@/models/Category";
+
+// Esto hace que la página sea dinámica
 export const dynamic = "force-dynamic";
 
 async function getCategories() {
   try {
-    const res = await fetch(
-      `${process.env.NEXTAUTH_URL}/api/categories/public`,
-      {
-        cache: "no-store", // ⬅️ CLAVE
-      },
-    );
+    await connectDB();
+    initModels();
 
-    if (!res.ok) {
-      throw new Error("Failed to fetch categories");
-    }
+    const categories = await Category.find(
+      { status: "published" },
+      "name slug description thumbnail",
+    )
+      .sort({ name: 1 })
+      .lean();
 
-    const data = await res.json();
-    return data.categories || [];
+    // 👇 Importante: evitar problemas de serialización con Mongo
+    return JSON.parse(JSON.stringify(categories));
   } catch (error) {
     console.error("Error fetching categories:", error);
     return [];
@@ -37,16 +40,12 @@ export default async function HomePage() {
         <Carousel />
       </div>
 
-      {/* Barra de beneficios */}
       <BenefitsBar />
 
-      {/* Categorías dinámicas */}
       <CategoriesGrid categories={categories} />
 
-      {/* Productos */}
       <HomeProductsSection />
 
-      {/* Banner de catálogo */}
       <CatalogBanner />
     </main>
   );
