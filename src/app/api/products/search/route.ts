@@ -35,7 +35,7 @@ export async function GET(req: Request) {
     if (mode === "suggest") {
       const products = await Product.find(filter)
         .limit(5)
-        .select("name slug imageUrl images price")
+        .select("name slug images price")
         .lean();
 
       return NextResponse.json(products);
@@ -48,7 +48,7 @@ export async function GET(req: Request) {
     console.error("[SEARCH_API_ERROR]", error);
     return NextResponse.json(
       { error: "Error al buscar productos" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

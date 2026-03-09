@@ -18,6 +18,8 @@ const nextConfig: NextConfig = {
       "www.perozzi.com.ar",
       "www.rodo.com.ar",
       "i.pinimg.com",
+      "res.cloudinary.com",
+      "lh3.googleusercontent.com",
     ],
   },
 };

@@ -2,8 +2,9 @@
 
 import { Button } from "@/components/ui/button";
 import { IProduct } from "@/models/Product";
-import { useCartUI } from "@/store/useCartUI"; // ✅ usamos el store real
+import { useCartUI } from "@/store/useCartUI";
 import { useCartStore } from "@/store/useCartStore";
+
 interface ProductBuyActionsProps {
   product: IProduct;
 }
@@ -13,15 +14,18 @@ export default function ProductBuyActions({ product }: ProductBuyActionsProps) {
   const openCart = useCartUI((state) => state.open);
 
   const handleBuy = () => {
+    // ✅ usamos la primera imagen como imagen principal
+    const mainImage = product.images?.[0] || "";
+
     addToCart({
       id: String(product._id),
       name: product.name,
       price: product.price,
-      image: product.imageUrl,
+      image: mainImage,
       quantity: 1,
     });
 
-    openCart(); // ✅ abrimos el Drawer al comprar
+    openCart();
   };
 
   return (

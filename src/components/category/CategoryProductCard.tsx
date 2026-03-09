@@ -2,11 +2,15 @@ import Image from "next/image";
 import Link from "next/link";
 
 export default function ProductCard({ product }: any) {
-  /* console.log("Renderizando ProductCard:", product); // 👀 para debug
-   */
+  const rawImage = product.images?.[0];
+
+  const imageSrc = rawImage
+    ? rawImage.split(",")[0] // 👈 se queda con la primera URL real
+    : null;
+
   return (
     <Link
-      href={`/products/${product.slug}`} // ✅ ahora usa slug y la carpeta correcta
+      href={`/products/${product.slug}`}
       className="block hover:shadow-md rounded-lg"
     >
       <div className="bg-white border rounded-lg shadow hover:shadow-lg p-4 flex flex-col relative">
@@ -17,18 +21,22 @@ export default function ProductCard({ product }: any) {
         )}
 
         <div className="relative w-full aspect-square mb-3 overflow-hidden rounded-md">
-          <Image
-            src={product.imageUrl}
-            alt={product.name}
-            fill
-            className="object-cover transition-transform duration-300 group-hover:scale-105"
-          />
+          {imageSrc && (
+            <Image
+              src={imageSrc}
+              alt={product.name}
+              fill
+              className="object-cover transition-transform duration-300 group-hover:scale-105"
+            />
+          )}
         </div>
 
         <h3 className="font-medium text-sm mb-2">{product.name}</h3>
+
         {product.brand && (
           <p className="text-gray-500 text-xs mb-2">{product.brand}</p>
         )}
+
         <p className="text-lg font-bold text-blue-600">${product.price}</p>
       </div>
     </Link>

@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useSession } from "next-auth/react";
+import { useSession, signOut } from "next-auth/react";
 import Sidebar from "@/components/dashboard/Sidebar";
-import { Menu, Search, Bell, User, ChevronDown } from "lucide-react";
+import { Menu, Search, Bell, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -11,6 +11,8 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import Link from "next/link";
+import { LogOut } from "lucide-react";
 
 export default function DashboardLayout({
   children,
@@ -19,10 +21,10 @@ export default function DashboardLayout({
 }) {
   const [isScrolled, setIsScrolled] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(false); // 👈 mobile sidebar
-  const { data: session } = useSession();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // Detectar scroll
+  const { data: session, status } = useSession();
+
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 10);
     window.addEventListener("scroll", handleScroll);
@@ -33,7 +35,7 @@ export default function DashboardLayout({
     <div className="min-h-screen bg-gray-50 flex">
       {/* Sidebar Desktop */}
       <div className="hidden lg:flex">
-        <Sidebar session={session} />
+        <Sidebar />
       </div>
 
       {/* Sidebar Mobile Drawer */}
@@ -44,11 +46,10 @@ export default function DashboardLayout({
               Menú
             </SheetTitle>
           </SheetHeader>
-          <Sidebar session={session} />
+          <Sidebar />
         </SheetContent>
       </Sheet>
 
-      {/* Main content */}
       <div className="flex-1">
         <header
           className={`sticky top-0 z-40 bg-white transition-all duration-200 ${
@@ -56,7 +57,7 @@ export default function DashboardLayout({
           }`}
         >
           <div className="flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
-            {/* Left - Mobile menu + título */}
+            {/* Left */}
             <div className="flex items-center">
               <Button
                 variant="ghost"
@@ -69,11 +70,10 @@ export default function DashboardLayout({
               <h2 className="text-lg font-semibold text-gray-900">Dashboard</h2>
             </div>
 
-            {/* Right - Search / Notificaciones / User */}
-            <div className="flex items-center space-x-4">
-              {/* Search (oculto en mobile) */}
+            {/* Right */}
+            <div className="flex items-center gap-2 sm:gap-3">
               <div className="hidden md:block relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <input
                   type="text"
                   placeholder="Buscar..."
@@ -81,7 +81,6 @@ export default function DashboardLayout({
                 />
               </div>
 
-              {/* Notifications */}
               <Button
                 variant="ghost"
                 size="icon"
@@ -93,33 +92,69 @@ export default function DashboardLayout({
                 </span>
               </Button>
 
-              {/* User menu */}
-              <div className="relative">
+              <Link href="/">
                 <Button
-                  variant="ghost"
-                  className="flex items-center space-x-2 p-2"
-                  onClick={() => setUserMenuOpen(!userMenuOpen)}
+                  size="sm"
+                  variant="outline"
+                  className="whitespace-nowrap"
                 >
-                  <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-                    <User className="h-4 w-4 text-white" />
-                  </div>
-                  <ChevronDown
-                    className={`h-4 w-4 transition-transform ${
-                      userMenuOpen ? "rotate-180" : ""
-                    }`}
-                  />
+                  <span className="hidden sm:inline">Tienda</span>
+                  <span className="sm:hidden">←</span>
                 </Button>
-                {userMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
-                    <p className="px-4 py-2 text-sm">{session?.user?.email}</p>
-                  </div>
-                )}
-              </div>
+              </Link>
+
+              {/* USER */}
+              {status === "authenticated" && session?.user && (
+                <div className="relative">
+                  <Button
+                    variant="ghost"
+                    className="flex items-center space-x-2 p-2"
+                    onClick={() => setUserMenuOpen(!userMenuOpen)}
+                  >
+                    <img
+                      src={
+                        session.user.image ||
+                        `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                          session.user.name || "Usuario",
+                        )}&background=6366f1&color=fff`
+                      }
+                      alt="avatar"
+                      referrerPolicy="no-referrer"
+                      className="h-8 w-8 rounded-full object-cover"
+                    />
+
+                    <span className="hidden sm:block text-sm font-medium text-gray-700">
+                      {session.user.name?.split(" ")[0]}
+                    </span>
+
+                    <ChevronDown
+                      className={`h-4 w-4 transition-transform ${
+                        userMenuOpen ? "rotate-180" : ""
+                      }`}
+                    />
+                  </Button>
+
+                  {userMenuOpen && (
+                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
+                      <p className="px-4 py-2 text-sm font-medium text-gray-700 border-b">
+                        {session?.user?.name}
+                      </p>
+
+                      <button
+                        onClick={() => signOut({ callbackUrl: "/" })}
+                        className="w-full flex items-center px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
+                      >
+                        <LogOut className="w-4 h-4 mr-2" />
+                        Cerrar sesión
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </header>
 
-        {/* Contenido principal */}
         <main className="min-h-screen">
           <div className="px-4 sm:px-6 lg:px-8 py-6">{children}</div>
         </main>

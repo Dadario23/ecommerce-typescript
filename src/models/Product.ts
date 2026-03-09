@@ -1,4 +1,3 @@
-// src/models/Product.ts
 import mongoose, { Schema, Document } from "mongoose";
 
 export interface IProduct extends Document {
@@ -7,9 +6,8 @@ export interface IProduct extends Document {
   price: number;
   compareAtPrice?: number;
   description: string;
-  imageUrl: string;
-  images?: string[];
-  category: { _id: string; name: string } | string; // ✅ flexible
+  images: string[]; // 👈 único campo de imágenes
+  category: { _id: string; name: string } | string;
   brand?: string;
   stock?: number;
   sku?: string;
@@ -22,17 +20,26 @@ const ProductSchema: Schema = new Schema(
     price: { type: Number, required: true },
     compareAtPrice: { type: Number },
     description: { type: String, required: true },
-    imageUrl: { type: String, required: true },
-    images: [{ type: String }],
-    category: { type: Schema.Types.ObjectId, ref: "Category", required: false },
+
+    images: {
+      type: [String],
+      required: true,
+      validate: {
+        validator: function (v: string[]) {
+          return v.length > 0;
+        },
+        message: "At least one image is required",
+      },
+    },
+
+    category: { type: Schema.Types.ObjectId, ref: "Category" },
     brand: { type: String },
     sku: { type: String },
     stock: { type: Number, default: 0 },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
-// Middleware para generar slug automáticamente desde el name
 ProductSchema.pre<IProduct>("validate", function (next) {
   this.slug = this.name
     .toLowerCase()

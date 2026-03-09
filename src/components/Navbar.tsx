@@ -108,12 +108,13 @@ export default function Navbar() {
         <div className="hidden md:block w-full max-w-xl mx-8">
           <NavbarSearch />
         </div>
-
         {/* RIGHT SECTION */}
         <div className="flex items-center gap-4 text-sm text-gray-700">
-          {status === "loading" ? (
-            <User className="w-5 h-5" />
-          ) : session ? (
+          {!session ? (
+            <Link href="/login">
+              <User className="w-5 h-5" />
+            </Link>
+          ) : (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button className="flex items-center gap-1 hover:text-blue-600 transition-colors">
@@ -145,6 +146,16 @@ export default function Navbar() {
                   </Link>
                 </DropdownMenuItem>
 
+                {/* 🔥 Dashboard solo para admin */}
+                {session.user?.role === "admin" && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild>
+                      <Link href="/dashboard">Dashboard</Link>
+                    </DropdownMenuItem>
+                  </>
+                )}
+
                 <DropdownMenuSeparator />
 
                 <DropdownMenuItem
@@ -156,10 +167,6 @@ export default function Navbar() {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-          ) : (
-            <Link href="/login">
-              <User className="w-5 h-5" />
-            </Link>
           )}
 
           {/* CART */}

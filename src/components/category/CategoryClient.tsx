@@ -20,7 +20,7 @@ interface Product {
   slug: string;
   name: string;
   price: number;
-  imageUrl?: string;
+  images: string[];
   category: any;
 }
 
@@ -85,7 +85,7 @@ export default function CategoryClient({ slug }: { slug: string }) {
     // 2. Si no tiene categoría, buscar por palabras clave en el nombre
     const keywords = CATEGORY_KEYWORDS[normalizedSlug] || [normalizedSlug];
     const matchesByName = keywords.some((keyword) =>
-      productName.includes(normalize(keyword))
+      productName.includes(normalize(keyword)),
     );
 
     if (matchesByName) {
@@ -181,7 +181,7 @@ export default function CategoryClient({ slug }: { slug: string }) {
                   Con categoría asignada:{" "}
                   {
                     products.filter(
-                      (p) => getCategoryName(p.category) !== "Sin categoría"
+                      (p) => getCategoryName(p.category) !== "Sin categoría",
                     ).length
                   }
                 </p>

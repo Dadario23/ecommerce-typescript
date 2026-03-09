@@ -35,7 +35,7 @@ export async function GET(request: Request) {
         error: "Error al obtener productos",
         details: (error as Error).message,
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -49,7 +49,7 @@ export async function POST(req: Request) {
     if (!body.name || !body.price) {
       return NextResponse.json(
         { error: "Nombre y precio son obligatorios" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -57,7 +57,7 @@ export async function POST(req: Request) {
     if (body.category) {
       body.category = new mongoose.Types.ObjectId(body.category);
     }
-
+    console.log(Product.schema.obj);
     const product = await Product.create(body);
     const populated = await product.populate("category", "name");
 
@@ -66,7 +66,7 @@ export async function POST(req: Request) {
     console.error("Error al crear producto:", error);
     return NextResponse.json(
       { error: (error as Error).message },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

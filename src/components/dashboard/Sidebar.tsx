@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
 import Link from "next/link";
 import {
   LayoutDashboard,
@@ -14,10 +15,11 @@ import { cn } from "@/lib/utils";
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const { data: session } = useSession(); // ✅ ahora se autogestiona
   const [expanded, setExpanded] = useState(true);
   const [catalogOpen, setCatalogOpen] = useState(false);
 
-  // Abrir catálogo si estamos en subrutas
+  // Abrir catálogo automáticamente si estamos en subrutas
   useEffect(() => {
     if (
       pathname.startsWith("/dashboard/products") ||
@@ -31,15 +33,25 @@ export default function Sidebar() {
     <aside
       className={cn(
         "h-screen border-r bg-white transition-all duration-300 flex flex-col",
-        expanded ? "w-64" : "w-20"
+        expanded ? "w-64" : "w-20",
       )}
     >
       {/* Header */}
       <div className="flex items-center justify-between h-16 px-4 border-b">
-        {expanded && <span className="text-lg font-bold">MyShop</span>}
+        {expanded && (
+          <div className="flex flex-col">
+            <span className="text-lg font-bold">MyShop</span>
+            {session?.user?.email && (
+              <span className="text-xs text-gray-500 truncate">
+                {session.user.email}
+              </span>
+            )}
+          </div>
+        )}
+
         <button
           onClick={() => setExpanded(!expanded)}
-          className="p-1 rounded hover:bg-gray-100"
+          className="p-1 rounded hover:bg-gray-100 transition"
         >
           {expanded ? (
             <ChevronLeft className="h-5 w-5" />
@@ -55,8 +67,8 @@ export default function Sidebar() {
         <Link
           href="/dashboard"
           className={cn(
-            "flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100",
-            pathname === "/dashboard" && "bg-gray-100 font-medium"
+            "flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 transition",
+            pathname === "/dashboard" && "bg-gray-100 font-medium",
           )}
         >
           <LayoutDashboard className="h-5 w-5" />
@@ -68,10 +80,10 @@ export default function Sidebar() {
           <button
             onClick={() => setCatalogOpen(!catalogOpen)}
             className={cn(
-              "flex items-center w-full gap-2 px-3 py-2 rounded-lg hover:bg-gray-100",
+              "flex items-center w-full gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 transition",
               (pathname.startsWith("/dashboard/products") ||
                 pathname.startsWith("/dashboard/categories")) &&
-                "bg-gray-100 font-medium"
+                "bg-gray-100 font-medium",
             )}
           >
             <Package className="h-5 w-5" />
@@ -80,51 +92,54 @@ export default function Sidebar() {
               <ChevronDown
                 className={cn(
                   "h-4 w-4 transition-transform",
-                  catalogOpen ? "rotate-180" : ""
+                  catalogOpen ? "rotate-180" : "",
                 )}
               />
             )}
           </button>
 
-          {/* Submenú solo si expandido */}
+          {/* Submenú */}
           {expanded && catalogOpen && (
             <div className="ml-8 mt-1 space-y-1">
               <Link
                 href="/dashboard/products"
                 className={cn(
-                  "block px-3 py-2 rounded-lg hover:bg-gray-100",
+                  "block px-3 py-2 rounded-lg hover:bg-gray-100 transition",
                   pathname === "/dashboard/products" &&
-                    "bg-gray-100 font-medium"
+                    "bg-gray-100 font-medium",
                 )}
               >
                 Productos
               </Link>
+
               <Link
                 href="/dashboard/products/new"
                 className={cn(
-                  "block px-3 py-2 rounded-lg hover:bg-gray-100",
+                  "block px-3 py-2 rounded-lg hover:bg-gray-100 transition",
                   pathname === "/dashboard/products/new" &&
-                    "bg-gray-100 font-medium"
+                    "bg-gray-100 font-medium",
                 )}
               >
                 Agregar producto
               </Link>
+
               <Link
                 href="/dashboard/categories"
                 className={cn(
-                  "block px-3 py-2 rounded-lg hover:bg-gray-100",
+                  "block px-3 py-2 rounded-lg hover:bg-gray-100 transition",
                   pathname === "/dashboard/categories" &&
-                    "bg-gray-100 font-medium"
+                    "bg-gray-100 font-medium",
                 )}
               >
                 Categorías
               </Link>
+
               <Link
                 href="/dashboard/categories/new"
                 className={cn(
-                  "block px-3 py-2 rounded-lg hover:bg-gray-100",
+                  "block px-3 py-2 rounded-lg hover:bg-gray-100 transition",
                   pathname === "/dashboard/categories/new" &&
-                    "bg-gray-100 font-medium"
+                    "bg-gray-100 font-medium",
                 )}
               >
                 Agregar categoría
