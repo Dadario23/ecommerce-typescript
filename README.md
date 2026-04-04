@@ -42,7 +42,7 @@ docs/images.md
 
 ## 🌐 Demo
 
-👉 https://ecommerce-typescript-x6ux.vercel.app/
+👉 https://compumobile.com.ar
 
 ## 🛠️ Instalación local
 
