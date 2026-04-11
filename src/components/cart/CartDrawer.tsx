@@ -16,6 +16,7 @@ import { useCartStore } from "@/store/useCartStore";
 import { useCartUI } from "@/store/useCartUI";
 import { Trash2 } from "lucide-react";
 import AuthModal from "@/components/auth/AuthModal";
+import Image from "next/image";
 
 export default function CartDrawer() {
   const router = useRouter();
@@ -31,7 +32,7 @@ export default function CartDrawer() {
   const totalItems = items.reduce((acc, item) => acc + item.quantity, 0);
   const totalPrice = items.reduce(
     (acc, item) => acc + item.price * item.quantity,
-    0
+    0,
   );
 
   const handleCheckout = () => {
@@ -102,11 +103,15 @@ export default function CartDrawer() {
                     key={item.id}
                     className="flex items-center gap-4 border-b pb-4"
                   >
-                    <img
-                      src={item.image}
-                      alt={item.name}
-                      className="w-16 h-16 object-cover rounded border"
-                    />
+                    <div className="relative w-16 h-16 rounded border overflow-hidden flex-shrink-0">
+                      <Image
+                        src={item.image || "/placeholder.png"}
+                        alt={item.name}
+                        fill
+                        className="object-cover"
+                        sizes="64px"
+                      />
+                    </div>
                     <div className="flex-1">
                       <h3 className="text-sm font-medium line-clamp-2">
                         {item.name}
@@ -121,7 +126,7 @@ export default function CartDrawer() {
                             onClick={() =>
                               updateQuantity(
                                 item.id,
-                                Math.max(1, item.quantity - 1)
+                                Math.max(1, item.quantity - 1),
                               )
                             }
                           >

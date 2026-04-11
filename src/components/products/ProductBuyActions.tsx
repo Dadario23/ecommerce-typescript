@@ -15,23 +15,18 @@ export default function ProductBuyActions({ product }: ProductBuyActionsProps) {
   const openCart = useCartUI((state) => state.open); // ✅ Función para abrir el carrito
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleBuy = async () => {
-    console.log("[ProductBuyActions] Click en Comprar ahora");
-    setIsLoading(true);
+  const handleBuy = () => {
+    const mainImage = product.images?.[0] || "";
 
-    // ✅ Solo agregamos al carrito y abrimos el drawer
     addToCart({
       id: String(product._id),
       name: product.name,
       price: product.price,
-      image: product.imageUrl,
+      image: mainImage,
       quantity: 1,
     });
 
-    console.log("[ProductBuyActions] Producto agregado, abriendo carrito");
-    openCart(); // ✅ Abrimos el CartDrawer
-
-    setIsLoading(false);
+    openCart();
   };
 
   return (

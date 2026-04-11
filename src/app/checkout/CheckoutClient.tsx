@@ -13,10 +13,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { useCartStore } from "@/store/useCartStore"; // ✅ Usamos el store directo
+import { useCartStore } from "@/store/useCartStore";
 import Spinner from "@/components/ui/Spinner";
 
-// ✅ Interfaz para los items del carrito
 interface CartItem {
   id: string;
   name: string;
@@ -30,12 +29,10 @@ const checkoutSchema = z.object({
   email: z.string().email("Correo electrónico inválido"),
   address: z.string().min(5, "La dirección es obligatoria"),
   city: z.string().min(2, "La ciudad es obligatoria"),
-  state: z.string().min(2, "El estado/provincia es obligatorio"), // ← Agregar esto
+  state: z.string().min(2, "El estado/provincia es obligatorio"),
   postalCode: z.string().min(4, "El código postal es obligatorio"),
   country: z.string().min(2, "El país es obligatorio"),
-  paymentMethod: z.string().refine((val) => ["card", "cash"].includes(val), {
-    message: "Debes seleccionar un método de pago válido",
-  }),
+  paymentMethod: z.enum(["mercadopago", "cash"]),
 });
 
 type CheckoutForm = z.infer<typeof checkoutSchema>;
@@ -45,26 +42,20 @@ export default function CheckoutClient() {
   const { data: session, status } = useSession();
   const items = useCartStore((state) => state.items);
   const clearCart = useCartStore((state) => state.clearCart);
-  const [selectedAddress, setSelectedAddress] = useState<any>(null);
-
-  // ✅ Estado para manejar carga y evitar errores
   const [isLoading, setIsLoading] = useState(true);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
 
   useEffect(() => {
-    // ✅ Verificar autenticación
     if (status === "unauthenticated") {
-      console.log("[CheckoutPage] Usuario no autenticado, redirigiendo");
       router.push("/");
       return;
     }
-
-    // ✅ Una vez que sabemos el estado de autenticación y tenemos items
     if (status !== "loading") {
       setIsLoading(false);
     }
   }, [status, router]);
 
-  // ✅ Calcular total de manera segura
   const total =
     items?.reduce(
       (sum: number, item: CartItem) => sum + item.price * item.quantity,
@@ -74,18 +65,21 @@ export default function CheckoutClient() {
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitting },
+    watch,
     setValue,
+    formState: { errors },
   } = useForm<CheckoutForm>({
     resolver: zodResolver(checkoutSchema),
     defaultValues: {
-      // ✅ Pre-llenar con datos del usuario si está autenticado
       name: session?.user?.name || "",
       email: session?.user?.email || "",
+      country: "Argentina",
+      paymentMethod: "mercadopago",
     },
   });
 
-  // ✅ Actualizar valores del formulario cuando la sesión esté disponible
+  const selectedPayment = watch("paymentMethod");
+
   useEffect(() => {
     if (session?.user) {
       setValue("name", session.user.name || "");
@@ -93,7 +87,6 @@ export default function CheckoutClient() {
     }
   }, [session, setValue]);
 
-  // ✅ Mostrar loading mientras verificamos autenticación
   if (status === "loading" || isLoading) {
     return (
       <div className="pt-[120px] flex flex-col items-center justify-center min-h-screen">
@@ -103,7 +96,6 @@ export default function CheckoutClient() {
     );
   }
 
-  // ✅ Verificar si no hay items o items es undefined
   if (!items || items.length === 0) {
     return (
       <div className="pt-[120px] flex flex-col items-center justify-center min-h-screen">
@@ -115,44 +107,67 @@ export default function CheckoutClient() {
     );
   }
 
-  // Modificar el onSubmit para usar la dirección seleccionada
+  const buildShippingAddress = (data: CheckoutForm) => ({
+    firstName: data.name.split(" ")[0],
+    lastName: data.name.split(" ").slice(1).join(" ") || "-",
+    street: data.address,
+    city: data.city,
+    state: data.state,
+    zipCode: data.postalCode,
+    country: data.country,
+    phone: "",
+  });
+
   const onSubmit = async (data: CheckoutForm) => {
-    const orderData = {
-      ...data,
-      shippingAddress: selectedAddress || {
-        firstName: data.name.split(" ")[0],
-        lastName: data.name.split(" ").slice(1).join(" "),
-        street: data.address,
-        city: data.city,
-        state: data.state,
-        zipCode: data.postalCode,
-        country: data.country,
-        phone: "",
-      },
+    setIsProcessing(true);
+    setErrorMsg("");
+
+    const orderPayload = {
       items,
       total,
+      paymentMethod: data.paymentMethod,
+      shippingAddress: buildShippingAddress(data),
     };
 
     try {
-      const res = await fetch("/api/orders", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(orderData),
-      });
+      // 💳 MERCADO PAGO
+      if (data.paymentMethod === "mercadopago") {
+        const res = await fetch("/api/payments/create-preference", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(orderPayload),
+        });
 
-      if (!res.ok) {
-        throw new Error("Error al crear la orden");
+        if (!res.ok) throw new Error("Error al crear preferencia de pago");
+
+        const { initPoint } = await res.json();
+
+        // Limpiar carrito y redirigir a Mercado Pago
+        clearCart();
+        window.location.href = initPoint;
+        return;
       }
 
-      const createdOrder = await res.json();
+      // 💵 CONTRA ENTREGA
+      if (data.paymentMethod === "cash") {
+        const res = await fetch("/api/orders", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(orderPayload),
+        });
 
-      // 🔥 Limpiar carrito
-      clearCart();
+        if (!res.ok) throw new Error("Error al crear la orden");
 
-      // 🚀 Redirigir directamente al resumen con id
-      router.push(`/order-success?orderId=${createdOrder._id}`);
-    } catch (error) {
-      console.error("Error processing order:", error);
+        const createdOrder = await res.json();
+        clearCart();
+        router.push(`/order-success?orderId=${createdOrder.orderId}`);
+        return;
+      }
+    } catch (error: any) {
+      console.error("Error procesando pedido:", error);
+      setErrorMsg("Hubo un error al procesar tu pedido. Intentá de nuevo.");
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -216,16 +231,14 @@ export default function CheckoutClient() {
                 )}
               </div>
               <div>
-                <Label htmlFor="state">Estado/Provincia</Label>
+                <Label htmlFor="state">Provincia</Label>
                 <Input
                   id="state"
                   {...register("state")}
-                  placeholder="Tu estado/provincia"
+                  placeholder="Tu provincia"
                 />
                 {errors.state && (
-                  <p className="text-sm text-red-500">
-                    {errors.state?.message}
-                  </p>
+                  <p className="text-sm text-red-500">{errors.state.message}</p>
                 )}
               </div>
               <div>
@@ -241,62 +254,105 @@ export default function CheckoutClient() {
                   </p>
                 )}
               </div>
-              <div>
-                <Label htmlFor="country">País</Label>
-                <Input
-                  id="country"
-                  {...register("country")}
-                  placeholder="Tu país"
-                  defaultValue="Argentina"
-                />
-                {errors.country && (
-                  <p className="text-sm text-red-500">
-                    {errors.country.message}
-                  </p>
-                )}
-              </div>
             </div>
 
             <div>
-              <Label className="mb-2 block">Método de pago</Label>
-              <RadioGroup defaultValue="card">
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem
-                    value="card"
-                    id="card"
-                    {...register("paymentMethod")}
-                  />
-                  <Label htmlFor="card">Tarjeta de crédito/débito</Label>
+              <Label htmlFor="country">País</Label>
+              <Input
+                id="country"
+                {...register("country")}
+                placeholder="Tu país"
+              />
+              {errors.country && (
+                <p className="text-sm text-red-500">{errors.country.message}</p>
+              )}
+            </div>
+
+            {/* Método de pago */}
+            <div>
+              <Label className="mb-3 block text-base font-semibold">
+                Método de pago
+              </Label>
+              <RadioGroup
+                defaultValue="mercadopago"
+                onValueChange={(val) =>
+                  setValue("paymentMethod", val as "mercadopago" | "cash")
+                }
+                className="space-y-3"
+              >
+                {/* Mercado Pago */}
+                <div
+                  className={`flex items-center gap-3 border-2 rounded-lg p-4 cursor-pointer transition-all ${selectedPayment === "mercadopago" ? "border-blue-500 bg-blue-50" : "border-gray-200"}`}
+                >
+                  <RadioGroupItem value="mercadopago" id="mercadopago" />
+                  <Label
+                    htmlFor="mercadopago"
+                    className="cursor-pointer flex items-center gap-2 w-full"
+                  >
+                    <span className="text-2xl">💳</span>
+                    <div>
+                      <p className="font-medium">Mercado Pago</p>
+                      <p className="text-xs text-gray-500">
+                        Tarjeta, transferencia, cuotas
+                      </p>
+                    </div>
+                  </Label>
                 </div>
-                <div className="flex items-center space-x-2 mt-2">
-                  <RadioGroupItem
-                    value="cash"
-                    id="cash"
-                    {...register("paymentMethod")}
-                  />
-                  <Label htmlFor="cash">Pago contra entrega</Label>
+
+                {/* Contra entrega */}
+                <div
+                  className={`flex items-center gap-3 border-2 rounded-lg p-4 cursor-pointer transition-all ${selectedPayment === "cash" ? "border-blue-500 bg-blue-50" : "border-gray-200"}`}
+                >
+                  <RadioGroupItem value="cash" id="cash" />
+                  <Label
+                    htmlFor="cash"
+                    className="cursor-pointer flex items-center gap-2 w-full"
+                  >
+                    <span className="text-2xl">💵</span>
+                    <div>
+                      <p className="font-medium">Pago contra entrega</p>
+                      <p className="text-xs text-gray-500">
+                        Pagás cuando recibís el producto
+                      </p>
+                    </div>
+                  </Label>
                 </div>
               </RadioGroup>
               {errors.paymentMethod && (
-                <p className="text-sm text-red-500">
+                <p className="text-sm text-red-500 mt-1">
                   {errors.paymentMethod.message}
                 </p>
               )}
             </div>
 
+            {/* Error general */}
+            {errorMsg && (
+              <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg p-3 text-sm">
+                {errorMsg}
+              </div>
+            )}
+
             <Button
               type="submit"
-              disabled={isSubmitting}
-              className="w-full bg-[#1E3A8A] hover:bg-[#1E40AF]"
+              disabled={isProcessing}
+              className="w-full bg-[#1E3A8A] hover:bg-[#1E40AF] py-6 text-base"
             >
-              {isSubmitting ? "Procesando..." : "Confirmar pedido"}
+              {isProcessing ? (
+                <span className="flex items-center gap-2">
+                  <Spinner /> Procesando...
+                </span>
+              ) : selectedPayment === "mercadopago" ? (
+                "Pagar con Mercado Pago"
+              ) : (
+                "Confirmar pedido"
+              )}
             </Button>
           </form>
         </CardContent>
       </Card>
 
       {/* Resumen del pedido */}
-      <Card className="shadow-md">
+      <Card className="shadow-md h-fit sticky top-[160px]">
         <CardHeader>
           <CardTitle className="text-xl font-bold">
             Resumen del pedido
@@ -306,7 +362,7 @@ export default function CheckoutClient() {
           {items.map((item: CartItem) => (
             <div key={item.id} className="flex justify-between items-center">
               <div className="flex items-center gap-3">
-                <div className="relative w-12 h-12 rounded overflow-hidden">
+                <div className="relative w-12 h-12 rounded overflow-hidden flex-shrink-0">
                   <Image
                     src={item.image || "/placeholder.png"}
                     alt={item.name}
@@ -316,7 +372,9 @@ export default function CheckoutClient() {
                   />
                 </div>
                 <div>
-                  <p className="text-sm font-medium">{item.name}</p>
+                  <p className="text-sm font-medium line-clamp-2">
+                    {item.name}
+                  </p>
                   <p className="text-xs text-gray-500">
                     {item.quantity} x ${item.price.toLocaleString()}
                   </p>
@@ -327,20 +385,18 @@ export default function CheckoutClient() {
               </p>
             </div>
           ))}
+
           <Separator />
-          <div className="flex justify-between font-semibold text-lg">
+
+          <div className="flex justify-between font-bold text-lg">
             <span>Total</span>
             <span>${total.toLocaleString()}</span>
           </div>
 
-          {/* Información del usuario */}
-          <div className="bg-blue-50 p-3 rounded-md mt-4">
-            <h3 className="font-semibold text-blue-800 text-sm mb-1">
-              Información de contacto
-            </h3>
+          <div className="bg-blue-50 p-3 rounded-md">
             <p className="text-xs text-blue-700">
-              {session?.user?.name && `Nombre: ${session.user.name}`}
-              {session?.user?.email && ` | Email: ${session.user.email}`}
+              {session?.user?.name && `👤 ${session.user.name}`}
+              {session?.user?.email && ` · ${session.user.email}`}
             </p>
           </div>
         </CardContent>
