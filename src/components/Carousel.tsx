@@ -9,10 +9,10 @@ import "swiper/css/pagination";
 import "swiper/css/navigation";
 
 const FALLBACK_IMAGES = [
-  "https://www.perozzi.com.ar/img/cms/home/2025/08/naranja-d.jpg",
-  "https://www.perozzi.com.ar/img/cms/home/2025/01/Horarios-d.jpg",
-  "https://www.perozzi.com.ar/img/cms/home/2025/08/hipotecario-d.jpg",
-  "https://www.perozzi.com.ar/img/cms/home/2025/08/envios-gratis-d_v2.jpg",
+  "https://i.ibb.co/b5xjn536/Chat-GPT-Image-11-may-2026-02-01-04-a-m.png",
+  "https://i.ibb.co/b5xjn536/Chat-GPT-Image-11-may-2026-02-01-04-a-m.png",
+  "https://i.ibb.co/b5xjn536/Chat-GPT-Image-11-may-2026-02-01-04-a-m.png",
+  "https://i.ibb.co/b5xjn536/Chat-GPT-Image-11-may-2026-02-01-04-a-m.png",
 ];
 
 export default function Carousel({
