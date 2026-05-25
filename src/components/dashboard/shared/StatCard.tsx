@@ -1,36 +1,30 @@
-// src/components/dashboard/shared/StatCard.tsx
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ReactNode } from "react";
 
 interface StatCardProps {
   title: string;
   value: number;
   icon: ReactNode;
-  trend?: {
-    value: number;
-    isPositive: boolean;
-  };
+  iconBg?: string;
+  trend?: { value: number; isPositive: boolean };
 }
 
-export function StatCard({ title, value, icon, trend }: StatCardProps) {
+export function StatCard({ title, value, icon, iconBg = "bg-gray-50", trend }: StatCardProps) {
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">{title}</CardTitle>
-        {icon}
-      </CardHeader>
-      <CardContent>
-        <div className="text-2xl font-bold">{value.toLocaleString()}</div>
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+      <div className="flex items-start justify-between mb-3">
+        <div className={`w-10 h-10 rounded-xl ${iconBg} flex items-center justify-center`}>
+          {icon}
+        </div>
         {trend && (
-          <p
-            className={`text-xs ${
-              trend.isPositive ? "text-green-600" : "text-red-600"
-            }`}
-          >
+          <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${
+            trend.isPositive ? "bg-emerald-50 text-emerald-600" : "bg-red-50 text-red-500"
+          }`}>
             {trend.isPositive ? "↑" : "↓"} {Math.abs(trend.value)}%
-          </p>
+          </span>
         )}
-      </CardContent>
-    </Card>
+      </div>
+      <p className="text-2xl font-bold text-gray-900 mb-0.5">{value.toLocaleString()}</p>
+      <p className="text-xs font-medium text-gray-500">{title}</p>
+    </div>
   );
 }

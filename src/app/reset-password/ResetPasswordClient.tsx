@@ -3,286 +3,263 @@ export const dynamic = "force-dynamic";
 
 import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import {
-  Loader2,
-  CheckCircle,
-  AlertCircle,
-  Key,
-  Eye,
-  EyeOff,
-} from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
+import {
+  Loader2, Eye, EyeOff, Key, CheckCircle, AlertCircle, ArrowLeft,
+} from "lucide-react";
 
-export default function ResetPasswordPage() {
+const INPUT =
+  "w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-300 placeholder:text-gray-300 transition-colors";
+
+export default function ResetPasswordClient() {
   const searchParams = useSearchParams();
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
-  const [isValidToken, setIsValidToken] = useState(false);
-  const [isCheckingToken, setIsCheckingToken] = useState(true);
-
-  // Obtener token y email de la URL
   const token = searchParams.get("token");
   const email = searchParams.get("email");
 
-  // Verificar si el token es válido al cargar la página
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState(false);
+  const [tokenValid, setTokenValid] = useState<boolean | null>(null);
+  const [tokenError, setTokenError] = useState("");
+
   useEffect(() => {
-    const verifyToken = async () => {
-      if (!token || !email) {
-        setError("Enlace inválido o incompleto");
-        setIsCheckingToken(false);
-        return;
-      }
-
-      try {
-        const res = await fetch("/api/auth/verify-reset-token", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ token, email }),
-        });
-
-        const data = await res.json();
-
-        if (!res.ok) {
-          setError(data.error || "Enlace inválido o expirado");
-          setIsValidToken(false);
+    if (!token || !email) {
+      setTokenError("Enlace inválido o incompleto");
+      setTokenValid(false);
+      return;
+    }
+    fetch("/api/auth/verify-reset-token", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token, email }),
+    })
+      .then(async (r) => {
+        if (!r.ok) {
+          const d = await r.json();
+          setTokenError(d.error ?? "Enlace inválido o expirado");
+          setTokenValid(false);
         } else {
-          setIsValidToken(true);
+          setTokenValid(true);
         }
-      } catch (err) {
-        setError("Error al verificar el enlace");
-      } finally {
-        setIsCheckingToken(false);
-      }
-    };
-
-    verifyToken();
+      })
+      .catch(() => {
+        setTokenError("Error al verificar el enlace");
+        setTokenValid(false);
+      });
   }, [token, email]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    setSuccess("");
+    if (!password || !confirm) { setError("Completá todos los campos"); return; }
+    if (password.length < 6) { setError("La contraseña debe tener al menos 6 caracteres"); return; }
+    if (password !== confirm) { setError("Las contraseñas no coinciden"); return; }
 
-    // Validaciones
-    if (!password || !confirmPassword) {
-      setError("Todos los campos son obligatorios");
-      return;
-    }
-
-    if (password.length < 6) {
-      setError("La contraseña debe tener al menos 6 caracteres");
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      setError("Las contraseñas no coinciden");
-      return;
-    }
-
-    setIsLoading(true);
-
+    setLoading(true);
     try {
       const res = await fetch("/api/auth/reset-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token, email, newPassword: password }),
       });
-
       const data = await res.json();
-
       if (!res.ok) {
-        setError(data.error || "Error al restablecer la contraseña");
+        setError(data.error ?? "Error al restablecer la contraseña");
       } else {
-        setSuccess("Contraseña restablecida correctamente ✅");
-        setPassword("");
-        setConfirmPassword("");
-
-        // Redirigir al login después de 3 segundos
-        setTimeout(() => {
-          window.location.href = "/login";
-        }, 3000);
+        setSuccess(true);
+        setTimeout(() => { window.location.href = "/login"; }, 3000);
       }
-    } catch (err) {
-      setError("Error de conexión. Intenta nuevamente.");
+    } catch {
+      setError("Error de conexión. Intentá de nuevo.");
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-  if (isCheckingToken) {
+  const LeftPanel = () => (
+    <div className="hidden lg:flex lg:w-5/12 bg-[#1E3A8A] flex-col justify-between p-10 relative overflow-hidden">
+      <div className="absolute -top-16 -right-16 w-64 h-64 rounded-full bg-white/5" />
+      <div className="absolute -bottom-24 -left-12 w-72 h-72 rounded-full bg-white/5" />
+      <Link href="/" className="relative flex items-center gap-3">
+        <div className="relative w-8 h-8 shrink-0">
+          <Image src="/logo.svg" alt="Logo" fill className="object-contain brightness-0 invert" />
+        </div>
+        <span className="text-white font-bold text-lg">Compumobile</span>
+      </Link>
+      <div className="relative space-y-4">
+        <div className="w-14 h-14 rounded-2xl bg-white/10 flex items-center justify-center">
+          <Key className="w-7 h-7 text-white" />
+        </div>
+        <h2 className="text-2xl font-bold text-white leading-snug">
+          Creá tu nueva contraseña
+        </h2>
+        <p className="text-blue-200 text-sm leading-relaxed">
+          Elegí una contraseña segura de al menos 6 caracteres.
+        </p>
+      </div>
+      <p className="text-blue-400 text-xs relative">
+        © {new Date().getFullYear()} Compumobile
+      </p>
+    </div>
+  );
+
+  /* Loading token check */
+  if (tokenValid === null) {
     return (
-      <div className="pt-[140px] flex justify-center px-4">
-        <Card className="w-full max-w-md">
-          <CardContent className="flex items-center justify-center py-12">
-            <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-            <span className="ml-3 text-gray-600">Verificando enlace...</span>
-          </CardContent>
-        </Card>
+      <div className="min-h-screen bg-gray-50 pt-20 md:pt-28 pb-10 px-4">
+        <div className="max-w-4xl mx-auto flex rounded-2xl overflow-hidden shadow-xl border border-gray-100">
+          <LeftPanel />
+          <div className="flex-1 bg-white flex items-center justify-center px-8 py-16">
+            <div className="flex items-center gap-3 text-gray-500">
+              <Loader2 className="w-5 h-5 animate-spin" />
+              <span className="text-sm">Verificando enlace...</span>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
 
-  if (!isValidToken) {
+  /* Invalid token */
+  if (!tokenValid) {
     return (
-      <div className="pt-[140px] flex justify-center px-4">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <CardTitle className="text-2xl font-bold flex items-center justify-center gap-2">
-              <AlertCircle className="w-6 h-6 text-red-600" />
-              Enlace inválido
-            </CardTitle>
-            <CardDescription>
-              {error || "El enlace de recuperación no es válido o ha expirado"}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="text-center">
-            <p className="text-gray-600 mb-4">
-              Solicita un nuevo enlace de recuperación desde la página de
-              inicio.
-            </p>
-            <Button asChild>
-              <Link href="/forgot-password">Solicitar nuevo enlace</Link>
-            </Button>
-          </CardContent>
-        </Card>
+      <div className="min-h-screen bg-gray-50 pt-20 md:pt-28 pb-10 px-4">
+        <div className="max-w-4xl mx-auto flex rounded-2xl overflow-hidden shadow-xl border border-gray-100">
+          <LeftPanel />
+          <div className="flex-1 bg-white flex flex-col justify-center px-8 py-10">
+            <div className="max-w-sm mx-auto w-full text-center space-y-4">
+              <div className="w-14 h-14 rounded-full bg-red-50 flex items-center justify-center mx-auto">
+                <AlertCircle className="w-7 h-7 text-red-400" />
+              </div>
+              <div>
+                <h2 className="font-bold text-gray-900 text-lg">Enlace inválido</h2>
+                <p className="text-sm text-gray-400 mt-1">
+                  {tokenError || "El enlace ha expirado o ya fue usado"}
+                </p>
+              </div>
+              <Link
+                href="/forgot-password"
+                className="block w-full bg-[#1E3A8A] text-white text-sm font-semibold py-2.5 rounded-xl hover:bg-blue-800 transition-colors"
+              >
+                Solicitar nuevo enlace
+              </Link>
+              <Link href="/login" className="block text-xs text-gray-400 hover:text-[#1E3A8A] transition-colors">
+                Volver al inicio de sesión
+              </Link>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="pt-[140px] flex justify-center px-4">
-      <Card className="w-full max-w-md shadow-lg rounded-2xl">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold flex items-center justify-center gap-2">
-            <Key className="w-6 h-6" />
-            Nueva Contraseña
-          </CardTitle>
-          <CardDescription>
-            Ingresa tu nueva contraseña para {email}
-          </CardDescription>
-        </CardHeader>
+    <div className="min-h-screen bg-gray-50 pt-20 md:pt-28 pb-10 px-4">
+      <div className="max-w-4xl mx-auto flex rounded-2xl overflow-hidden shadow-xl border border-gray-100">
+        <LeftPanel />
 
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Nueva contraseña */}
-            <div className="space-y-2">
-              <Label htmlFor="password">Nueva contraseña *</Label>
-              <div className="relative">
-                <Input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  minLength={6}
-                  className="pr-10"
-                  placeholder="Mínimo 6 caracteres"
-                />
-                <button
-                  type="button"
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
-                  onClick={() => setShowPassword(!showPassword)}
-                >
-                  {showPassword ? (
-                    <EyeOff className="w-4 h-4" />
-                  ) : (
-                    <Eye className="w-4 h-4" />
-                  )}
-                </button>
-              </div>
-            </div>
-
-            {/* Confirmar contraseña */}
-            <div className="space-y-2">
-              <Label htmlFor="confirmPassword">
-                Confirmar nueva contraseña *
-              </Label>
-              <div className="relative">
-                <Input
-                  id="confirmPassword"
-                  type={showConfirmPassword ? "text" : "password"}
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  required
-                  className="pr-10"
-                  placeholder="Repite tu contraseña"
-                />
-                <button
-                  type="button"
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                >
-                  {showConfirmPassword ? (
-                    <EyeOff className="w-4 h-4" />
-                  ) : (
-                    <Eye className="w-4 h-4" />
-                  )}
-                </button>
-              </div>
-            </div>
-
-            {/* Mensajes de error */}
-            {error && (
-              <Alert variant="destructive">
-                <AlertCircle className="w-4 h-4" />
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
-
-            {/* Mensajes de éxito */}
-            {success && (
-              <Alert variant="default" className="bg-green-50 border-green-200">
-                <CheckCircle className="w-4 h-4 text-green-600" />
-                <AlertDescription className="text-green-800">
-                  {success}
-                </AlertDescription>
-              </Alert>
-            )}
-
-            {/* Botón */}
-            <Button
-              type="submit"
-              disabled={isLoading || !!success}
-              className="w-full"
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Restableciendo...
-                </>
-              ) : (
-                "Restablecer contraseña"
-              )}
-            </Button>
-          </form>
-
-          {/* Volver al login */}
-          <p className="text-sm text-center text-gray-600 pt-4">
+        {/* Right panel */}
+        <div className="flex-1 bg-white flex flex-col justify-center px-8 py-10">
+          <div className="max-w-sm mx-auto w-full">
             <Link
               href="/login"
-              className="text-blue-600 hover:underline font-medium"
+              className="inline-flex items-center gap-1.5 text-xs text-gray-400 hover:text-[#1E3A8A] font-medium mb-6 transition-colors"
             >
+              <ArrowLeft className="w-3.5 h-3.5" />
               Volver al inicio de sesión
             </Link>
-          </p>
-        </CardContent>
-      </Card>
+
+            {success ? (
+              <div className="text-center space-y-4">
+                <div className="w-14 h-14 rounded-full bg-emerald-50 flex items-center justify-center mx-auto">
+                  <CheckCircle className="w-7 h-7 text-emerald-500" />
+                </div>
+                <div>
+                  <h2 className="font-bold text-gray-900 text-lg">¡Contraseña restablecida!</h2>
+                  <p className="text-sm text-gray-400 mt-1">Redirigiendo al inicio de sesión...</p>
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="mb-7">
+                  <h1 className="text-xl font-bold text-gray-900">Nueva contraseña</h1>
+                  <p className="text-sm text-gray-400 mt-1">
+                    Para: <span className="text-gray-600 font-medium">{email}</span>
+                  </p>
+                </div>
+
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div>
+                    <label className="text-xs font-medium text-gray-600 mb-1.5 block">
+                      Nueva contraseña
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showPassword ? "text" : "password"}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="Mínimo 6 caracteres"
+                        className={`${INPUT} pr-10`}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword((v) => !v)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                      >
+                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-medium text-gray-600 mb-1.5 block">
+                      Confirmar contraseña
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showConfirm ? "text" : "password"}
+                        value={confirm}
+                        onChange={(e) => setConfirm(e.target.value)}
+                        placeholder="Repetí tu contraseña"
+                        className={`${INPUT} pr-10`}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirm((v) => !v)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                      >
+                        {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {error && (
+                    <div className="flex items-center gap-2 text-xs text-red-500 bg-red-50 border border-red-100 rounded-xl px-3 py-2">
+                      <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                      {error}
+                    </div>
+                  )}
+
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full bg-[#1E3A8A] text-white text-sm font-semibold py-2.5 rounded-xl hover:bg-blue-800 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+                  >
+                    {loading ? (
+                      <><Loader2 className="w-4 h-4 animate-spin" /> Restableciendo...</>
+                    ) : "Restablecer contraseña"}
+                  </button>
+                </form>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

@@ -17,7 +17,7 @@ export default function ProductGallery({ product }: { product: IProduct }) {
   const processedImages = processImages(product);
 
   return (
-    <div className="w-full md:w-1/2">
+    <div className="w-full">
       <ImageGallery images={processedImages} productName={product.name} />
     </div>
   );

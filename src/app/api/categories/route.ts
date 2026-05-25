@@ -2,9 +2,20 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import Category from "@/models/Category";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+
+function isAdmin(role: string | undefined) {
+  return role === "admin" || role === "superadmin";
+}
 
 export async function POST(req: Request) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session || !isAdmin(session.user?.role)) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+    }
+
     await connectDB();
     const body = await req.json();
 

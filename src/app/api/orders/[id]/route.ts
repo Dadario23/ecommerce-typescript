@@ -1,15 +1,13 @@
-// app/api/orders/[id]/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import Order from "@/models/Order";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { authOptions } from "@/lib/auth";
 import { connectDB } from "@/lib/mongodb";
 
-interface Context {
-  params: { id: string };
-}
-
-export async function GET(request: NextRequest, context: Context) {
+export async function GET(
+  _request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
   try {
     await connectDB();
     const session = await getServerSession(authOptions);
@@ -18,7 +16,7 @@ export async function GET(request: NextRequest, context: Context) {
       return NextResponse.json({ error: "No autenticado" }, { status: 401 });
     }
 
-    const { id } = context.params;
+    const { id } = await context.params;
 
     const order = await Order.findById(id);
 
@@ -44,5 +42,43 @@ export async function GET(request: NextRequest, context: Context) {
       { error: "Error obteniendo la orden" },
       { status: 500 }
     );
+  }
+}
+
+const VALID_STATUSES = ["pending", "confirmed", "processing", "shipped", "delivered", "cancelled"] as const;
+
+export async function PATCH(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
+  try {
+    await connectDB();
+    const session = await getServerSession(authOptions);
+
+    if (!session || session.user?.role !== "admin") {
+      return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+    }
+
+    const { id } = await context.params;
+    const { status } = await request.json();
+
+    if (!VALID_STATUSES.includes(status)) {
+      return NextResponse.json({ error: "Estado inválido" }, { status: 400 });
+    }
+
+    const order = await Order.findByIdAndUpdate(
+      id,
+      { status },
+      { new: true }
+    );
+
+    if (!order) {
+      return NextResponse.json({ error: "Orden no encontrada" }, { status: 404 });
+    }
+
+    return NextResponse.json({ success: true, status: order.status });
+  } catch (error) {
+    console.error("Error updating order:", error);
+    return NextResponse.json({ error: "Error actualizando la orden" }, { status: 500 });
   }
 }

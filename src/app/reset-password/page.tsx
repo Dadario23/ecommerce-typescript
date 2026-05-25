@@ -7,7 +7,7 @@ import ResetPasswordClient from "./ResetPasswordClient";
 export default function Page() {
   return (
     <Suspense
-      fallback={<div className="pt-[140px] text-center">Cargando...</div>}
+      fallback={<div className="pt-20 md:pt-36 text-center">Cargando...</div>}
     >
       <ResetPasswordClient />
     </Suspense>

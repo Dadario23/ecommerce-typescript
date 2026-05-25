@@ -1,12 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { authOptions } from "@/lib/auth";
 import { Preference } from "mercadopago";
 import client from "@/lib/mercadopago";
 import { connectDB } from "@/lib/mongodb";
 import Order from "@/models/Order";
 import User from "@/models/User";
+import Product from "@/models/Product";
 import mongoose from "mongoose";
+
+interface CartItem {
+  id: string;
+  name: string;
+  price: number;
+  image: string;
+  quantity: number;
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -18,24 +27,45 @@ export async function POST(request: NextRequest) {
     }
 
     const orderData = await request.json();
+    const items: CartItem[] = orderData.items;
 
-    // Buscar usuario
-    const user = await User.findOne({ email: session.user.email });
-    if (!user) {
+    // Validar stock antes de crear la preferencia
+    const productIds = items.map((item) => new mongoose.Types.ObjectId(item.id));
+    const products = await Product.find({ _id: { $in: productIds } })
+      .select("_id name stock")
+      .lean<{ _id: mongoose.Types.ObjectId; name: string; stock: number }[]>();
+
+    const productMap = new Map(products.map((p) => [String(p._id), p]));
+    const stockErrors: string[] = [];
+
+    for (const item of items) {
+      const product = productMap.get(item.id);
+      if (!product) {
+        stockErrors.push(`"${item.name}" ya no está disponible`);
+        continue;
+      }
+      if ((product.stock ?? 0) < item.quantity) {
+        stockErrors.push(
+          `"${product.name}" solo tiene ${product.stock ?? 0} unidades disponibles`
+        );
+      }
+    }
+
+    if (stockErrors.length > 0) {
       return NextResponse.json(
-        { error: "Usuario no encontrado" },
-        { status: 404 },
+        { error: "Problemas de stock", details: stockErrors },
+        { status: 409 }
       );
     }
 
-    // Calcular subtotal
-    const subtotal = orderData.items.reduce(
-      (sum: number, item: any) => sum + item.price * item.quantity,
-      0,
-    );
+    const user = await User.findOne({ email: session.user.email });
+    if (!user) {
+      return NextResponse.json({ error: "Usuario no encontrado" }, { status: 404 });
+    }
 
-    // Transformar items
-    const transformedItems = orderData.items.map((item: any) => ({
+    const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+
+    const transformedItems = items.map((item) => ({
       productId: new mongoose.Types.ObjectId(item.id),
       name: item.name,
       price: item.price,
@@ -43,7 +73,6 @@ export async function POST(request: NextRequest) {
       quantity: item.quantity,
     }));
 
-    // Crear orden en DB con estado pending
     const order = new Order({
       userId: user._id,
       customerEmail: session.user.email,
@@ -63,10 +92,9 @@ export async function POST(request: NextRequest) {
 
     await order.save();
 
-    // Crear preferencia en Mercado Pago
     const preference = new Preference(client);
 
-    const mpItems = orderData.items.map((item: any) => ({
+    const mpItems = items.map((item) => ({
       id: item.id,
       title: item.name,
       quantity: item.quantity,
@@ -100,11 +128,12 @@ export async function POST(request: NextRequest) {
       initPoint: response.init_point,
       orderId: order._id,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : "Error desconocido";
     console.error("Error creando preferencia MP:", error);
     return NextResponse.json(
-      { error: "Error creando preferencia", details: error.message },
-      { status: 500 },
+      { error: "Error creando preferencia", details: msg },
+      { status: 500 }
     );
   }
 }

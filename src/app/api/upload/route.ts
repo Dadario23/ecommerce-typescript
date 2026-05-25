@@ -1,11 +1,19 @@
 import { NextResponse } from "next/server";
 import cloudinary from "@/lib/cloudinary";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
 const MAX_SIZE = 5 * 1024 * 1024; // 5MB
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/avif"];
 
 export async function POST(req: Request) {
   try {
+    const session = await getServerSession(authOptions);
+    const role = session?.user?.role;
+    if (!session || (role !== "admin" && role !== "superadmin")) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+    }
+
     const formData = await req.formData();
     const file = formData.get("file") as File;
 

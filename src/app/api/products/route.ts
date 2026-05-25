@@ -3,6 +3,12 @@ import Product from "@/models/Product";
 import { NextResponse } from "next/server";
 import mongoose from "mongoose";
 import { initModels } from "@/lib/initModels";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+
+function isAdmin(role: string | undefined) {
+  return role === "admin" || role === "superadmin";
+}
 
 // GET: listar productos con filtros
 export async function GET(request: Request) {
@@ -43,6 +49,11 @@ export async function GET(request: Request) {
 // POST: crear producto
 export async function POST(req: Request) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session || !isAdmin(session.user?.role)) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+    }
+
     await connectDB();
     const body = await req.json();
 
@@ -57,7 +68,6 @@ export async function POST(req: Request) {
     if (body.category) {
       body.category = new mongoose.Types.ObjectId(body.category);
     }
-    console.log(Product.schema.obj);
     const product = await Product.create(body);
     const populated = await product.populate("category", "name");
 

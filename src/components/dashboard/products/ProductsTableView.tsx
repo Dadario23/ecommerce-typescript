@@ -1,27 +1,12 @@
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Checkbox } from "@/components/ui/checkbox";
-import { MoreHorizontal, Edit, Eye, Trash2, ArrowUpDown } from "lucide-react";
+import { Edit, Trash2, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { Product, SortConfig } from "@/types/product";
 
-function getCategoryName(category: any): string {
+function getCategoryName(category: unknown): string {
   if (!category) return "Sin categoría";
   if (typeof category === "string") return category;
-  if (typeof category === "object" && "name" in category) return category.name;
+  if (typeof category === "object" && category !== null && "name" in category)
+    return (category as { name: string }).name;
   return "Sin categoría";
 }
 
@@ -29,7 +14,7 @@ interface ProductsTableViewProps {
   products: Product[];
   selectedProducts: string[];
   onSelectProduct: (ids: string[]) => void;
-  onQuickEdit: (productId: string, field: keyof Product, value: any) => void;
+  onQuickEdit: (productId: string, field: keyof Product, value: unknown) => void;
   sortConfig: SortConfig;
   onSort: (config: SortConfig) => void;
   onEdit: (productId: string) => void;
@@ -37,239 +22,166 @@ interface ProductsTableViewProps {
 }
 
 export function ProductsTableView({
-  products,
-  selectedProducts,
-  onSelectProduct,
-  onQuickEdit,
-  sortConfig,
-  onSort,
-  onEdit,
-  onDelete,
+  products, selectedProducts, onSelectProduct,
+  sortConfig, onSort, onEdit, onDelete,
 }: ProductsTableViewProps) {
   const handleSort = (key: keyof Product) => {
     onSort({
       key,
-      direction:
-        sortConfig.key === key && sortConfig.direction === "asc"
-          ? "desc"
-          : "asc",
+      direction: sortConfig.key === key && sortConfig.direction === "asc" ? "desc" : "asc",
     });
   };
 
-  const handleSelectAll = (checked: boolean) => {
-    onSelectProduct(checked ? products.map((p) => p._id) : []);
+  const SortIcon = ({ column }: { column: keyof Product }) => {
+    if (sortConfig.key !== column)
+      return <ArrowUpDown className="w-3 h-3 text-gray-300 ml-1 shrink-0" />;
+    return sortConfig.direction === "asc"
+      ? <ArrowUp className="w-3 h-3 text-[#1E3A8A] ml-1 shrink-0" />
+      : <ArrowDown className="w-3 h-3 text-[#1E3A8A] ml-1 shrink-0" />;
   };
 
-  const handleSelectProduct = (productId: string, checked: boolean) => {
-    onSelectProduct(
-      checked
-        ? [...selectedProducts, productId]
-        : selectedProducts.filter((id) => id !== productId),
-    );
-  };
-
-  const SortableHeader = ({
-    columnKey,
-    children,
-    className = "",
-  }: {
-    columnKey: keyof Product;
-    children: React.ReactNode;
-    className?: string;
-  }) => (
-    <TableHead
-      className={`cursor-pointer select-none px-2 ${className}`}
-      onClick={() => handleSort(columnKey)}
-    >
-      <div className="flex items-center">
-        {children}
-        <ArrowUpDown className="ml-2 h-4 w-4" />
-        {sortConfig?.key === columnKey && (
-          <span className="ml-1 text-xs">
-            {sortConfig.direction === "asc" ? "↑" : "↓"}
-          </span>
-        )}
-      </div>
-    </TableHead>
-  );
+  const allSelected = products.length > 0 && selectedProducts.length === products.length;
 
   return (
-    <div className="rounded-md border">
-      <Table className="w-full">
-        <TableHeader>
-          <TableRow>
-            <TableHead className="w-10 px-2">
+    <div className="overflow-x-auto">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="border-b border-gray-100 bg-gray-50/50">
+            <th className="w-10 px-5 py-3 text-left">
               <Checkbox
-                checked={
-                  selectedProducts.length === products.length &&
-                  products.length > 0
+                checked={allSelected}
+                onCheckedChange={(checked) =>
+                  onSelectProduct(checked ? products.map((p) => p._id) : [])
                 }
-                onCheckedChange={handleSelectAll}
               />
-            </TableHead>
-
-            {/* Producto flexible */}
-            <TableHead className="px-2">Producto</TableHead>
-
-            <SortableHeader columnKey="sku" className="w-24">
-              SKU
-            </SortableHeader>
-
-            <SortableHeader columnKey="stock" className="w-20">
-              Stock
-            </SortableHeader>
-
-            <SortableHeader columnKey="price" className="w-28">
-              Precio
-            </SortableHeader>
-
-            <SortableHeader columnKey="rating" className="w-24">
-              Rating
-            </SortableHeader>
-
-            <SortableHeader columnKey="isActive" className="w-28">
+            </th>
+            <th className="px-4 py-3 text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
+              Producto
+            </th>
+            <th
+              className="px-4 py-3 text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wider cursor-pointer hover:text-gray-600 select-none whitespace-nowrap"
+              onClick={() => handleSort("stock")}
+            >
+              <span className="inline-flex items-center">
+                Stock <SortIcon column="stock" />
+              </span>
+            </th>
+            <th
+              className="px-4 py-3 text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wider cursor-pointer hover:text-gray-600 select-none whitespace-nowrap"
+              onClick={() => handleSort("price")}
+            >
+              <span className="inline-flex items-center">
+                Precio <SortIcon column="price" />
+              </span>
+            </th>
+            <th className="px-4 py-3 text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
               Estado
-            </SortableHeader>
-
-            <TableHead className="w-16 px-2">Acciones</TableHead>
-          </TableRow>
-        </TableHeader>
-
-        <TableBody>
+            </th>
+            <th className="w-20 px-4 py-3" />
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-gray-50">
           {products.map((product) => {
             const imageSrc = product.images?.[0];
+            const stockQty = product.stock ?? 0;
+            const stockPill =
+              stockQty > 5
+                ? "bg-green-100 text-green-700"
+                : stockQty > 0
+                ? "bg-yellow-100 text-yellow-700"
+                : "bg-red-100 text-red-600";
 
             return (
-              <TableRow key={product._id}>
-                <TableCell className="px-2">
+              <tr key={product._id} className="hover:bg-gray-50 transition-colors group">
+                <td className="px-5 py-3">
                   <Checkbox
                     checked={selectedProducts.includes(product._id)}
                     onCheckedChange={(checked) =>
-                      handleSelectProduct(product._id, checked as boolean)
+                      onSelectProduct(
+                        checked
+                          ? [...selectedProducts, product._id]
+                          : selectedProducts.filter((id) => id !== product._id)
+                      )
                     }
                   />
-                </TableCell>
-
-                {/* Producto */}
-                <TableCell className="px-2">
+                </td>
+                <td className="px-4 py-3">
                   <div className="flex items-center gap-3 min-w-0">
-                    {imageSrc ? (
-                      <img
-                        src={imageSrc}
-                        alt={product.name}
-                        className="h-10 w-10 rounded object-cover flex-shrink-0"
-                      />
-                    ) : (
-                      <div className="h-10 w-10 rounded bg-gray-200 flex items-center justify-center text-xs text-gray-500 flex-shrink-0">
-                        Sin img
-                      </div>
-                    )}
-
-                    <div className="flex flex-col min-w-0">
-                      <span
-                        className="truncate text-sm font-medium"
+                    <div className="relative w-10 h-10 rounded-lg border border-gray-100 bg-gray-50 shrink-0 overflow-hidden">
+                      {imageSrc ? (
+                        <img
+                          src={imageSrc}
+                          alt={product.name}
+                          className="w-full h-full object-contain p-1"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-[10px] text-gray-300">
+                          N/A
+                        </div>
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <p
+                        className="text-sm font-semibold text-gray-800 truncate max-w-48"
                         title={product.name}
                       >
                         {product.name}
-                      </span>
-                      <span className="text-xs text-gray-500 truncate">
-                        {getCategoryName(product.category)}
-                      </span>
+                      </p>
+                      <p className="text-xs text-gray-400 truncate">
+                        {product.sku
+                          ? `SKU: ${product.sku}`
+                          : getCategoryName(product.category)}
+                      </p>
                     </div>
                   </div>
-                </TableCell>
-
-                <TableCell className="px-2 truncate">
-                  {product.sku || "-"}
-                </TableCell>
-
-                <TableCell className="px-2">
-                  {product.stock !== undefined ? (
-                    product.stock > 5 ? (
-                      <Badge className="bg-green-100 text-green-700">
-                        {product.stock}
-                      </Badge>
-                    ) : product.stock > 0 ? (
-                      <Badge className="bg-yellow-100 text-yellow-700">
-                        {product.stock}
-                      </Badge>
-                    ) : (
-                      <Badge variant="destructive">0</Badge>
-                    )
-                  ) : (
-                    "-"
+                </td>
+                <td className="px-4 py-3">
+                  <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${stockPill}`}>
+                    {stockQty}
+                  </span>
+                </td>
+                <td className="px-4 py-3">
+                  <p className="font-semibold text-gray-900">
+                    ${product.price.toLocaleString("es-AR")}
+                  </p>
+                  {product.compareAtPrice && (
+                    <p className="line-through text-xs text-gray-400">
+                      ${product.compareAtPrice.toLocaleString("es-AR")}
+                    </p>
                   )}
-                </TableCell>
-
-                <TableCell className="px-2">
-                  <div className="flex flex-col">
-                    <span className="font-semibold">
-                      ${product.price.toFixed(2)}
-                    </span>
-                    {product.compareAtPrice && (
-                      <span className="line-through text-xs text-gray-500">
-                        ${product.compareAtPrice.toFixed(2)}
-                      </span>
-                    )}
+                </td>
+                <td className="px-4 py-3">
+                  <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ${
+                    product.isActive
+                      ? "bg-green-100 text-green-700"
+                      : "bg-gray-100 text-gray-500"
+                  }`}>
+                    {product.isActive ? "Publicado" : "Inactivo"}
+                  </span>
+                </td>
+                <td className="px-4 py-3">
+                  <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                      onClick={() => onEdit(product._id)}
+                      className="p-1.5 text-gray-400 hover:text-[#1E3A8A] hover:bg-blue-50 rounded-lg transition-colors"
+                      title="Editar"
+                    >
+                      <Edit className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => onDelete(product._id)}
+                      className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                      title="Eliminar"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
                   </div>
-                </TableCell>
-
-                <TableCell className="px-2">
-                  <div className="flex">
-                    {Array.from({ length: 5 }).map((_, i) => (
-                      <span
-                        key={i}
-                        className={
-                          i < (product.rating || 0)
-                            ? "text-yellow-500"
-                            : "text-gray-300"
-                        }
-                      >
-                        ★
-                      </span>
-                    ))}
-                  </div>
-                </TableCell>
-
-                <TableCell className="px-2">
-                  {product.isActive ? (
-                    <Badge className="bg-green-600">Publicado</Badge>
-                  ) : (
-                    <Badge variant="secondary">Inactivo</Badge>
-                  )}
-                </TableCell>
-
-                <TableCell className="px-2">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="sm">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => onEdit(product._id)}>
-                        <Edit className="h-4 w-4 mr-2" />
-                        Editar
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => onEdit(product._id)}>
-                        <Eye className="h-4 w-4 mr-2" />
-                        Ver
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        className="text-red-600"
-                        onClick={() => onDelete(product._id)}
-                      >
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Eliminar
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </TableCell>
-              </TableRow>
+                </td>
+              </tr>
             );
           })}
-        </TableBody>
-      </Table>
+        </tbody>
+      </table>
     </div>
   );
 }

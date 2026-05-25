@@ -1,207 +1,276 @@
-// app/dashboard/page.tsx - Overview principal
-"use client";
-
-import { useEffect, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+import { redirect } from "next/navigation";
+import { connectDB } from "@/lib/mongodb";
+import Order from "@/models/Order";
+import User from "@/models/User";
+import Product from "@/models/Product";
+import { IOrder } from "@/models/Order";
+import Link from "next/link";
 import {
   DollarSign,
   ShoppingCart,
   Users,
   Package,
-  LucideIcon,
+  TrendingUp,
+  TrendingDown,
+  ArrowRight,
+  Plus,
+  FolderOpen,
+  Tag,
 } from "lucide-react";
 
-interface DashboardStats {
-  totalSales: number;
-  totalOrders: number;
-  totalCustomers: number;
-  totalProducts: number;
-}
+export const revalidate = 60;
 
-interface Trend {
-  value: number;
-  isPositive: boolean;
-}
+const STATUS_CONFIG: Record<string, { label: string; pill: string }> = {
+  pending:    { label: "Pendiente",   pill: "bg-yellow-100 text-yellow-700" },
+  confirmed:  { label: "Confirmada",  pill: "bg-blue-100 text-blue-700" },
+  processing: { label: "Procesando",  pill: "bg-violet-100 text-violet-700" },
+  shipped:    { label: "Enviada",     pill: "bg-indigo-100 text-indigo-700" },
+  delivered:  { label: "Entregada",   pill: "bg-green-100 text-green-700" },
+  cancelled:  { label: "Cancelada",   pill: "bg-red-100 text-red-700" },
+};
 
-interface StatCardProps {
-  title: string;
-  value: string;
-  icon: LucideIcon;
-  trend?: Trend;
-}
+export default async function DashboardPage() {
+  const session = await getServerSession(authOptions);
+  if (!session || session.user?.role !== "admin") redirect("/");
 
-export default function DashboardPage() {
-  const [stats, setStats] = useState<DashboardStats>({
-    totalSales: 0,
-    totalOrders: 0,
-    totalCustomers: 0,
-    totalProducts: 0,
-  });
-  const [loading, setLoading] = useState(true);
+  await connectDB();
 
-  useEffect(() => {
-    fetchDashboardStats();
-  }, []);
+  const now = new Date();
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
 
-  const fetchDashboardStats = async () => {
-    try {
-      // Simular llamada a API
-      setTimeout(() => {
-        setStats({
-          totalSales: 12458,
-          totalOrders: 156,
-          totalCustomers: 89,
-          totalProducts: 42,
-        });
-        setLoading(false);
-      }, 1000);
-    } catch (error) {
-      console.error("Error fetching stats:", error);
-      setLoading(false);
-    }
-  };
+  const [
+    totalSalesResult,
+    thisMonthSalesResult,
+    lastMonthSalesResult,
+    totalOrders,
+    thisMonthOrders,
+    lastMonthOrders,
+    totalCustomers,
+    thisMonthCustomers,
+    lastMonthCustomers,
+    totalProducts,
+    recentOrders,
+  ] = await Promise.all([
+    Order.aggregate([
+      { $match: { "payment.status": "completed" } },
+      { $group: { _id: null, total: { $sum: "$total" } } },
+    ]),
+    Order.aggregate([
+      { $match: { "payment.status": "completed", createdAt: { $gte: startOfMonth } } },
+      { $group: { _id: null, total: { $sum: "$total" } } },
+    ]),
+    Order.aggregate([
+      { $match: { "payment.status": "completed", createdAt: { $gte: startOfLastMonth, $lte: endOfLastMonth } } },
+      { $group: { _id: null, total: { $sum: "$total" } } },
+    ]),
+    Order.countDocuments(),
+    Order.countDocuments({ createdAt: { $gte: startOfMonth } }),
+    Order.countDocuments({ createdAt: { $gte: startOfLastMonth, $lte: endOfLastMonth } }),
+    User.countDocuments({ role: { $ne: "admin" } }),
+    User.countDocuments({ role: { $ne: "admin" }, createdAt: { $gte: startOfMonth } }),
+    User.countDocuments({ role: { $ne: "admin" }, createdAt: { $gte: startOfLastMonth, $lte: endOfLastMonth } }),
+    Product.countDocuments(),
+    Order.find()
+      .sort({ createdAt: -1 })
+      .limit(6)
+      .select("orderNumber customerEmail total status createdAt")
+      .lean<IOrder[]>(),
+  ]);
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-      </div>
-    );
+  const totalSales = totalSalesResult[0]?.total ?? 0;
+  const thisMonthSales = thisMonthSalesResult[0]?.total ?? 0;
+  const lastMonthSales = lastMonthSalesResult[0]?.total ?? 0;
+
+  function trend(current: number, last: number) {
+    if (last === 0) return null;
+    return ((current - last) / last) * 100;
   }
 
+  const salesTrend = trend(thisMonthSales, lastMonthSales);
+  const ordersTrend = trend(thisMonthOrders, lastMonthOrders);
+  const customersTrend = trend(thisMonthCustomers, lastMonthCustomers);
+
+  const monthLabel = now.toLocaleDateString("es-AR", { month: "long", year: "numeric" });
+
   return (
-    <div>
-      <div className=" flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Dashboard Overview</h1>
-        <span className="text-sm text-gray-500">Última actualización: hoy</span>
+    <div className="space-y-6 max-w-7xl">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-bold text-gray-900">Bienvenido, {session.user?.name?.split(" ")[0]} 👋</h2>
+          <p className="text-sm text-gray-500 mt-0.5 capitalize">{monthLabel}</p>
+        </div>
+        <Link
+          href="/dashboard/products/new"
+          className="flex items-center gap-2 bg-[#1E3A8A] text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-blue-800 transition-colors"
+        >
+          <Plus className="w-4 h-4" />
+          Nuevo producto
+        </Link>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      {/* Stat cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
-          title="Ventas Totales"
-          value={`$${stats.totalSales.toLocaleString()}`}
+          title="Ventas totales"
+          value={`$${totalSales.toLocaleString("es-AR")}`}
           icon={DollarSign}
-          trend={{ value: 12.5, isPositive: true }}
+          iconBg="bg-blue-50"
+          iconColor="text-blue-600"
+          sub={`$${thisMonthSales.toLocaleString("es-AR")} este mes`}
+          trend={salesTrend}
         />
         <StatCard
           title="Órdenes"
-          value={stats.totalOrders.toString()}
+          value={totalOrders.toLocaleString("es-AR")}
           icon={ShoppingCart}
-          trend={{ value: 8.2, isPositive: true }}
+          iconBg="bg-violet-50"
+          iconColor="text-violet-600"
+          sub={`${thisMonthOrders} este mes`}
+          trend={ordersTrend}
         />
         <StatCard
           title="Clientes"
-          value={stats.totalCustomers.toString()}
+          value={totalCustomers.toLocaleString("es-AR")}
           icon={Users}
-          trend={{ value: 5.7, isPositive: true }}
+          iconBg="bg-emerald-50"
+          iconColor="text-emerald-600"
+          sub={`+${thisMonthCustomers} este mes`}
+          trend={customersTrend}
         />
         <StatCard
           title="Productos"
-          value={stats.totalProducts.toString()}
+          value={totalProducts.toLocaleString("es-AR")}
           icon={Package}
-          trend={{ value: 3.4, isPositive: true }}
+          iconBg="bg-orange-50"
+          iconColor="text-orange-600"
+          sub="en catálogo"
         />
       </div>
 
-      {/* Sección de gráficos y datos adicionales */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Ventas Mensuales</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-64 bg-gray-100 rounded-lg flex items-center justify-center">
-              <p className="text-gray-500">Gráfico de ventas mensuales</p>
+      {/* Bottom grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* Recent orders */}
+        <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-gray-50">
+            <p className="font-semibold text-gray-900 text-sm">Órdenes recientes</p>
+            <Link
+              href="/dashboard/orders"
+              className="flex items-center gap-1 text-xs text-[#1E3A8A] font-semibold hover:underline"
+            >
+              Ver todas <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+
+          {recentOrders.length === 0 ? (
+            <div className="py-12 text-center text-sm text-gray-400">
+              No hay órdenes todavía
             </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Órdenes Recientes</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-64 bg-gray-100 rounded-lg flex items-center justify-center">
-              <p className="text-gray-500">Lista de órdenes recientes</p>
+          ) : (
+            <div className="divide-y divide-gray-50">
+              {recentOrders.map((order) => {
+                const cfg = STATUS_CONFIG[order.status] ?? STATUS_CONFIG.pending;
+                return (
+                  <Link
+                    key={String(order._id)}
+                    href={`/dashboard/orders`}
+                    className="flex items-center justify-between px-5 py-3 hover:bg-gray-50 transition-colors"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-gray-800 font-mono">
+                        #{order.orderNumber}
+                      </p>
+                      <p className="text-xs text-gray-400 truncate mt-0.5">
+                        {order.customerEmail}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-3 shrink-0 ml-3">
+                      <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${cfg.pill}`}>
+                        {cfg.label}
+                      </span>
+                      <span className="text-sm font-bold text-gray-900">
+                        ${order.total.toLocaleString("es-AR")}
+                      </span>
+                    </div>
+                  </Link>
+                );
+              })}
             </div>
-          </CardContent>
-        </Card>
-      </div>
+          )}
+        </div>
 
-      {/* Quick Actions */}
-      <div className="mt-8">
-        <h2 className="text-xl font-semibold mb-4">Acciones Rápidas</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card className="hover:shadow-md transition-shadow cursor-pointer">
-            <CardContent className="p-6">
-              <div className="flex items-center">
-                <ShoppingCart className="h-8 w-8 text-blue-500 mr-4" />
-                <div>
-                  <h3 className="font-semibold">Gestionar Órdenes</h3>
-                  <p className="text-sm text-gray-500">
-                    Ver y procesar órdenes
-                  </p>
+        {/* Quick actions */}
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          <div className="px-5 py-4 border-b border-gray-50">
+            <p className="font-semibold text-gray-900 text-sm">Acciones rápidas</p>
+          </div>
+          <div className="p-4 grid grid-cols-2 gap-3">
+            {[
+              { href: "/dashboard/orders", icon: ShoppingCart, label: "Órdenes", bg: "bg-violet-50", color: "text-violet-600" },
+              { href: "/dashboard/products/new", icon: Plus, label: "Nuevo producto", bg: "bg-blue-50", color: "text-blue-600" },
+              { href: "/dashboard/categories", icon: FolderOpen, label: "Categorías", bg: "bg-orange-50", color: "text-orange-600" },
+              { href: "/dashboard/coupons", icon: Tag, label: "Cupones", bg: "bg-emerald-50", color: "text-emerald-600" },
+            ].map(({ href, icon: Icon, label, bg, color }) => (
+              <Link
+                key={href}
+                href={href}
+                className="flex flex-col items-center gap-2.5 p-4 rounded-xl border border-gray-100 hover:border-blue-200 hover:shadow-sm transition-all text-center"
+              >
+                <div className={`w-10 h-10 rounded-xl ${bg} flex items-center justify-center`}>
+                  <Icon className={`w-5 h-5 ${color}`} />
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="hover:shadow-md transition-shadow cursor-pointer">
-            <CardContent className="p-6">
-              <div className="flex items-center">
-                <Package className="h-8 w-8 text-green-500 mr-4" />
-                <div>
-                  <h3 className="font-semibold">Gestionar Productos</h3>
-                  <p className="text-sm text-gray-500">
-                    Agregar/editar productos
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="hover:shadow-md transition-shadow cursor-pointer">
-            <CardContent className="p-6">
-              <div className="flex items-center">
-                <Users className="h-8 w-8 text-purple-500 mr-4" />
-                <div>
-                  <h3 className="font-semibold">Gestionar Clientes</h3>
-                  <p className="text-sm text-gray-500">
-                    Ver clientes y estadísticas
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+                <span className="text-xs font-semibold text-gray-700 leading-tight">{label}</span>
+              </Link>
+            ))}
+          </div>
         </div>
       </div>
     </div>
   );
 }
 
-// Componente de tarjeta de estadísticas
-function StatCard({ title, value, icon: Icon, trend }: StatCardProps) {
+function StatCard({
+  title,
+  value,
+  icon: Icon,
+  iconBg,
+  iconColor,
+  sub,
+  trend,
+}: {
+  title: string;
+  value: string;
+  icon: React.ElementType;
+  iconBg: string;
+  iconColor: string;
+  sub?: string;
+  trend?: number | null;
+}) {
+  const up = trend !== null && trend !== undefined && trend >= 0;
+  const pct = trend !== null && trend !== undefined ? Math.abs(Math.round(trend * 10) / 10) : null;
+
   return (
-    <Card className="hover:shadow-md transition-shadow">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium text-gray-600">
-          {title}
-        </CardTitle>
-        <Icon className="h-5 w-5 text-gray-400" />
-      </CardHeader>
-      <CardContent>
-        <div className="text-2xl font-bold text-gray-900">{value}</div>
-        {trend && (
-          <p
-            className={`text-xs mt-1 ${
-              trend.isPositive ? "text-green-600" : "text-red-600"
-            }`}
-          >
-            {trend.isPositive ? "↑" : "↓"} {trend.value}% vs mes anterior
-          </p>
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+      <div className="flex items-start justify-between mb-3">
+        <div className={`w-10 h-10 rounded-xl ${iconBg} flex items-center justify-center`}>
+          <Icon className={`w-5 h-5 ${iconColor}`} />
+        </div>
+        {pct !== null && (
+          <span className={`inline-flex items-center gap-0.5 text-[11px] font-semibold px-2 py-0.5 rounded-full ${
+            up ? "bg-emerald-50 text-emerald-600" : "bg-red-50 text-red-500"
+          }`}>
+            {up ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+            {pct}%
+          </span>
         )}
-      </CardContent>
-    </Card>
+      </div>
+      <p className="text-2xl font-bold text-gray-900 mb-0.5">{value}</p>
+      <p className="text-xs font-medium text-gray-500">{title}</p>
+      {sub && <p className="text-[11px] text-gray-400 mt-1">{sub}</p>}
+    </div>
   );
 }

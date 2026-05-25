@@ -3,52 +3,60 @@ import { connectDB } from "@/lib/mongodb";
 import Product from "@/models/Product";
 import Category from "@/models/Category";
 
+const SELECT_FIELDS =
+  "name slug images price compareAtPrice brand stock category avgRating reviewCount";
+
 export async function GET(req: Request) {
   try {
     await connectDB();
     const { searchParams } = new URL(req.url);
 
-    const query = searchParams.get("query") || "";
-    const mode = searchParams.get("mode") || "suggest"; // 👈 Nuevo parámetro
-    // 1️⃣ Buscar categorías cuyo nombre coincida con el query
+    const query = searchParams.get("query")?.trim() ?? "";
+    const mode = searchParams.get("mode") ?? "suggest";
+    const sort = searchParams.get("sort") ?? "relevance";
+
+    if (!query) return NextResponse.json([]);
+
+    // Find categories whose name matches the query (e.g. "celular" → "Celulares")
     const matchedCategories = await Category.find({
       name: { $regex: query, $options: "i" },
     })
       .select("_id")
-      .lean();
+      .lean<{ _id: unknown }[]>();
 
-    // 2️⃣ Extraer solo los IDs
-    const categoryIds = matchedCategories.map((cat) => cat._id);
+    const categoryIds = matchedCategories.map((c) => c._id);
 
-    if (!query.trim()) {
-      return NextResponse.json([]);
-    }
-
+    // Base filter: always regex — works regardless of text indexes
+    // Matches name, brand, or products in a matching category
     const filter = {
       $or: [
         { name: { $regex: query, $options: "i" } },
+        { brand: { $regex: query, $options: "i" } },
+        { description: { $regex: query, $options: "i" } },
         ...(categoryIds.length > 0 ? [{ category: { $in: categoryIds } }] : []),
       ],
     };
 
-    // Si estamos en modo "suggest" → resultados rápidos y pocos campos
-    if (mode === "suggest") {
-      const products = await Product.find(filter)
-        .limit(5)
-        .select("name slug images price")
-        .lean();
+    // Sort
+    type MongoSort = Record<string, 1 | -1>;
+    const sortMap: Record<string, MongoSort> = {
+      price_asc: { price: 1 },
+      price_desc: { price: -1 },
+      newest: { createdAt: -1 },
+      rating: { avgRating: -1, reviewCount: -1 },
+    };
+    const mongoSort: MongoSort = sortMap[sort] ?? {};
 
-      return NextResponse.json(products);
-    }
+    const limit = mode === "suggest" ? 6 : 0;
 
-    // Si estamos en modo "full" → sin límite y todos los campos
-    const products = await Product.find(filter).lean();
+    const q = Product.find(filter).select(SELECT_FIELDS).sort(mongoSort);
+    if (limit > 0) q.limit(limit);
+
+    const products = await q.lean();
+
     return NextResponse.json(products);
   } catch (error) {
     console.error("[SEARCH_API_ERROR]", error);
-    return NextResponse.json(
-      { error: "Error al buscar productos" },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: "Error al buscar productos" }, { status: 500 });
   }
 }

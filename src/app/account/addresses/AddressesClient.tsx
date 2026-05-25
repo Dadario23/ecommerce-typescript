@@ -1,16 +1,12 @@
-// app/account/addresses/page.tsx
 "use client";
 
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -23,7 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, Edit, Trash2, Star, MapPin } from "lucide-react";
+import { Plus, Edit, Trash2, MapPin, Star } from "lucide-react";
 
 interface Address {
   _id?: string;
@@ -39,470 +35,267 @@ interface Address {
   isDefault: boolean;
 }
 
-export default function AddressesPage() {
+const EMPTY_FORM: Address = {
+  title: "", firstName: "", lastName: "", street: "",
+  city: "", state: "", zipCode: "", country: "Argentina",
+  phone: "", isDefault: false,
+};
+
+const AR_PROVINCES = [
+  "Buenos Aires","CABA","Catamarca","Chaco","Chubut","Córdoba",
+  "Corrientes","Entre Ríos","Formosa","Jujuy","La Pampa","La Rioja",
+  "Mendoza","Misiones","Neuquén","Río Negro","Salta","San Juan",
+  "San Luis","Santa Cruz","Santa Fe","Santiago del Estero",
+  "Tierra del Fuego","Tucumán",
+];
+
+export default function AddressesClient() {
   const { data: session } = useSession();
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingAddress, setEditingAddress] = useState<Address | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [formData, setFormData] = useState<Address>(EMPTY_FORM);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (session) {
-      loadAddresses();
-    }
+    if (session) loadAddresses();
   }, [session]);
 
-  // Estados para el formulario
-  const [formData, setFormData] = useState({
-    title: "",
-    firstName: "",
-    lastName: "",
-    street: "",
-    city: "",
-    state: "",
-    zipCode: "",
-    country: "Argentina",
-    phone: "",
-    isDefault: false,
-  });
-
-  // Cargar direcciones del usuario
   const loadAddresses = async () => {
-    try {
-      const res = await fetch("/api/user/addresses");
-      if (res.ok) {
-        const data = await res.json();
-        setAddresses(data);
-      }
-    } catch (error) {
-      console.error("Error loading addresses:", error);
-    } finally {
-      setIsLoading(false);
-    }
+    setIsLoading(true);
+    fetch("/api/user/addresses")
+      .then((r) => (r.ok ? r.json() : []))
+      .then((d) => setAddresses(Array.isArray(d) ? d : []))
+      .catch(() => setAddresses([]))
+      .finally(() => setIsLoading(false));
   };
 
-  // Resetear formulario
-  const resetForm = () => {
+  const openNew = () => {
+    setEditingId(null);
     setFormData({
-      title: "",
+      ...EMPTY_FORM,
       firstName: session?.user?.name?.split(" ")[0] || "",
       lastName: session?.user?.name?.split(" ").slice(1).join(" ") || "",
-      street: "",
-      city: "",
-      state: "",
-      zipCode: "",
-      country: "Argentina",
-      phone: "",
-      isDefault: false,
-    });
-    setEditingAddress(null);
-  };
-
-  // Manejar cambio en inputs
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value, type, checked } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: type === "checkbox" ? checked : value,
-    }));
-  };
-
-  // Manejar envío del formulario
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    try {
-      const url = editingAddress
-        ? `/api/user/addresses/${editingAddress._id}`
-        : "/api/user/addresses";
-
-      const method = editingAddress ? "PUT" : "POST";
-
-      const res = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      });
-
-      if (res.ok) {
-        await loadAddresses();
-        setIsDialogOpen(false);
-        resetForm();
-      }
-    } catch (error) {
-      console.error("Error saving address:", error);
-    }
-  };
-
-  // Editar dirección
-  const handleEdit = (address: Address) => {
-    setEditingAddress(address);
-    setFormData({
-      title: address.title,
-      firstName: address.firstName,
-      lastName: address.lastName,
-      street: address.street,
-      city: address.city,
-      state: address.state,
-      zipCode: address.zipCode,
-      country: address.country,
-      phone: address.phone,
-      isDefault: address.isDefault,
     });
     setIsDialogOpen(true);
   };
 
-  // Eliminar dirección
-  const handleDelete = async (addressId: string) => {
-    if (!confirm("¿Estás seguro de que quieres eliminar esta dirección?"))
-      return;
+  const openEdit = (addr: Address) => {
+    setEditingId(addr._id ?? null);
+    setFormData({ ...addr });
+    setIsDialogOpen(true);
+  };
 
+  const handleInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData((p) => ({ ...p, [name]: value }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
     try {
-      const res = await fetch(`/api/user/addresses/${addressId}`, {
-        method: "DELETE",
+      const url = editingId ? `/api/user/addresses/${editingId}` : "/api/user/addresses";
+      const res = await fetch(url, {
+        method: editingId ? "PUT" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(formData),
       });
-
       if (res.ok) {
         await loadAddresses();
+        setIsDialogOpen(false);
       }
-    } catch (error) {
-      console.error("Error deleting address:", error);
+    } finally {
+      setSaving(false);
     }
   };
 
-  // Establecer como principal
-  const setAsDefault = async (addressId: string) => {
-    try {
-      const res = await fetch(`/api/user/addresses/${addressId}/default`, {
-        method: "PUT",
-      });
-
-      if (res.ok) {
-        await loadAddresses();
-      }
-    } catch (error) {
-      console.error("Error setting default address:", error);
-    }
+  const handleDelete = async (id: string) => {
+    if (!confirm("¿Eliminar esta dirección?")) return;
+    await fetch(`/api/user/addresses/${id}`, { method: "DELETE" });
+    loadAddresses();
   };
 
-  // Provincias de Argentina
-  const argentinaProvinces = [
-    "Buenos Aires",
-    "CABA",
-    "Catamarca",
-    "Chaco",
-    "Chubut",
-    "Córdoba",
-    "Corrientes",
-    "Entre Ríos",
-    "Formosa",
-    "Jujuy",
-    "La Pampa",
-    "La Rioja",
-    "Mendoza",
-    "Misiones",
-    "Neuquén",
-    "Río Negro",
-    "Salta",
-    "San Juan",
-    "San Luis",
-    "Santa Cruz",
-    "Santa Fe",
-    "Santiago del Estero",
-    "Tierra del Fuego",
-    "Tucumán",
-  ];
-
-  if (isLoading) {
-    return (
-      <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <h3 className="text-2xl font-bold">Tus direcciones</h3>
-          <Button disabled>
-            <Plus className="w-4 h-4 mr-2" />
-            Agregar dirección
-          </Button>
-        </div>
-        <div className="grid gap-4 md:grid-cols-2">
-          {[1, 2].map((i) => (
-            <Card key={i} className="animate-pulse">
-              <CardContent className="p-6 h-40"></CardContent>
-            </Card>
-          ))}
-        </div>
-      </div>
-    );
-  }
+  const setAsDefault = async (id: string) => {
+    await fetch(`/api/user/addresses/${id}/default`, { method: "PUT" });
+    loadAddresses();
+  };
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h3 className="text-2xl font-bold">Tus direcciones</h3>
-          <p className="text-gray-600">Gestiona tus direcciones de envío</p>
-        </div>
+    <div className="space-y-5">
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-bold text-gray-900">Mis direcciones</h2>
 
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
-            <Button onClick={resetForm}>
-              <Plus className="w-4 h-4 mr-2" />
-              Agregar dirección
-            </Button>
+            <button
+              onClick={openNew}
+              className="flex items-center gap-1.5 bg-[#1E3A8A] text-white text-sm font-semibold px-3.5 py-2 rounded-xl hover:bg-blue-800 transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              Agregar
+            </button>
           </DialogTrigger>
 
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-lg">
             <DialogHeader>
-              <DialogTitle>
-                {editingAddress
-                  ? "Editar dirección"
-                  : "Agregar nueva dirección"}
-              </DialogTitle>
-              <DialogDescription>
-                {editingAddress
-                  ? "Modifica los datos de tu dirección"
-                  : "Agrega una nueva dirección para tus envíos"}
-              </DialogDescription>
+              <DialogTitle>{editingId ? "Editar dirección" : "Nueva dirección"}</DialogTitle>
             </DialogHeader>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="title">Nombre de la dirección *</Label>
-                  <Input
-                    id="title"
-                    name="title"
-                    placeholder="Ej: Casa, Trabajo"
-                    value={formData.title}
-                    onChange={handleInputChange}
-                    required
-                  />
+            <form onSubmit={handleSubmit} className="space-y-4 mt-2">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="col-span-2">
+                  <Label className="text-xs font-medium text-gray-600 mb-1.5 block">
+                    Nombre de la dirección *
+                  </Label>
+                  <Input name="title" value={formData.title} onChange={handleInput}
+                    placeholder="Casa, Trabajo..." required className="rounded-lg" />
                 </div>
-
-                <div className="space-y-2">
-                  <Label>¿Dirección principal?</Label>
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="isDefault"
-                      name="isDefault"
-                      checked={formData.isDefault}
-                      onCheckedChange={(checked) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          isDefault: checked as boolean,
-                        }))
-                      }
-                    />
-                    <Label htmlFor="isDefault" className="text-sm">
-                      Usar como dirección principal
-                    </Label>
-                  </div>
+                <div>
+                  <Label className="text-xs font-medium text-gray-600 mb-1.5 block">Nombre *</Label>
+                  <Input name="firstName" value={formData.firstName} onChange={handleInput}
+                    required className="rounded-lg" />
                 </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="firstName">Nombre *</Label>
-                  <Input
-                    id="firstName"
-                    name="firstName"
-                    value={formData.firstName}
-                    onChange={handleInputChange}
-                    required
-                  />
+                <div>
+                  <Label className="text-xs font-medium text-gray-600 mb-1.5 block">Apellido *</Label>
+                  <Input name="lastName" value={formData.lastName} onChange={handleInput}
+                    required className="rounded-lg" />
                 </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="lastName">Apellido *</Label>
-                  <Input
-                    id="lastName"
-                    name="lastName"
-                    value={formData.lastName}
-                    onChange={handleInputChange}
-                    required
-                  />
+                <div className="col-span-2">
+                  <Label className="text-xs font-medium text-gray-600 mb-1.5 block">Dirección *</Label>
+                  <Input name="street" value={formData.street} onChange={handleInput}
+                    placeholder="Calle, número, depto" required className="rounded-lg" />
                 </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="street">Dirección *</Label>
-                <Input
-                  id="street"
-                  name="street"
-                  placeholder="Calle, número, departamento"
-                  value={formData.street}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="city">Ciudad *</Label>
-                  <Input
-                    id="city"
-                    name="city"
-                    value={formData.city}
-                    onChange={handleInputChange}
-                    required
-                  />
+                <div>
+                  <Label className="text-xs font-medium text-gray-600 mb-1.5 block">Ciudad *</Label>
+                  <Input name="city" value={formData.city} onChange={handleInput}
+                    required className="rounded-lg" />
                 </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="state">Provincia *</Label>
-                  <Select
-                    value={formData.state}
-                    onValueChange={(value) =>
-                      setFormData((prev) => ({ ...prev, state: value }))
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecciona una provincia" />
+                <div>
+                  <Label className="text-xs font-medium text-gray-600 mb-1.5 block">Provincia *</Label>
+                  <Select value={formData.state}
+                    onValueChange={(v: string) => setFormData((p) => ({ ...p, state: v }))}>
+                    <SelectTrigger className="rounded-lg">
+                      <SelectValue placeholder="Seleccioná" />
                     </SelectTrigger>
                     <SelectContent>
-                      {argentinaProvinces.map((province) => (
-                        <SelectItem key={province} value={province}>
-                          {province}
-                        </SelectItem>
+                      {AR_PROVINCES.map((p) => (
+                        <SelectItem key={p} value={p}>{p}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="zipCode">Código Postal *</Label>
-                  <Input
-                    id="zipCode"
-                    name="zipCode"
-                    value={formData.zipCode}
-                    onChange={handleInputChange}
-                    required
+                <div>
+                  <Label className="text-xs font-medium text-gray-600 mb-1.5 block">Cód. Postal *</Label>
+                  <Input name="zipCode" value={formData.zipCode} onChange={handleInput}
+                    required className="rounded-lg" />
+                </div>
+                <div>
+                  <Label className="text-xs font-medium text-gray-600 mb-1.5 block">Teléfono</Label>
+                  <Input name="phone" type="tel" value={formData.phone} onChange={handleInput}
+                    placeholder="+54 11..." className="rounded-lg" />
+                </div>
+                <div className="col-span-2 flex items-center gap-2.5 pt-1">
+                  <Checkbox
+                    id="isDefault"
+                    checked={formData.isDefault}
+                    onCheckedChange={(c: boolean | "indeterminate") =>
+                      setFormData((p) => ({ ...p, isDefault: c === true }))
+                    }
                   />
+                  <Label htmlFor="isDefault" className="text-sm text-gray-700 cursor-pointer select-none">
+                    Usar como dirección principal
+                  </Label>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="country">País *</Label>
-                  <Input
-                    id="country"
-                    name="country"
-                    value={formData.country}
-                    onChange={handleInputChange}
-                    required
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Teléfono</Label>
-                  <Input
-                    id="phone"
-                    name="phone"
-                    type="tel"
-                    placeholder="+54 11 1234-5678"
-                    value={formData.phone}
-                    onChange={handleInputChange}
-                  />
-                </div>
-              </div>
-
-              <div className="flex justify-end space-x-3 pt-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setIsDialogOpen(false)}
-                >
+              <div className="flex gap-2 pt-2">
+                <button type="button" onClick={() => setIsDialogOpen(false)}
+                  className="flex-1 border border-gray-200 text-gray-600 text-sm font-medium py-2.5 rounded-xl hover:bg-gray-50 transition-colors">
                   Cancelar
-                </Button>
-                <Button type="submit">
-                  {editingAddress ? "Actualizar" : "Agregar"} dirección
-                </Button>
+                </button>
+                <button type="submit" disabled={saving}
+                  className="flex-1 bg-[#1E3A8A] text-white text-sm font-semibold py-2.5 rounded-xl hover:bg-blue-800 transition-colors disabled:opacity-70">
+                  {saving ? "Guardando..." : editingId ? "Actualizar" : "Guardar"}
+                </button>
               </div>
             </form>
           </DialogContent>
         </Dialog>
       </div>
 
-      {addresses.length === 0 ? (
-        <Card>
-          <CardContent className="text-center py-12">
-            <MapPin className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <h4 className="text-lg font-semibold text-gray-600 mb-2">
-              No tienes direcciones guardadas
-            </h4>
-            <p className="text-gray-500 mb-4">
-              Agrega tu primera dirección para agilizar tus compras
-            </p>
-            <Button onClick={() => setIsDialogOpen(true)}>
-              <Plus className="w-4 h-4 mr-2" />
-              Agregar primera dirección
-            </Button>
-          </CardContent>
-        </Card>
+      {isLoading ? (
+        <div className="grid gap-3 sm:grid-cols-2 animate-pulse">
+          {[1, 2].map((i) => (
+            <div key={i} className="h-36 bg-gray-100 rounded-xl" />
+          ))}
+        </div>
+      ) : addresses.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-16 text-center">
+          <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-4">
+            <MapPin className="w-7 h-7 text-gray-300" />
+          </div>
+          <p className="font-semibold text-gray-700 mb-1">Sin direcciones guardadas</p>
+          <p className="text-sm text-gray-400 mb-5">
+            Guardá tus direcciones para agilizar el checkout
+          </p>
+          <button onClick={openNew}
+            className="flex items-center gap-2 bg-[#1E3A8A] text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-blue-800 transition-colors">
+            <Plus className="w-4 h-4" />
+            Agregar dirección
+          </button>
+        </div>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2">
-          {addresses.map((address) => (
-            <Card key={address._id} className="relative">
-              <CardContent className="p-6">
-                {address.isDefault && (
-                  <div className="absolute top-4 right-4">
-                    <span className="inline-flex items-center px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
-                      <Star className="w-3 h-3 mr-1 fill-current" />
-                      Principal
-                    </span>
-                  </div>
-                )}
+        <div className="grid gap-3 sm:grid-cols-2">
+          {addresses.map((addr) => (
+            <div
+              key={addr._id}
+              className="relative border border-gray-100 rounded-xl p-4 hover:border-blue-200 transition-colors"
+            >
+              {addr.isDefault && (
+                <span className="absolute top-3 right-3 inline-flex items-center gap-1 text-[10px] font-semibold bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full">
+                  <Star className="w-2.5 h-2.5 fill-blue-500" />
+                  Principal
+                </span>
+              )}
 
-                <div className="flex items-start mb-4">
-                  <MapPin className="w-5 h-5 text-gray-400 mr-2 mt-0.5" />
-                  <div>
-                    <h4 className="font-semibold text-lg">{address.title}</h4>
-                    <p className="text-gray-600">
-                      {address.firstName} {address.lastName}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="space-y-1 text-sm text-gray-600">
-                  <p>{address.street}</p>
-                  <p>
-                    {address.city}, {address.state} {address.zipCode}
+              <div className="flex items-start gap-2.5 mb-3">
+                <MapPin className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
+                <div>
+                  <p className="font-semibold text-sm text-gray-800">{addr.title}</p>
+                  <p className="text-xs text-gray-500">
+                    {addr.firstName} {addr.lastName}
                   </p>
-                  <p>{address.country}</p>
-                  {address.phone && <p>Tel: {address.phone}</p>}
                 </div>
+              </div>
 
-                <div className="flex space-x-3 mt-4 pt-4 border-t">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleEdit(address)}
-                  >
-                    <Edit className="w-4 h-4 mr-1" />
-                    Editar
-                  </Button>
+              <div className="text-xs text-gray-500 space-y-0.5 mb-4">
+                <p>{addr.street}</p>
+                <p>{addr.city}, {addr.state} {addr.zipCode}</p>
+                {addr.phone && <p>{addr.phone}</p>}
+              </div>
 
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => address._id && handleDelete(address._id)}
-                  >
-                    <Trash2 className="w-4 h-4 mr-1" />
-                    Eliminar
-                  </Button>
-
-                  {!address.isDefault && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => address._id && setAsDefault(address._id)}
-                    >
-                      <Star className="w-4 h-4 mr-1" />
-                      Principal
-                    </Button>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+              <div className="flex items-center gap-1 border-t border-gray-50 pt-3">
+                <button onClick={() => openEdit(addr)}
+                  className="flex items-center gap-1 text-xs text-gray-500 hover:text-[#1E3A8A] font-medium px-2 py-1 rounded-lg hover:bg-blue-50 transition-colors">
+                  <Edit className="w-3.5 h-3.5" />
+                  Editar
+                </button>
+                <button onClick={() => addr._id && handleDelete(addr._id)}
+                  className="flex items-center gap-1 text-xs text-gray-500 hover:text-red-500 font-medium px-2 py-1 rounded-lg hover:bg-red-50 transition-colors">
+                  <Trash2 className="w-3.5 h-3.5" />
+                  Eliminar
+                </button>
+                {!addr.isDefault && (
+                  <button onClick={() => addr._id && setAsDefault(addr._id)}
+                    className="flex items-center gap-1 text-xs text-gray-500 hover:text-blue-600 font-medium px-2 py-1 rounded-lg hover:bg-blue-50 transition-colors ml-auto">
+                    <Star className="w-3.5 h-3.5" />
+                    Hacer principal
+                  </button>
+                )}
+              </div>
+            </div>
           ))}
         </div>
       )}

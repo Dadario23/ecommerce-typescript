@@ -1,10 +1,15 @@
 "use client";
 
 import { useSession, signOut } from "next-auth/react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
+import { ClipboardList, MapPin, Lock, LogOut, ChevronRight } from "lucide-react";
+
+const NAV_LINKS = [
+  { href: "/account/orders", label: "Mis pedidos", icon: ClipboardList },
+  { href: "/account/addresses", label: "Direcciones", icon: MapPin },
+  { href: "/account/change-password", label: "Cambiar contraseña", icon: Lock },
+];
 
 export default function AccountLayoutClient({
   children,
@@ -13,59 +18,120 @@ export default function AccountLayoutClient({
 }) {
   const { data: session } = useSession();
   const pathname = usePathname();
+  const router = useRouter();
 
   if (!session) {
     return (
-      <div className="p-8 text-center">
-        <h2 className="text-xl font-semibold mb-4">
-          Debes iniciar sesión para ver tu cuenta
-        </h2>
-        <Button onClick={() => (window.location.href = "/login")}>
-          Ir a login
-        </Button>
+      <div className="pt-20 md:pt-36 min-h-screen bg-gray-50 flex items-center justify-center px-4">
+        <div className="text-center">
+          <p className="text-lg font-semibold text-gray-700 mb-4">
+            Iniciá sesión para ver tu cuenta
+          </p>
+          <button
+            onClick={() => router.push("/login")}
+            className="bg-[#1E3A8A] text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-blue-800 transition-colors"
+          >
+            Ir al login
+          </button>
+        </div>
       </div>
     );
   }
 
-  const links = [
-    { href: "/account/orders", label: "Historial de pedidos" },
-    { href: "/account/addresses", label: "Direcciones" },
-    { href: "/account/change-password", label: "Cambio de contraseña" },
-  ];
+  const initials = (session.user?.name || "U")
+    .split(" ")
+    .map((w) => w[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
 
   return (
-    <div className="pt-[140px] max-w-6xl mx-auto p-6 grid grid-cols-1 md:grid-cols-4 gap-6">
-      <aside className="md:col-span-1 border rounded-lg p-4 space-y-3 bg-gray-50">
-        <h2 className="text-lg font-semibold mb-4">Tu cuenta</h2>
+    <main className="pt-20 md:pt-36 pb-16 min-h-screen bg-gray-50">
+      <div className="max-w-6xl mx-auto px-4">
 
-        <nav className="space-y-2">
-          {links.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className={cn(
-                "block w-full text-left px-3 py-2 rounded-md transition",
-                pathname === link.href
-                  ? "bg-primary text-white"
-                  : "hover:bg-gray-100 text-gray-800",
-              )}
-            >
-              {link.label}
-            </Link>
-          ))}
+        {/* Mobile: horizontal tab bar */}
+        <div className="md:hidden flex overflow-x-auto gap-1 mb-4 pb-1 scrollbar-none">
+          {NAV_LINKS.map(({ href, label, icon: Icon }) => {
+            const active = pathname === href;
+            return (
+              <Link
+                key={href}
+                href={href}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap shrink-0 transition-colors ${
+                  active
+                    ? "bg-[#1E3A8A] text-white"
+                    : "bg-white text-gray-600 border border-gray-200 hover:border-blue-300"
+                }`}
+              >
+                <Icon className="w-3.5 h-3.5" />
+                {label}
+              </Link>
+            );
+          })}
+        </div>
 
-          <button
-            onClick={() => signOut({ callbackUrl: "/" })}
-            className="w-full text-left px-3 py-2 rounded-md hover:bg-red-100 text-red-600 mt-4"
-          >
-            Cerrar sesión
-          </button>
-        </nav>
-      </aside>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-5 items-start">
 
-      <main className="md:col-span-3 border rounded-lg p-6 bg-white">
-        {children}
-      </main>
-    </div>
+          {/* Sidebar desktop */}
+          <aside className="hidden md:flex flex-col gap-3">
+            {/* User card */}
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-full bg-[#1E3A8A] flex items-center justify-center text-white font-bold text-base shrink-0">
+                  {initials}
+                </div>
+                <div className="min-w-0">
+                  <p className="font-semibold text-gray-900 text-sm truncate">
+                    {session.user?.name || "Usuario"}
+                  </p>
+                  <p className="text-xs text-gray-400 truncate">
+                    {session.user?.email}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Nav */}
+            <nav className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+              {NAV_LINKS.map(({ href, label, icon: Icon }) => {
+                const active = pathname === href;
+                return (
+                  <Link
+                    key={href}
+                    href={href}
+                    className={`flex items-center justify-between px-4 py-3.5 text-sm font-medium transition-colors border-b border-gray-50 last:border-0 ${
+                      active
+                        ? "bg-blue-50 text-[#1E3A8A]"
+                        : "text-gray-700 hover:bg-gray-50"
+                    }`}
+                  >
+                    <span className="flex items-center gap-3">
+                      <Icon className={`w-4 h-4 ${active ? "text-[#1E3A8A]" : "text-gray-400"}`} />
+                      {label}
+                    </span>
+                    {active && <ChevronRight className="w-3.5 h-3.5 text-[#1E3A8A]" />}
+                  </Link>
+                );
+              })}
+
+              <button
+                onClick={() => signOut({ callbackUrl: "/" })}
+                className="w-full flex items-center gap-3 px-4 py-3.5 text-sm font-medium text-red-500 hover:bg-red-50 transition-colors"
+              >
+                <LogOut className="w-4 h-4" />
+                Cerrar sesión
+              </button>
+            </nav>
+          </aside>
+
+          {/* Content */}
+          <div className="md:col-span-3">
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+              {children}
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
   );
 }

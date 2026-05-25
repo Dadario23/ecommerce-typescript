@@ -2,14 +2,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import User from "@/models/User";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { authOptions } from "@/lib/auth";
 import { connectDB } from "@/lib/mongodb";
 
-interface Context {
-  params: { id: string };
-}
-
-export async function PUT(request: NextRequest, context: Context) {
+export async function PUT(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
   try {
     await connectDB();
     const session = await getServerSession(authOptions);
@@ -18,7 +17,7 @@ export async function PUT(request: NextRequest, context: Context) {
       return NextResponse.json({ error: "No autenticado" }, { status: 401 });
     }
 
-    const { id } = context.params;
+    const { id } = await context.params;
 
     // Primero, quitar el default de todas las direcciones
     await User.updateOne(

@@ -2,24 +2,18 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
-
-  // 🔥 OPCIÓN RÁPIDA PARA DEPLOY (NO BLOQUEA BUILD)
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
-  typescript: {
-    ignoreBuildErrors: true,
-  },
+  eslint: { ignoreDuringBuilds: true },
 
   images: {
-    domains: [
-      // ⚠️ IMPORTANTE:
-      // Cada dominio externo usado en <Image /> debe declararse aquí
-      "www.perozzi.com.ar",
-      "www.rodo.com.ar",
-      "i.pinimg.com",
-      "res.cloudinary.com",
-      "lh3.googleusercontent.com",
+    remotePatterns: [
+      { protocol: "https", hostname: "res.cloudinary.com" },
+      { protocol: "https", hostname: "lh3.googleusercontent.com" },
+      { protocol: "https", hostname: "ui-avatars.com" },
+      { protocol: "https", hostname: "i.ibb.co" },
+      { protocol: "https", hostname: "www.perozzi.com.ar" },
+      { protocol: "https", hostname: "static.vecteezy.com" },
+      { protocol: "https", hostname: "img.freepik.com" },
+      { protocol: "https", hostname: "images.unsplash.com" },
     ],
   },
 };

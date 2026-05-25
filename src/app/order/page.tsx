@@ -3,14 +3,12 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import { useCartStore } from "@/store/useCartStore"; // ✅ Usamos el store directo
+import Link from "next/link";
+import { useCartStore } from "@/store/useCartStore";
 import { useSession } from "next-auth/react";
 import Spinner from "@/components/ui/Spinner";
+import { ArrowRight, ShoppingBag, Trash2 } from "lucide-react";
 
-// ✅ Interfaz para los items del carrito
 interface CartItem {
   id: string;
   name: string;
@@ -19,147 +17,162 @@ interface CartItem {
   quantity: number;
 }
 
-export default function PedidoPage() {
+export default function OrderPage() {
   const router = useRouter();
-  const { data: session, status } = useSession();
+  const { status } = useSession();
   const items = useCartStore((state) => state.items);
-  const clearCart = useCartStore((state) => state.clearCart);
+  const removeFromCart = useCartStore((state) => state.removeFromCart);
+  const updateQuantity = useCartStore((state) => state.updateQuantity);
 
-  // ✅ Estado para manejar carga y evitar errores con items undefined
-  const [isLoading, setIsLoading] = useState(true);
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    // ✅ Verificar autenticación
     if (status === "unauthenticated") {
-      console.log("[PedidoPage] Usuario no autenticado, redirigiendo");
       router.push("/");
       return;
     }
-
-    // ✅ Una vez que sabemos el estado de autenticación y tenemos items
-    if (status !== "loading") {
-      setIsLoading(false);
-    }
+    if (status !== "loading") setReady(true);
   }, [status, router]);
 
-  // ✅ Calcular total de manera segura
-  const total =
-    items?.reduce(
-      (sum: number, item: CartItem) => sum + item.price * item.quantity,
-      0
-    ) || 0;
+  const subtotal = items.reduce(
+    (sum: number, item: CartItem) => sum + item.price * item.quantity,
+    0
+  );
+  const installment = Math.ceil(subtotal / 12);
 
-  // ✅ Si procesas el pedido exitosamente, limpia el carrito
-  const handleProcessOrder = async () => {
-    try {
-      // ... procesar pedido ...
-      /*  clearCart(); // 👈 Limpiar después del éxito */
-      router.push("/checkout"); // o donde quieras redirigir
-    } catch (error) {
-      console.error("Error processing order:", error);
-    }
-  };
-
-  // ✅ Mostrar loading mientras verificamos autenticación
-  if (status === "loading" || isLoading) {
+  if (!ready || status === "loading") {
     return (
-      <div className="pt-[120px] flex flex-col items-center justify-center min-h-screen">
+      <div className="pt-20 md:pt-36 flex flex-col items-center justify-center min-h-screen bg-gray-50">
         <Spinner />
-        <p className="mt-4 text-gray-600">Cargando tu pedido...</p>
+        <p className="mt-4 text-gray-500 text-sm">Cargando tu pedido...</p>
       </div>
     );
   }
 
-  // ✅ Verificar si no hay items o items es undefined
-  if (!items || items.length === 0) {
+  if (items.length === 0) {
     return (
-      <div className="pt-[120px] flex flex-col items-center justify-center min-h-screen">
-        <h2 className="text-xl font-semibold text-gray-700 mb-4">
-          Tu carrito está vacío 🛒
-        </h2>
-        <Button onClick={() => router.push("/")}>Volver a la tienda</Button>
+      <div className="pt-20 md:pt-36 min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4 text-center">
+        <div className="w-20 h-20 rounded-full bg-blue-50 flex items-center justify-center mb-4">
+          <ShoppingBag className="w-9 h-9 text-blue-200" />
+        </div>
+        <p className="text-lg font-semibold text-gray-700 mb-1">Tu carrito está vacío</p>
+        <p className="text-sm text-gray-400 mb-6">Agregá productos para continuar</p>
+        <Link
+          href="/"
+          className="inline-flex items-center gap-2 bg-[#1E3A8A] text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-blue-800 transition-colors"
+        >
+          Ver productos
+          <ArrowRight className="w-4 h-4" />
+        </Link>
       </div>
     );
   }
 
   return (
-    <div className="pt-[160px] container max-w-3xl mx-auto pb-8">
-      <Card className="shadow-md">
-        <CardHeader>
-          <CardTitle className="text-2xl font-bold text-center">
-            Resumen de tu pedido
-          </CardTitle>
-        </CardHeader>
+    <main className="pt-20 md:pt-36 pb-16 min-h-screen bg-gray-50">
+      <div className="max-w-2xl mx-auto px-4">
+        <h1 className="text-2xl font-bold text-gray-900 mb-1">Tu pedido</h1>
+        <p className="text-sm text-gray-500 mb-6">Revisá los productos antes de continuar</p>
 
-        <CardContent className="space-y-6">
-          {/* Lista de productos */}
-          <div className="space-y-4">
+        {/* Items */}
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden mb-4">
+          <ul className="divide-y divide-gray-50">
             {items.map((item: CartItem) => (
-              <div
-                key={item.id}
-                className="flex items-center justify-between border-b pb-3"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="relative w-16 h-16 rounded overflow-hidden">
-                    <Image
-                      src={item.image || "/placeholder.png"}
-                      alt={item.name}
-                      fill
-                      className="object-cover"
-                      sizes="64px"
-                    />
-                  </div>
-                  <div>
-                    <p className="font-medium">{item.name}</p>
-                    <p className="text-sm text-gray-500">
-                      {item.quantity} x ${item.price.toLocaleString()}
-                    </p>
+              <li key={item.id} className="flex gap-4 p-4">
+                <div className="relative w-20 h-20 shrink-0 rounded-xl overflow-hidden border border-gray-100 bg-gray-50">
+                  <Image
+                    src={item.image || "/placeholder.png"}
+                    alt={item.name}
+                    fill
+                    sizes="80px"
+                    className="object-contain p-1.5"
+                  />
+                </div>
+
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-800 line-clamp-2 leading-snug">
+                    {item.name}
+                  </p>
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    ${item.price.toLocaleString("es-AR")} c/u
+                  </p>
+
+                  <div className="flex items-center justify-between mt-3">
+                    {/* Stepper */}
+                    <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden">
+                      <button
+                        onClick={() =>
+                          item.quantity > 1
+                            ? updateQuantity(item.id, item.quantity - 1)
+                            : removeFromCart(item.id)
+                        }
+                        className="w-8 h-8 flex items-center justify-center text-gray-500 hover:bg-gray-100 transition-colors font-semibold"
+                      >
+                        {item.quantity === 1 ? (
+                          <Trash2 className="w-3.5 h-3.5 text-red-400" />
+                        ) : (
+                          "−"
+                        )}
+                      </button>
+                      <span className="w-8 text-center text-sm font-semibold text-gray-800 select-none">
+                        {item.quantity}
+                      </span>
+                      <button
+                        onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                        className="w-8 h-8 flex items-center justify-center text-gray-500 hover:bg-gray-100 transition-colors font-semibold"
+                      >
+                        +
+                      </button>
+                    </div>
+
+                    <span className="text-sm font-bold text-gray-900">
+                      ${(item.price * item.quantity).toLocaleString("es-AR")}
+                    </span>
                   </div>
                 </div>
-                <p className="font-medium">
-                  ${(item.price * item.quantity).toLocaleString()}
-                </p>
-              </div>
+
+                <button
+                  onClick={() => removeFromCart(item.id)}
+                  className="self-start text-gray-300 hover:text-red-400 transition-colors mt-0.5"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </li>
             ))}
-          </div>
+          </ul>
+        </div>
 
-          <Separator />
-
-          {/* Total */}
-          <div className="flex justify-between text-lg font-semibold">
-            <span>Total:</span>
-            <span>${total.toLocaleString()}</span>
+        {/* Totals */}
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-5 space-y-2">
+          <div className="flex justify-between text-sm text-gray-500">
+            <span>{items.reduce((a: number, i: CartItem) => a + i.quantity, 0)} artículo{items.reduce((a: number, i: CartItem) => a + i.quantity, 0) !== 1 ? "s" : ""}</span>
+            <span>${subtotal.toLocaleString("es-AR")}</span>
           </div>
-
-          {/* Información del usuario */}
-          <div className="bg-blue-50 p-4 rounded-md">
-            <h3 className="font-semibold text-blue-800 mb-2">
-              Información de envío
-            </h3>
-            <p className="text-sm text-blue-700">
-              {session?.user?.name && `Nombre: ${session.user.name}`}
-              {session?.user?.email && ` | Email: ${session.user.email}`}
-            </p>
+          <div className="flex justify-between font-bold text-gray-900 text-lg pt-1 border-t border-gray-100 mt-1">
+            <span>Total</span>
+            <span>${subtotal.toLocaleString("es-AR")}</span>
           </div>
+          <p className="text-xs text-blue-600 font-medium text-right">
+            12x ${installment.toLocaleString("es-AR")} sin interés
+          </p>
+        </div>
 
-          {/* Botones de acción */}
-          <div className="flex gap-3">
-            <Button
-              variant="outline"
-              className="flex-1"
-              onClick={() => router.push("/")}
-            >
-              Seguir comprando
-            </Button>
-            <Button
-              className="flex-1 bg-[#1E3A8A] hover:bg-[#1E40AF]"
-              onClick={handleProcessOrder}
-            >
-              Confirmar pedido
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+        {/* CTA */}
+        <button
+          onClick={() => router.push("/checkout")}
+          className="w-full bg-[#1E3A8A] hover:bg-blue-800 text-white font-semibold py-4 rounded-xl transition-colors flex items-center justify-center gap-2"
+        >
+          Continuar con el pago
+          <ArrowRight className="w-4 h-4" />
+        </button>
+
+        <Link
+          href="/"
+          className="block text-center text-sm text-gray-400 hover:text-gray-600 transition-colors mt-3 py-1"
+        >
+          Seguir comprando
+        </Link>
+      </div>
+    </main>
   );
 }

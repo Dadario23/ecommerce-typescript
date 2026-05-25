@@ -1,13 +1,10 @@
-// src/components/dashboard/shared/ConfirmModal.tsx
 import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { AlertTriangle } from "lucide-react";
 
 interface ConfirmModalProps {
@@ -33,25 +30,36 @@ export function ConfirmModal({
 }: ConfirmModalProps) {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent>
+      <DialogContent className="max-w-sm">
         <DialogHeader>
-          <div className="flex items-center gap-2">
-            <AlertTriangle className="h-5 w-5 text-yellow-500" />
-            <DialogTitle>{title}</DialogTitle>
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-xl bg-red-50 flex items-center justify-center shrink-0">
+              <AlertTriangle className="w-4.5 h-4.5 text-red-500" />
+            </div>
+            <DialogTitle className="text-base">{title}</DialogTitle>
           </div>
-          <DialogDescription>{description}</DialogDescription>
+          <DialogDescription className="text-sm text-gray-500 mt-2">
+            {description}
+          </DialogDescription>
         </DialogHeader>
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
+        <div className="flex gap-2 mt-2">
+          <button
+            onClick={onClose}
+            className="flex-1 border border-gray-200 text-gray-600 text-sm font-medium py-2.5 rounded-xl hover:bg-gray-50 transition-colors"
+          >
             {cancelText}
-          </Button>
-          <Button
-            variant={variant === "destructive" ? "destructive" : "default"}
+          </button>
+          <button
             onClick={onConfirm}
+            className={`flex-1 text-sm font-semibold py-2.5 rounded-xl transition-colors ${
+              variant === "destructive"
+                ? "bg-red-500 text-white hover:bg-red-600"
+                : "bg-[#1E3A8A] text-white hover:bg-blue-800"
+            }`}
           >
             {confirmText}
-          </Button>
-        </DialogFooter>
+          </button>
+        </div>
       </DialogContent>
     </Dialog>
   );

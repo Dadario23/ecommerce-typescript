@@ -9,14 +9,13 @@ import {
   SheetHeader,
   SheetTitle,
   SheetDescription,
-  SheetFooter,
 } from "@/components/ui/sheet";
-import { Button } from "@/components/ui/button";
 import { useCartStore } from "@/store/useCartStore";
 import { useCartUI } from "@/store/useCartUI";
-import { Trash2 } from "lucide-react";
+import { Trash2, ShoppingBag, ArrowRight } from "lucide-react";
 import AuthModal from "@/components/auth/AuthModal";
 import Image from "next/image";
+import Link from "next/link";
 
 export default function CartDrawer() {
   const router = useRouter();
@@ -30,10 +29,8 @@ export default function CartDrawer() {
   const [authModalOpen, setAuthModalOpen] = useState(false);
 
   const totalItems = items.reduce((acc, item) => acc + item.quantity, 0);
-  const totalPrice = items.reduce(
-    (acc, item) => acc + item.price * item.quantity,
-    0,
-  );
+  const subtotal = items.reduce((acc, item) => acc + item.price * item.quantity, 0);
+  const installment = Math.ceil(subtotal / 12);
 
   const handleCheckout = () => {
     if (status === "authenticated") {
@@ -44,28 +41,13 @@ export default function CartDrawer() {
     }
   };
 
-  // ✅ Sync con backend al eliminar un producto
-  const handleRemoveItem = async (id: string) => {
-    removeFromCart(id); // ✅ siempre actualizamos el estado local (Zustand)
-
-    if (status !== "authenticated") {
-      // 🚫 No intentamos hablar con el backend
-      return;
-    }
-
+  const handleRemove = async (id: string) => {
+    removeFromCart(id);
+    if (status !== "authenticated") return;
     try {
-      const res = await fetch(`/api/cart/${id}`, {
-        method: "DELETE",
-        credentials: "include",
-      });
-
-      const data = await res.json();
-
-      if (!data.success) {
-        console.error("Error al eliminar en backend:", data.error);
-      }
-    } catch (err) {
-      console.error("Error al sincronizar carrito:", err);
+      await fetch(`/api/cart/${id}`, { method: "DELETE", credentials: "include" });
+    } catch {
+      // silently ignore sync errors
     }
   };
 
@@ -79,89 +61,121 @@ export default function CartDrawer() {
 
   return (
     <>
-      <Sheet open={isOpen} onOpenChange={(open) => (!open ? close() : null)}>
-        <SheetContent
-          side="right"
-          className="w-[400px] sm:w-[480px] p-0 flex flex-col"
-        >
+      <Sheet open={isOpen} onOpenChange={(open: boolean) => !open && close()}>
+        <SheetContent side="right" className="w-full sm:w-105 p-0 flex flex-col">
+
           {/* Header */}
-          <SheetHeader className="border-b px-6 py-4">
-            <SheetTitle className="text-lg font-bold">Tu carrito</SheetTitle>
-            <SheetDescription className="text-sm text-gray-500">
-              Revisa tus productos antes de finalizar tu compra
+          <SheetHeader className="px-5 py-4 border-b border-gray-100">
+            <div className="flex items-center gap-2">
+              <ShoppingBag className="w-5 h-5 text-[#1E3A8A]" />
+              <SheetTitle className="text-base font-bold text-gray-900">
+                Mi carrito
+              </SheetTitle>
+              {totalItems > 0 && (
+                <span className="ml-1 bg-[#1E3A8A] text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                  {totalItems}
+                </span>
+              )}
+            </div>
+            <SheetDescription className="text-xs text-gray-400 mt-0.5">
+              Revisá tu selección antes de comprar
             </SheetDescription>
           </SheetHeader>
 
           {/* Body */}
-          <div className="flex-1 overflow-y-auto px-6 py-4">
+          <div className="flex-1 overflow-y-auto">
             {items.length === 0 ? (
-              <p className="text-gray-500 text-center mt-6">Carrito vacío</p>
+              /* Empty state */
+              <div className="flex flex-col items-center justify-center h-full px-6 py-16 text-center">
+                <div className="w-20 h-20 rounded-full bg-blue-50 flex items-center justify-center mb-4">
+                  <ShoppingBag className="w-9 h-9 text-blue-200" />
+                </div>
+                <p className="font-semibold text-gray-700 text-base mb-1">
+                  Tu carrito está vacío
+                </p>
+                <p className="text-sm text-gray-400 mb-6">
+                  Agregá productos para empezar tu compra
+                </p>
+                <Link
+                  href="/"
+                  onClick={close}
+                  className="inline-flex items-center gap-2 bg-[#1E3A8A] text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-blue-800 transition-colors"
+                >
+                  Ver productos
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+              </div>
             ) : (
-              <ul className="space-y-4">
+              <ul className="divide-y divide-gray-50 px-5 py-3">
                 {items.map((item) => (
-                  <li
-                    key={item.id}
-                    className="flex items-center gap-4 border-b pb-4"
-                  >
-                    <div className="relative w-16 h-16 rounded border overflow-hidden flex-shrink-0">
+                  <li key={item.id} className="flex gap-3 py-4">
+                    {/* Image */}
+                    <Link
+                      href={`/products/${item.id}`}
+                      onClick={close}
+                      className="relative w-18 h-18 shrink-0 rounded-xl overflow-hidden border border-gray-100 bg-gray-50"
+                    >
                       <Image
                         src={item.image || "/placeholder.png"}
                         alt={item.name}
                         fill
-                        className="object-cover"
-                        sizes="64px"
+                        sizes="72px"
+                        className="object-contain p-1.5"
                       />
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="text-sm font-medium line-clamp-2">
-                        {item.name}
-                      </h3>
-                      <div className="flex items-center gap-2 mt-2">
-                        <div className="flex items-center border rounded-md">
-                          {/* Botón - */}
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 rounded-none"
-                            onClick={() =>
-                              updateQuantity(
-                                item.id,
-                                Math.max(1, item.quantity - 1),
-                              )
-                            }
-                          >
-                            –
-                          </Button>
+                    </Link>
 
-                          {/* Cantidad */}
-                          <span className="w-8 text-center text-sm">
+                    {/* Info */}
+                    <div className="flex-1 min-w-0 flex flex-col justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-gray-800 line-clamp-2 leading-snug">
+                          {item.name}
+                        </p>
+                        <p className="text-xs text-gray-400 mt-0.5">
+                          ${item.price.toLocaleString("es-AR")} c/u
+                        </p>
+                      </div>
+
+                      <div className="flex items-center justify-between mt-2">
+                        {/* Quantity stepper */}
+                        <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden">
+                          <button
+                            onClick={() =>
+                              item.quantity > 1
+                                ? updateQuantity(item.id, item.quantity - 1)
+                                : handleRemove(item.id)
+                            }
+                            className="w-8 h-8 flex items-center justify-center text-gray-500 hover:bg-gray-100 transition-colors text-base font-semibold"
+                          >
+                            {item.quantity === 1 ? (
+                              <Trash2 className="w-3.5 h-3.5 text-red-400" />
+                            ) : (
+                              "−"
+                            )}
+                          </button>
+                          <span className="w-8 text-center text-sm font-semibold text-gray-800 select-none">
                             {item.quantity}
                           </span>
-
-                          {/* Botón + */}
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 rounded-none"
-                            onClick={() =>
-                              updateQuantity(item.id, item.quantity + 1)
-                            }
+                          <button
+                            onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                            className="w-8 h-8 flex items-center justify-center text-gray-500 hover:bg-gray-100 transition-colors text-base font-semibold"
                           >
                             +
-                          </Button>
+                          </button>
                         </div>
 
-                        {/* Precio del producto */}
-                        <span className="font-semibold text-sm">
-                          ${(item.price * item.quantity).toLocaleString()}
+                        {/* Line total */}
+                        <span className="text-sm font-bold text-gray-900">
+                          ${(item.price * item.quantity).toLocaleString("es-AR")}
                         </span>
                       </div>
                     </div>
+
+                    {/* Delete */}
                     <button
-                      onClick={() => handleRemoveItem(item.id)}
-                      className="text-gray-400 hover:text-red-500 transition"
+                      onClick={() => handleRemove(item.id)}
+                      className="self-start text-gray-300 hover:text-red-400 transition-colors mt-0.5"
                     >
-                      <Trash2 className="w-5 h-5" />
+                      <Trash2 className="w-4 h-4" />
                     </button>
                   </li>
                 ))}
@@ -170,40 +184,40 @@ export default function CartDrawer() {
           </div>
 
           {/* Footer */}
-          <SheetFooter className="border-t px-6 py-4 space-y-3">
-            {items.length > 0 && (
-              <>
-                <div className="flex justify-between text-sm">
-                  <span>{totalItems} artículos</span>
-                  <span className="font-semibold">
-                    ${totalPrice.toLocaleString()}
-                  </span>
+          {items.length > 0 && (
+            <div className="border-t border-gray-100 px-5 py-5 space-y-4 bg-white">
+              {/* Subtotal */}
+              <div className="space-y-1.5">
+                <div className="flex justify-between text-sm text-gray-500">
+                  <span>{totalItems} artículo{totalItems !== 1 ? "s" : ""}</span>
+                  <span>${subtotal.toLocaleString("es-AR")}</span>
                 </div>
-
-                <div className="flex justify-between text-lg font-bold">
-                  <span>Total Productos</span>
-                  <span>${totalPrice.toLocaleString()}</span>
+                <div className="flex justify-between font-bold text-gray-900">
+                  <span>Total</span>
+                  <span className="text-lg">${subtotal.toLocaleString("es-AR")}</span>
                 </div>
+                <p className="text-xs text-blue-600 font-medium text-right">
+                  12x ${installment.toLocaleString("es-AR")} sin interés
+                </p>
+              </div>
 
-                {/* Botón único */}
-                <Button
-                  onClick={handleCheckout}
-                  className="w-full bg-[#1E3A8A] hover:bg-[#1E40AF] text-white py-6 text-base"
-                  disabled={items.length === 0}
-                >
-                  Finalizar pedido
-                </Button>
-              </>
-            )}
-            {items.length === 0 && (
-              <Button
-                className="w-full bg-gray-300 text-gray-600 cursor-not-allowed"
-                disabled
+              {/* CTA */}
+              <button
+                onClick={handleCheckout}
+                className="w-full bg-[#1E3A8A] hover:bg-blue-800 text-white font-semibold py-3.5 rounded-xl transition-colors flex items-center justify-center gap-2 text-sm"
               >
-                Carrito vacío
-              </Button>
-            )}
-          </SheetFooter>
+                Finalizar compra
+                <ArrowRight className="w-4 h-4" />
+              </button>
+
+              <button
+                onClick={close}
+                className="w-full text-sm text-gray-400 hover:text-gray-600 transition-colors py-1"
+              >
+                Seguir comprando
+              </button>
+            </div>
+          )}
         </SheetContent>
       </Sheet>
 

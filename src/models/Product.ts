@@ -6,11 +6,13 @@ export interface IProduct extends Document {
   price: number;
   compareAtPrice?: number;
   description: string;
-  images: string[]; // 👈 único campo de imágenes
+  images: string[];
   category: { _id: string; name: string } | string;
   brand?: string;
   stock?: number;
   sku?: string;
+  avgRating?: number;
+  reviewCount?: number;
 }
 
 const ProductSchema: Schema = new Schema(
@@ -36,8 +38,16 @@ const ProductSchema: Schema = new Schema(
     brand: { type: String },
     sku: { type: String },
     stock: { type: Number, default: 0 },
+    avgRating: { type: Number, default: 0 },
+    reviewCount: { type: Number, default: 0 },
   },
   { timestamps: true },
+);
+
+// Text index for full-text search with relevance scoring
+ProductSchema.index(
+  { name: "text", description: "text", brand: "text" },
+  { weights: { name: 10, brand: 5, description: 1 }, name: "product_text_idx" }
 );
 
 ProductSchema.pre<IProduct>("validate", function (next) {

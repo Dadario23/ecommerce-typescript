@@ -40,7 +40,7 @@ export default function CategoryRow({ category }: Props) {
       </td>
       <td className="p-4">
         <Badge
-          variant={category.type === "Automated" ? "success" : "secondary"}
+          variant={category.type === "Automated" ? "default" : "secondary"}
         >
           {category.type}
         </Badge>

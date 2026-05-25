@@ -1,162 +1,117 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useSession, signOut } from "next-auth/react";
+import { usePathname } from "next/navigation";
 import Sidebar from "@/components/dashboard/Sidebar";
-import { Menu, Search, Bell, ChevronDown } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import { Menu, X, Store, LogOut } from "lucide-react";
 import Link from "next/link";
-import { LogOut } from "lucide-react";
+
+const PAGE_TITLES: Record<string, string> = {
+  "/dashboard": "Dashboard",
+  "/dashboard/orders": "Órdenes",
+  "/dashboard/products": "Productos",
+  "/dashboard/products/new": "Nuevo producto",
+  "/dashboard/categories": "Categorías",
+  "/dashboard/categories/new": "Nueva categoría",
+  "/dashboard/coupons": "Cupones",
+  "/dashboard/customers": "Clientes",
+  "/dashboard/analytics": "Analytics",
+  "/dashboard/settings": "Configuración",
+};
 
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const [isScrolled, setIsScrolled] = useState(false);
-  const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const { data: session } = useSession();
+  const pathname = usePathname();
 
-  const { data: session, status } = useSession();
+  const pageTitle =
+    Object.entries(PAGE_TITLES).find(([key]) =>
+      key === pathname || pathname.startsWith(key + "/")
+    )?.[1] ?? "Dashboard";
 
-  useEffect(() => {
-    const handleScroll = () => setIsScrolled(window.scrollY > 10);
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+  const initials = (session?.user?.name || "A")
+    .split(" ")
+    .map((w: string) => w[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
-      {/* Sidebar Desktop */}
-      <div className="hidden lg:flex">
+    <div className="min-h-screen bg-slate-50 flex">
+      {/* Sidebar desktop */}
+      <div className="hidden lg:flex sticky top-0 h-screen">
         <Sidebar />
       </div>
 
-      {/* Sidebar Mobile Drawer */}
-      <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
-        <SheetContent side="left" className="p-0 w-64 sm:w-72">
-          <SheetHeader className="p-4 border-b">
-            <SheetTitle className="text-lg font-semibold text-gray-900">
-              Menú
-            </SheetTitle>
-          </SheetHeader>
-          <Sidebar />
-        </SheetContent>
-      </Sheet>
+      {/* Mobile drawer overlay */}
+      {mobileOpen && (
+        <div className="fixed inset-0 z-50 lg:hidden flex">
+          <div
+            className="absolute inset-0 bg-black/60"
+            onClick={() => setMobileOpen(false)}
+          />
+          <div className="relative flex">
+            <Sidebar />
+            <button
+              onClick={() => setMobileOpen(false)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-white"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+      )}
 
-      <div className="flex-1">
-        <header
-          className={`sticky top-0 z-40 bg-white transition-all duration-200 ${
-            isScrolled ? "shadow-md border-b border-gray-200" : ""
-          }`}
-        >
-          <div className="flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
-            {/* Left */}
-            <div className="flex items-center">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="lg:hidden mr-2"
-                onClick={() => setSidebarOpen(true)}
-              >
-                <Menu className="h-6 w-6" />
-              </Button>
-              <h2 className="text-lg font-semibold text-gray-900">Dashboard</h2>
-            </div>
+      {/* Main */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Top bar */}
+        <header className="sticky top-0 z-40 h-14 bg-white border-b border-gray-100 flex items-center justify-between px-4 lg:px-6 shadow-sm">
+          <div className="flex items-center gap-3">
+            {/* Mobile hamburger */}
+            <button
+              onClick={() => setMobileOpen(true)}
+              className="lg:hidden text-gray-500 hover:text-gray-700"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+            <h1 className="text-sm font-semibold text-gray-800">{pageTitle}</h1>
+          </div>
 
-            {/* Right */}
-            <div className="flex items-center gap-2 sm:gap-3">
-              <div className="hidden md:block relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Buscar..."
-                  className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent w-64"
-                />
+          <div className="flex items-center gap-2">
+            <Link
+              href="/"
+              className="hidden sm:flex items-center gap-1.5 text-xs text-gray-500 hover:text-[#1E3A8A] font-medium px-3 py-1.5 rounded-lg border border-gray-200 hover:border-blue-300 transition-colors"
+            >
+              <Store className="w-3.5 h-3.5" />
+              Ver tienda
+            </Link>
+
+            <div className="flex items-center gap-2 pl-2 border-l border-gray-100">
+              <div className="w-7 h-7 rounded-full bg-[#1E3A8A] flex items-center justify-center text-white text-[10px] font-bold">
+                {initials}
               </div>
-
-              <Button
-                variant="ghost"
-                size="icon"
-                className="relative text-gray-600 hover:text-gray-900"
+              <span className="hidden sm:block text-xs font-medium text-gray-700 max-w-24 truncate">
+                {session?.user?.name?.split(" ")[0]}
+              </span>
+              <button
+                onClick={() => signOut({ callbackUrl: "/" })}
+                className="text-gray-400 hover:text-red-500 transition-colors"
+                title="Cerrar sesión"
               >
-                <Bell className="h-5 w-5" />
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full text-xs w-4 h-4 flex items-center justify-center">
-                  3
-                </span>
-              </Button>
-
-              <Link href="/">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="whitespace-nowrap"
-                >
-                  <span className="hidden sm:inline">Tienda</span>
-                  <span className="sm:hidden">←</span>
-                </Button>
-              </Link>
-
-              {/* USER */}
-              {status === "authenticated" && session?.user && (
-                <div className="relative">
-                  <Button
-                    variant="ghost"
-                    className="flex items-center space-x-2 p-2"
-                    onClick={() => setUserMenuOpen(!userMenuOpen)}
-                  >
-                    <img
-                      src={
-                        session.user.image ||
-                        `https://ui-avatars.com/api/?name=${encodeURIComponent(
-                          session.user.name || "Usuario",
-                        )}&background=6366f1&color=fff`
-                      }
-                      alt="avatar"
-                      referrerPolicy="no-referrer"
-                      className="h-8 w-8 rounded-full object-cover"
-                    />
-
-                    <span className="hidden sm:block text-sm font-medium text-gray-700">
-                      {session.user.name?.split(" ")[0]}
-                    </span>
-
-                    <ChevronDown
-                      className={`h-4 w-4 transition-transform ${
-                        userMenuOpen ? "rotate-180" : ""
-                      }`}
-                    />
-                  </Button>
-
-                  {userMenuOpen && (
-                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
-                      <p className="px-4 py-2 text-sm font-medium text-gray-700 border-b">
-                        {session?.user?.name}
-                      </p>
-
-                      <button
-                        onClick={() => signOut({ callbackUrl: "/" })}
-                        className="w-full flex items-center px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
-                      >
-                        <LogOut className="w-4 h-4 mr-2" />
-                        Cerrar sesión
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
+                <LogOut className="w-4 h-4" />
+              </button>
             </div>
           </div>
         </header>
 
-        <main className="min-h-screen">
-          <div className="px-4 sm:px-6 lg:px-8 py-6">{children}</div>
+        {/* Content */}
+        <main className="flex-1 p-4 lg:p-6">
+          {children}
         </main>
       </div>
     </div>

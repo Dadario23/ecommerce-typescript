@@ -1,41 +1,41 @@
-import { Truck, CreditCard, HelpCircle } from "lucide-react";
+import { Truck, CreditCard, Headphones, ShieldCheck } from "lucide-react";
+
+const benefits = [
+  {
+    icon: Truck,
+    title: "Envío gratis",
+    subtitle: "A todo el país",
+  },
+  {
+    icon: CreditCard,
+    title: "12 cuotas sin interés",
+    subtitle: "Con todas las tarjetas",
+  },
+  {
+    icon: ShieldCheck,
+    title: "Compra protegida",
+    subtitle: "Garantía oficial 12 meses",
+  },
+  {
+    icon: Headphones,
+    title: "Soporte 24/7",
+    subtitle: "Estamos para ayudarte",
+  },
+];
 
 export default function BenefitsBar() {
-  const benefits = [
-    {
-      icon: <CreditCard className="w-6 h-6 text-blue-600" />,
-      title: "Medios de pago",
-      subtitle: "Paga hasta en 24 cuotas",
-    },
-    {
-      icon: <Truck className="w-6 h-6 text-blue-600" />,
-      title: "Envíos gratis",
-      subtitle: "Ver localidades",
-    },
-    {
-      icon: <Truck className="w-6 h-6 text-blue-600" />,
-      title: "Envío express",
-      subtitle: "Ver localidades",
-    },
-    {
-      icon: <HelpCircle className="w-6 h-6 text-blue-600" />,
-      title: "Centro de ayuda",
-      subtitle: "Encontrá toda la ayuda",
-    },
-  ];
-
   return (
-    <div className="bg-white shadow-sm border-t border-b border-gray-200 py-3">
-      <div className="max-w-7xl mx-auto flex flex-wrap justify-around items-center gap-6 px-4 text-sm">
-        {benefits.map((b, idx) => (
+    <div className="bg-[#1E3A8A] mt-4">
+      <div className="max-w-7xl mx-auto px-4 grid grid-cols-2 md:grid-cols-4 divide-x divide-blue-700">
+        {benefits.map(({ icon: Icon, title, subtitle }, i) => (
           <div
-            key={idx}
-            className="flex items-center gap-3 text-gray-700 hover:text-blue-600 transition-colors"
+            key={i}
+            className="flex items-center gap-3 px-4 py-4 md:py-5"
           >
-            {b.icon}
+            <Icon className="w-6 h-6 text-blue-300 shrink-0" />
             <div>
-              <p className="font-medium">{b.title}</p>
-              <p className="text-gray-500 text-xs">{b.subtitle}</p>
+              <p className="text-white font-semibold text-sm leading-tight">{title}</p>
+              <p className="text-blue-200 text-xs mt-0.5">{subtitle}</p>
             </div>
           </div>
         ))}

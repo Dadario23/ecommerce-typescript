@@ -1,47 +1,73 @@
 import Image from "next/image";
-import ProductCard from "./HomeProductCard";
+import Link from "next/link";
+import HomeProductCard from "./HomeProductCard";
 
 interface Product {
-  image: string;
-  title: string;
-  price: string;
-  installment10: string;
-  installment12: string;
+  slug: string;
+  name: string;
+  price: number;
+  compareAtPrice?: number;
+  images: string[];
+  brand?: string;
 }
 
 interface CategoryBlockProps {
   bannerImage: string;
   bannerTitle: string;
+  categorySlug: string;
   products: Product[];
-  catalogLink: string;
 }
 
 export default function CategoryBlock({
   bannerImage,
   bannerTitle,
+  categorySlug,
   products,
-  catalogLink,
 }: CategoryBlockProps) {
   return (
-    <div className="flex flex-col bg-gray-50 rounded-lg overflow-hidden shadow-md">
+    <div className="bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-sm">
       {/* Banner */}
-      <div className="relative w-full h-40 sm:h-48 md:h-56 lg:h-64 bg-gray-200">
-        <Image
-          src={bannerImage}
-          alt={bannerTitle}
-          fill
-          sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
-          className="object-cover"
-        />
-        <div className="absolute bottom-2 left-2 bg-blue-900 text-white px-3 py-1 rounded-md font-semibold text-sm sm:text-base">
-          {bannerTitle}
-        </div>
-      </div>
+      <Link
+        href={`/category/${categorySlug}`}
+        className="relative flex h-36 sm:h-44 overflow-hidden group"
+      >
+        {bannerImage ? (
+          <Image
+            src={bannerImage}
+            alt={bannerTitle}
+            fill
+            sizes="(max-width: 768px) 100vw, 50vw"
+            className="object-cover group-hover:scale-105 transition-transform duration-500"
+          />
+        ) : (
+          <div className="w-full h-full bg-gradient-to-r from-blue-800 to-blue-600" />
+        )}
+        {/* Gradient overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
 
-      {/* Lista de productos */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 p-4">
-        {products.map((p, i) => (
-          <ProductCard key={i} {...p} />
+        {/* Title */}
+        <div className="absolute bottom-0 left-0 right-0 px-4 py-3 flex items-end justify-between">
+          <h2 className="text-white font-bold text-lg sm:text-xl drop-shadow">
+            {bannerTitle}
+          </h2>
+          <span className="text-white/80 text-xs font-medium bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full">
+            Ver todos →
+          </span>
+        </div>
+      </Link>
+
+      {/* Products grid */}
+      <div className="grid grid-cols-3 gap-0 divide-x divide-gray-100 border-t border-gray-100">
+        {products.slice(0, 3).map((p) => (
+          <HomeProductCard
+            key={p.slug}
+            slug={p.slug}
+            image={p.images?.[0] ?? ""}
+            name={p.name}
+            price={p.price}
+            compareAtPrice={p.compareAtPrice}
+            brand={p.brand}
+          />
         ))}
       </div>
     </div>

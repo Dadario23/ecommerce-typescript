@@ -11,6 +11,11 @@ import {
   Menu,
   X,
   Search,
+  LayoutDashboard,
+  ClipboardList,
+  MapPin,
+  Lock,
+  ChevronRight,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -33,206 +38,334 @@ interface Category {
   slug?: string;
 }
 
+function getSlug(cat: Category) {
+  return (
+    cat.slug ||
+    cat.name
+      .normalize("NFD")
+      .replace(/[̀-ͯ]/g, "")
+      .toLowerCase()
+      .replace(/[\s-]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+  );
+}
+
 export default function Navbar() {
   const router = useRouter();
-  const { data: session, status } = useSession();
+  const { data: session } = useSession();
 
   const { isLoading } = useCartWithSession();
   const itemsCount = useCartStore((state) =>
-    state.items.reduce((acc, item) => acc + item.quantity, 0),
+    state.items.reduce((acc, item) => acc + item.quantity, 0)
   );
   const { toggle } = useCartUI();
 
   const [categories, setCategories] = useState<Category[]>([]);
-  const [categoriesLoading, setCategoriesLoading] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
 
   useEffect(() => {
-    async function fetchCategories() {
-      try {
-        const res = await fetch("/api/categories/public");
-        const data = await res.json();
-        setCategories(data.categories || []);
-      } catch (error) {
-        console.error("Error fetching categories:", error);
-      } finally {
-        setCategoriesLoading(false);
-      }
-    }
-    fetchCategories();
+    fetch("/api/categories/public")
+      .then((r) => r.json())
+      .then((d) => setCategories(d.categories || []))
+      .catch(() => {});
   }, []);
 
-  const onCategoryClick = (category: Category) => {
-    const slug =
-      category.slug ||
-      category.name
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .toLowerCase()
-        .replace(/[\s-]+/g, "-")
-        .replace(/^-+|-+$/g, "");
-
+  const goToCategory = (cat: Category) => {
     setMobileMenuOpen(false);
-    router.push(`/category/${slug}`);
+    router.push(`/category/${getSlug(cat)}`);
   };
 
   return (
-    <header className="fixed top-0 left-0 w-full z-50 bg-white shadow-md">
-      {/* TOP BAR */}
-      <div className="relative flex items-center justify-between px-4 py-4 md:py-5 border-b border-gray-200">
-        {/* LEFT SECTION (Mobile only) */}
-        <div className="flex items-center gap-4 md:hidden">
-          {/* Hamburger */}
-          <button onClick={() => setMobileMenuOpen(true)}>
-            <Menu className="w-6 h-6" />
-          </button>
+    <>
+      <header className="fixed top-0 left-0 w-full z-50">
+        {/* ── TOP BAR ── */}
+        <div className="bg-[#1E3A8A]">
+          <div className="max-w-7xl mx-auto px-4 flex items-center gap-3 py-3 md:py-3.5">
+            {/* Mobile: hamburger */}
+            <button
+              className="md:hidden text-white/80 hover:text-white"
+              onClick={() => setMobileMenuOpen(true)}
+            >
+              <Menu className="w-6 h-6" />
+            </button>
 
-          {/* Search icon */}
-          <button onClick={() => setMobileSearchOpen((prev) => !prev)}>
-            <Search className="w-5 h-5" />
-          </button>
-        </div>
-
-        {/* LOGO DESKTOP */}
-        <Link href="/" className="hidden md:flex items-center gap-2">
-          <Image src="/logo.svg" alt="Logo" width={195} height={47} priority />
-        </Link>
-
-        {/* LOGO MOBILE (centered) */}
-        <Link href="/" className="absolute left-1/2 -translate-x-1/2 md:hidden">
-          <Image src="/logo.svg" alt="Logo" width={160} height={40} priority />
-        </Link>
-
-        {/* SEARCH DESKTOP */}
-        <div className="hidden md:block w-full max-w-xl mx-8">
-          <NavbarSearch />
-        </div>
-        {/* RIGHT SECTION */}
-        <div className="flex items-center gap-4 text-sm text-gray-700">
-          {!session ? (
-            <Link href="/login">
-              <User className="w-5 h-5" />
+            {/* Logo */}
+            <Link href="/" className="shrink-0">
+              <Image
+                src="/logo.svg"
+                alt="Compumobile"
+                width={160}
+                height={38}
+                priority
+                className="brightness-0 invert"
+              />
             </Link>
-          ) : (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button className="flex items-center gap-1 hover:text-blue-600 transition-colors">
-                  <User className="w-5 h-5" />
-                  <span className="hidden sm:inline">
-                    {session.user?.name?.split(" ")[0] || "Usuario"}
-                  </span>
-                  <ChevronDown className="w-4 h-4" />
-                </button>
-              </DropdownMenuTrigger>
 
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel>Mi Cuenta</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-
-                <DropdownMenuItem asChild>
-                  <Link href="/account/orders">
-                    Historial de pedidos y detalles
-                  </Link>
-                </DropdownMenuItem>
-
-                <DropdownMenuItem asChild>
-                  <Link href="/account/addresses">Direcciones</Link>
-                </DropdownMenuItem>
-
-                <DropdownMenuItem asChild>
-                  <Link href="/account/change-password">
-                    Cambio de contraseña
-                  </Link>
-                </DropdownMenuItem>
-
-                {/* 🔥 Dashboard solo para admin */}
-                {session.user?.role === "admin" && (
-                  <>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem asChild>
-                      <Link href="/dashboard">Dashboard</Link>
-                    </DropdownMenuItem>
-                  </>
-                )}
-
-                <DropdownMenuSeparator />
-
-                <DropdownMenuItem
-                  onClick={() => signOut({ callbackUrl: "/" })}
-                  className="cursor-pointer text-red-600"
-                >
-                  <LogOut className="w-4 h-4 mr-2" />
-                  Cerrar sesión
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
-
-          {/* CART */}
-          <button
-            onClick={toggle}
-            disabled={isLoading}
-            className="relative flex items-center"
-          >
-            <ShoppingCart className="w-5 h-5" />
-
-            {!isLoading && itemsCount > 0 && (
-              <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">
-                {itemsCount}
-              </span>
-            )}
-          </button>
-        </div>
-      </div>
-
-      {/* MOBILE SEARCH (Real search component) */}
-      {mobileSearchOpen && (
-        <div className="md:hidden px-4 py-4 border-b bg-white shadow-md">
-          <NavbarSearch />
-        </div>
-      )}
-
-      {/* CATEGORY NAV - Desktop only */}
-      <nav className="hidden md:flex flex-nowrap overflow-x-auto px-4 bg-gray-50 text-sm shadow-sm">
-        {categoriesLoading
-          ? null
-          : categories.map((category) => (
-              <button
-                key={category._id}
-                onClick={() => onCategoryClick(category)}
-                className="px-4 py-2 whitespace-nowrap text-gray-700 hover:bg-gray-100 hover:text-blue-600 transition-colors rounded"
-              >
-                {category.name}
-              </button>
-            ))}
-      </nav>
-
-      {/* MOBILE DRAWER */}
-      {mobileMenuOpen && (
-        <div className="fixed inset-0 z-50 bg-black/40">
-          <div className="w-64 bg-white h-full p-4 shadow-lg">
-            <div className="flex justify-between mb-4">
-              <span className="font-semibold">Menú</span>
-              <button onClick={() => setMobileMenuOpen(false)}>
-                <X className="w-5 h-5" />
-              </button>
+            {/* Search — desktop */}
+            <div className="hidden md:flex flex-1 mx-4">
+              <NavbarSearch />
             </div>
 
-            <div className="flex flex-col gap-2">
-              {categories.map((category) => (
-                <button
-                  key={category._id}
-                  onClick={() => onCategoryClick(category)}
-                  className="text-left py-2 border-b"
+            {/* Right actions */}
+            <div className="ml-auto flex items-center gap-1 md:gap-3">
+              {/* Mobile: search toggle */}
+              <button
+                className="md:hidden p-2 text-white/80 hover:text-white rounded-full hover:bg-white/10 transition-colors"
+                onClick={() => setMobileSearchOpen((p) => !p)}
+              >
+                {mobileSearchOpen ? (
+                  <X className="w-5 h-5" />
+                ) : (
+                  <Search className="w-5 h-5" />
+                )}
+              </button>
+
+              {/* User */}
+              {!session ? (
+                <Link
+                  href="/login"
+                  className="flex items-center gap-1.5 text-white/90 hover:text-white text-sm font-medium px-2 py-1.5 rounded-lg hover:bg-white/10 transition-colors"
                 >
-                  {category.name}
+                  <User className="w-5 h-5" />
+                  <span className="hidden md:inline">Ingresar</span>
+                </Link>
+              ) : (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button className="flex items-center gap-1.5 text-white/90 hover:text-white text-sm font-medium px-2 py-1.5 rounded-lg hover:bg-white/10 transition-colors">
+                      <div className="w-7 h-7 rounded-full bg-blue-400 flex items-center justify-center text-white text-xs font-bold shrink-0">
+                        {(session.user?.name || "U")[0].toUpperCase()}
+                      </div>
+                      <span className="hidden md:inline max-w-25 truncate">
+                        {session.user?.name?.split(" ")[0] || "Usuario"}
+                      </span>
+                      <ChevronDown className="w-3.5 h-3.5 hidden md:block" />
+                    </button>
+                  </DropdownMenuTrigger>
+
+                  <DropdownMenuContent align="end" className="w-56">
+                    <DropdownMenuLabel className="text-xs text-gray-500 font-normal">
+                      {session.user?.email}
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+
+                    <DropdownMenuItem asChild>
+                      <Link href="/account/orders" className="flex items-center gap-2">
+                        <ClipboardList className="w-4 h-4 text-gray-400" />
+                        Mis pedidos
+                      </Link>
+                    </DropdownMenuItem>
+
+                    <DropdownMenuItem asChild>
+                      <Link href="/account/addresses" className="flex items-center gap-2">
+                        <MapPin className="w-4 h-4 text-gray-400" />
+                        Mis direcciones
+                      </Link>
+                    </DropdownMenuItem>
+
+                    <DropdownMenuItem asChild>
+                      <Link href="/account/change-password" className="flex items-center gap-2">
+                        <Lock className="w-4 h-4 text-gray-400" />
+                        Cambiar contraseña
+                      </Link>
+                    </DropdownMenuItem>
+
+                    {session.user?.role === "admin" && (
+                      <>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem asChild>
+                          <Link href="/dashboard" className="flex items-center gap-2">
+                            <LayoutDashboard className="w-4 h-4 text-blue-500" />
+                            <span className="text-blue-600 font-medium">Dashboard</span>
+                          </Link>
+                        </DropdownMenuItem>
+                      </>
+                    )}
+
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onClick={() => signOut({ callbackUrl: "/" })}
+                      className="cursor-pointer text-red-600 focus:text-red-600"
+                    >
+                      <LogOut className="w-4 h-4 mr-2" />
+                      Cerrar sesión
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+
+              {/* Cart */}
+              <button
+                onClick={toggle}
+                disabled={isLoading}
+                className="relative p-2 text-white/90 hover:text-white rounded-full hover:bg-white/10 transition-colors"
+              >
+                <ShoppingCart className="w-5 h-5" />
+                {!isLoading && itemsCount > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 min-w-4.5 h-4.5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1">
+                    {itemsCount > 99 ? "99+" : itemsCount}
+                  </span>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* ── MOBILE SEARCH ── */}
+        {mobileSearchOpen && (
+          <div className="md:hidden bg-[#1a3278] px-4 pb-3">
+            <NavbarSearch />
+          </div>
+        )}
+
+        {/* ── CATEGORY BAR (desktop) ── */}
+        <nav className="hidden md:block bg-white border-b border-gray-200 shadow-sm">
+          <div className="max-w-7xl mx-auto px-4">
+            <div className="flex items-center overflow-x-auto scrollbar-none gap-1">
+              {categories.map((cat) => (
+                <button
+                  key={cat._id}
+                  onClick={() => goToCategory(cat)}
+                  className="px-3.5 py-2.5 whitespace-nowrap text-sm text-gray-600 hover:text-[#1E3A8A] hover:bg-blue-50 font-medium transition-colors rounded-md shrink-0"
+                >
+                  {cat.name}
                 </button>
               ))}
             </div>
           </div>
+        </nav>
+      </header>
+
+      {/* ── MOBILE DRAWER ── */}
+      {mobileMenuOpen && (
+        <div
+          className="fixed inset-0 z-60 flex"
+          onClick={() => setMobileMenuOpen(false)}
+        >
+          {/* Overlay */}
+          <div className="absolute inset-0 bg-black/50" />
+
+          {/* Panel */}
+          <div
+            className="relative w-72 max-w-[85vw] h-full bg-white flex flex-col shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Drawer header */}
+            <div className="bg-[#1E3A8A] px-4 py-5 flex items-center justify-between shrink-0">
+              {session ? (
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-blue-400 flex items-center justify-center text-white font-bold text-base">
+                    {(session.user?.name || "U")[0].toUpperCase()}
+                  </div>
+                  <div>
+                    <p className="text-white font-semibold text-sm leading-tight">
+                      {session.user?.name?.split(" ")[0] || "Usuario"}
+                    </p>
+                    <p className="text-blue-200 text-xs truncate max-w-40">
+                      {session.user?.email}
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <Link
+                  href="/login"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center gap-2 text-white font-semibold text-sm"
+                >
+                  <User className="w-5 h-5" />
+                  Iniciar sesión
+                </Link>
+              )}
+              <button
+                onClick={() => setMobileMenuOpen(false)}
+                className="text-white/70 hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Categories list */}
+            <div className="flex-1 overflow-y-auto">
+              <p className="px-4 pt-4 pb-2 text-xs font-semibold uppercase tracking-wider text-gray-400">
+                Categorías
+              </p>
+              <ul className="divide-y divide-gray-100">
+                {categories.map((cat) => (
+                  <li key={cat._id}>
+                    <button
+                      onClick={() => goToCategory(cat)}
+                      className="w-full flex items-center justify-between px-4 py-3 text-sm text-gray-700 hover:bg-blue-50 hover:text-[#1E3A8A] transition-colors text-left"
+                    >
+                      {cat.name}
+                      <ChevronRight className="w-4 h-4 text-gray-300 shrink-0" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+
+              {/* Account links */}
+              {session && (
+                <>
+                  <p className="px-4 pt-5 pb-2 text-xs font-semibold uppercase tracking-wider text-gray-400">
+                    Mi cuenta
+                  </p>
+                  <ul className="divide-y divide-gray-100">
+                    <li>
+                      <Link
+                        href="/account/orders"
+                        onClick={() => setMobileMenuOpen(false)}
+                        className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-blue-50"
+                      >
+                        <ClipboardList className="w-4 h-4 text-gray-400" />
+                        Mis pedidos
+                      </Link>
+                    </li>
+                    <li>
+                      <Link
+                        href="/account/addresses"
+                        onClick={() => setMobileMenuOpen(false)}
+                        className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-blue-50"
+                      >
+                        <MapPin className="w-4 h-4 text-gray-400" />
+                        Mis direcciones
+                      </Link>
+                    </li>
+                    {session.user?.role === "admin" && (
+                      <li>
+                        <Link
+                          href="/dashboard"
+                          onClick={() => setMobileMenuOpen(false)}
+                          className="flex items-center gap-3 px-4 py-3 text-sm text-blue-600 font-medium hover:bg-blue-50"
+                        >
+                          <LayoutDashboard className="w-4 h-4" />
+                          Dashboard
+                        </Link>
+                      </li>
+                    )}
+                  </ul>
+                </>
+              )}
+            </div>
+
+            {/* Drawer footer */}
+            {session && (
+              <div className="border-t px-4 py-4 shrink-0">
+                <button
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    signOut({ callbackUrl: "/" });
+                  }}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 text-sm text-red-600 font-medium rounded-lg border border-red-100 hover:bg-red-50 transition-colors"
+                >
+                  <LogOut className="w-4 h-4" />
+                  Cerrar sesión
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       )}
-    </header>
+    </>
   );
 }

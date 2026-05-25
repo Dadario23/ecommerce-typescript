@@ -7,7 +7,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Button } from "@/components/ui/button";
 import { SlidersHorizontal, X } from "lucide-react";
 import { normalizeCategories, CategoryOption } from "@/lib/normalizeCategories";
 
@@ -61,10 +60,13 @@ export function ProductsFilters({
           <span className="text-sm font-medium">Filtros</span>
         </div>
         {hasActiveFilters && (
-          <Button variant="ghost" size="sm" onClick={clearFilters}>
-            <X className="h-4 w-4 mr-1" />
+          <button
+            onClick={clearFilters}
+            className="flex items-center gap-1 text-xs font-semibold text-gray-500 hover:text-[#1E3A8A] px-2 py-1 rounded-lg hover:bg-blue-50 transition-colors"
+          >
+            <X className="w-3.5 h-3.5" />
             Limpiar
-          </Button>
+          </button>
         )}
       </div>
 

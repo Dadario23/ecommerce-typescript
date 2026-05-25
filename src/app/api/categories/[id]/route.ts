@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import Category from "@/models/Category";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+
+function isAdmin(role: string | undefined) {
+  return role === "admin" || role === "superadmin";
+}
 
 // ✅ GET /api/categories/[id]
 export async function GET(
@@ -31,9 +37,15 @@ export async function GET(
 // ✅ PUT /api/categories/[id]
 export async function PUT(
   req: Request,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session || !isAdmin(session.user?.role)) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+    }
+
+    const { id } = await context.params;
     await connectDB();
     const body = await req.json();
 
@@ -49,7 +61,7 @@ export async function PUT(
     } = body;
 
     const updated = await Category.findByIdAndUpdate(
-      params.id,
+      id,
       {
         name,
         description,
@@ -83,11 +95,17 @@ export async function PUT(
 // ✅ DELETE /api/categories/[id]
 export async function DELETE(
   req: Request,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session || !isAdmin(session.user?.role)) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+    }
+
+    const { id } = await context.params;
     await connectDB();
-    const deleted = await Category.findByIdAndDelete(params.id);
+    const deleted = await Category.findByIdAndDelete(id);
 
     if (!deleted) {
       return NextResponse.json(

@@ -1,9 +1,13 @@
-// src/app/api/fix-slugs/route.ts
+// src/app/api/fix-slugs/route.ts — solo disponible en desarrollo
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import Product from "@/models/Product";
 
 export async function GET() {
+  if (process.env.NODE_ENV !== "development") {
+    return NextResponse.json({ error: "Not Found" }, { status: 404 });
+  }
+
   try {
     await connectDB();
 

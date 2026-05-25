@@ -2,6 +2,12 @@ import { connectDB } from "@/lib/mongodb";
 import Product from "@/models/Product";
 import { NextResponse } from "next/server";
 import mongoose from "mongoose";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
+
+function isAdmin(role: string | undefined) {
+  return role === "admin" || role === "superadmin";
+}
 
 // función para generar slug
 function slugify(text: string) {
@@ -37,11 +43,17 @@ export async function GET(
 // DELETE: eliminar producto
 export async function DELETE(
   req: Request,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session || !isAdmin(session.user?.role)) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+    }
+
+    const { id } = await context.params;
     await connectDB();
-    await Product.findByIdAndDelete(params.id);
+    await Product.findByIdAndDelete(id);
     return NextResponse.json({ message: "Producto eliminado" });
   } catch (error) {
     return NextResponse.json(
@@ -54,9 +66,15 @@ export async function DELETE(
 // PUT: actualizar producto
 export async function PUT(
   req: Request,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session || !isAdmin(session.user?.role)) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+    }
+
+    const { id } = await context.params;
     const body = await req.json();
     await connectDB();
 
@@ -68,7 +86,7 @@ export async function PUT(
       body.category = new mongoose.Types.ObjectId(body.category);
     }
 
-    const product = await Product.findByIdAndUpdate(params.id, body, {
+    const product = await Product.findByIdAndUpdate(id, body, {
       new: true,
     }).populate("category", "name");
 
