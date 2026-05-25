@@ -43,7 +43,7 @@ export default async function HomePage() {
       <BenefitsBar />
 
       <div className="px-4 max-w-7xl mx-auto">
-        <div className="mb-4">
+        <div className="mt-6 mb-6">
           <SupportBanner />
         </div>
         <CategoriesGrid categories={categories} />
