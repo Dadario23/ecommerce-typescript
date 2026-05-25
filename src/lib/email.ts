@@ -1,7 +1,5 @@
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 const FROM_EMAIL = process.env.FROM_EMAIL ?? "Compumobile <no-reply@compumobile.com.ar>";
 const STORE_NAME = "Compumobile";
 const STORE_URL = process.env.NEXT_PUBLIC_URL ?? "http://localhost:3000";
@@ -142,6 +140,8 @@ export async function sendOrderConfirmation(data: OrderEmailData): Promise<void>
     console.warn("[email] RESEND_API_KEY no configurado, se omite el envío.");
     return;
   }
+
+  const resend = new Resend(process.env.RESEND_API_KEY);
 
   try {
     await resend.emails.send({
