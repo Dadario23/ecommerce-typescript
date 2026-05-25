@@ -9,6 +9,7 @@ import {
   Plus, Trash2, Tag, Percent, DollarSign, Calendar,
   ShoppingCart, Users, AlertCircle,
 } from "lucide-react";
+import { ConfirmModal } from "@/components/dashboard/shared/ConfirmModal";
 
 interface Coupon {
   id: string;
@@ -41,6 +42,7 @@ export default function CouponsClient({ initialCoupons }: { initialCoupons: Coup
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState("");
   const [form, setForm] = useState(EMPTY_FORM);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const resetForm = () => { setForm(EMPTY_FORM); setFormError(""); };
 
@@ -86,7 +88,6 @@ export default function CouponsClient({ initialCoupons }: { initialCoupons: Coup
   };
 
   const deleteCoupon = async (id: string) => {
-    if (!confirm("¿Eliminar este cupón?")) return;
     await fetch(`/api/dashboard/coupons/${id}`, { method: "DELETE" });
     setCoupons((prev) => prev.filter((c) => c.id !== id));
   };
@@ -242,7 +243,7 @@ export default function CouponsClient({ initialCoupons }: { initialCoupons: Coup
 
                       {/* Delete */}
                       <button
-                        onClick={() => deleteCoupon(c.id)}
+                        onClick={() => setConfirmDeleteId(c.id)}
                         className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                         title="Eliminar"
                       >
@@ -396,6 +397,20 @@ export default function CouponsClient({ initialCoupons }: { initialCoupons: Coup
           </div>
         </DialogContent>
       </Dialog>
+
+      <ConfirmModal
+        isOpen={!!confirmDeleteId}
+        onClose={() => setConfirmDeleteId(null)}
+        onConfirm={() => {
+          if (confirmDeleteId) deleteCoupon(confirmDeleteId);
+          setConfirmDeleteId(null);
+        }}
+        title="Eliminar cupón"
+        description="¿Estás seguro? El cupón se eliminará permanentemente."
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        variant="destructive"
+      />
     </>
   );
 }

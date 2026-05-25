@@ -24,7 +24,10 @@ export interface IAddress {
   firstName: string;
   lastName: string;
   street: string;
+  betweenStreets?: string;
   city: string;
+  lat?: number;
+  lng?: number;
   state: string;
   zipCode: string;
   country: string;
@@ -37,6 +40,9 @@ const AddressSchema = new Schema({
   firstName: { type: String, required: true },
   lastName: { type: String, required: true },
   street: { type: String, required: true },
+  betweenStreets: { type: String, default: "" },
+  lat: { type: Number },
+  lng: { type: Number },
   city: { type: String, required: true },
   state: { type: String, required: true },
   zipCode: { type: String, required: true },

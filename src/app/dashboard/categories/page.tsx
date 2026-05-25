@@ -6,6 +6,7 @@ import {
   Search, X, Plus, Edit, Trash2, FolderOpen, ChevronLeft, ChevronRight,
 } from "lucide-react";
 import { normalizeCategories, CategoryOption } from "@/lib/normalizeCategories";
+import { ConfirmModal } from "@/components/dashboard/shared/ConfirmModal";
 
 const PER_PAGE = 8;
 
@@ -14,6 +15,7 @@ export default function CategoriesPage() {
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [confirmDelete, setConfirmDelete] = useState<{ id: string; name: string } | null>(null);
 
   async function fetchCategories() {
     setLoading(true);
@@ -36,8 +38,7 @@ export default function CategoriesPage() {
   const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
   const paginated = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
 
-  const handleDelete = async (id: string, name: string) => {
-    if (!confirm(`¿Eliminar la categoría "${name}"?`)) return;
+  const handleDelete = async (id: string) => {
     await fetch(`/api/categories/${id}`, { method: "DELETE" });
     fetchCategories();
   };
@@ -150,7 +151,7 @@ export default function CategoriesPage() {
                     <Edit className="w-3.5 h-3.5" />
                   </Link>
                   <button
-                    onClick={() => handleDelete(cat._id, cat.name)}
+                    onClick={() => setConfirmDelete({ id: cat._id, name: cat.name })}
                     className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                     title="Eliminar"
                   >
@@ -200,6 +201,20 @@ export default function CategoriesPage() {
           </div>
         )}
       </div>
+
+      <ConfirmModal
+        isOpen={!!confirmDelete}
+        onClose={() => setConfirmDelete(null)}
+        onConfirm={() => {
+          if (confirmDelete) handleDelete(confirmDelete.id);
+          setConfirmDelete(null);
+        }}
+        title="Eliminar categoría"
+        description={`¿Eliminás "${confirmDelete?.name}"? Esta acción no se puede deshacer.`}
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        variant="destructive"
+      />
     </div>
   );
 }

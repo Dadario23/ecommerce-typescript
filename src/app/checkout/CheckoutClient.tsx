@@ -9,6 +9,7 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import AddressAutocomplete from "@/components/ui/AddressAutocomplete";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useCartStore } from "@/store/useCartStore";
 import Spinner from "@/components/ui/Spinner";
@@ -111,6 +112,7 @@ export default function CheckoutClient() {
   });
 
   const selectedPayment = watch("paymentMethod");
+  const addressValue = watch("address") ?? "";
 
   useEffect(() => {
     if (status === "unauthenticated") { router.push("/"); return; }
@@ -336,32 +338,41 @@ export default function CheckoutClient() {
               </div>
             )}
 
-            {/* Información personal + dirección */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">
-              <SectionTitle>Información de envío</SectionTitle>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="name" className="text-sm font-medium text-gray-700 mb-1.5 block">
-                    Nombre completo
-                  </Label>
-                  <Input id="name" {...register("name")} placeholder="Tu nombre completo" className="rounded-lg" />
-                  <FieldError message={errors.name?.message} />
+            {/* Quién compra — solo lectura */}
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+              <SectionTitle>Tus datos</SectionTitle>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-[#1E3A8A] flex items-center justify-center text-white font-bold text-sm shrink-0">
+                  {session?.user?.name?.charAt(0).toUpperCase() ?? "?"}
                 </div>
                 <div>
-                  <Label htmlFor="email" className="text-sm font-medium text-gray-700 mb-1.5 block">
-                    Correo electrónico
-                  </Label>
-                  <Input id="email" type="email" {...register("email")} placeholder="tu@email.com" className="rounded-lg" />
-                  <FieldError message={errors.email?.message} />
+                  <p className="text-sm font-semibold text-gray-800">{session?.user?.name}</p>
+                  <p className="text-xs text-gray-400">{session?.user?.email}</p>
                 </div>
               </div>
+            </div>
+
+            {/* Dirección de envío */}
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">
+              <SectionTitle>Dirección de envío</SectionTitle>
 
               <div>
                 <Label htmlFor="address" className="text-sm font-medium text-gray-700 mb-1.5 block">
                   Dirección
                 </Label>
-                <Input id="address" {...register("address")} placeholder="Calle, número, departamento" className="rounded-lg" />
+                <AddressAutocomplete
+                  id="address"
+                  value={addressValue}
+                  onChange={(v) => setValue("address", v, { shouldValidate: true })}
+                  onPlaceSelect={(c) => {
+                    setValue("address", c.street, { shouldValidate: true });
+                    setValue("city", c.city, { shouldValidate: true });
+                    setValue("state", c.state, { shouldValidate: true });
+                    setValue("postalCode", c.postalCode, { shouldValidate: true });
+                    setValue("country", c.country || "Argentina");
+                  }}
+                  placeholder="Calle y número..."
+                />
                 <FieldError message={errors.address?.message} />
               </div>
 
@@ -381,12 +392,6 @@ export default function CheckoutClient() {
                   <Input id="postalCode" {...register("postalCode")} placeholder="1234" className="rounded-lg" />
                   <FieldError message={errors.postalCode?.message} />
                 </div>
-              </div>
-
-              <div>
-                <Label htmlFor="country" className="text-sm font-medium text-gray-700 mb-1.5 block">País</Label>
-                <Input id="country" {...register("country")} className="rounded-lg" />
-                <FieldError message={errors.country?.message} />
               </div>
             </div>
 
