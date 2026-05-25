@@ -10,6 +10,7 @@ interface CategoryDoc {
   _id: string;
   name: string;
   thumbnail?: string;
+  bannerImage?: string;
 }
 
 interface ProductDoc {
@@ -66,7 +67,8 @@ export default async function HomeProductsSection() {
         {sections.map(({ category, products }) => (
           <CategoryBlock
             key={String(category._id)}
-            bannerImage={category.thumbnail ?? ""}
+            bannerImage={category.bannerImage ?? ""}
+            thumbnail={category.thumbnail ?? ""}
             bannerTitle={category.name}
             categorySlug={slugify(category.name)}
             products={JSON.parse(JSON.stringify(products))}

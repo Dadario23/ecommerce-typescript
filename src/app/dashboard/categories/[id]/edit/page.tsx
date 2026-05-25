@@ -13,6 +13,61 @@ interface Category {
   description?: string;
   status: "published" | "draft";
   thumbnail?: string;
+  bannerImage?: string;
+}
+
+function ImageUploader({
+  label,
+  hint,
+  currentUrl,
+  newPreview,
+  onFile,
+  onRemove,
+  aspect,
+}: {
+  label: string;
+  hint: string;
+  currentUrl?: string;
+  newPreview: string | null;
+  onFile: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onRemove: () => void;
+  aspect: string;
+}) {
+  const display = newPreview ?? currentUrl ?? null;
+
+  return (
+    <div>
+      <p className="text-xs font-medium text-gray-600 mb-2">{label}</p>
+      {display ? (
+        <div className="relative">
+          <img
+            src={display}
+            alt={label}
+            className={`w-full ${aspect} object-cover rounded-xl border border-gray-100 bg-gray-50`}
+          />
+          <button
+            type="button"
+            onClick={onRemove}
+            className="absolute top-2 right-2 bg-black/60 text-white rounded-full p-1 hover:bg-black/80 transition-colors"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+          <label className="mt-2 flex items-center justify-center gap-1.5 text-xs text-gray-400 hover:text-[#1E3A8A] cursor-pointer transition-colors">
+            <ImagePlus className="w-3.5 h-3.5" />
+            Cambiar imagen
+            <input type="file" accept="image/*" onChange={onFile} className="hidden" />
+          </label>
+        </div>
+      ) : (
+        <label className={`flex flex-col items-center justify-center gap-2 border-2 border-dashed border-gray-200 rounded-xl ${aspect} cursor-pointer hover:border-blue-300 hover:bg-blue-50/40 transition-colors`}>
+          <ImagePlus className="w-6 h-6 text-gray-300" />
+          <span className="text-xs text-gray-400 text-center px-2">Hacé clic para subir</span>
+          <input type="file" accept="image/*" onChange={onFile} className="hidden" />
+        </label>
+      )}
+      <p className="text-[11px] text-gray-400 mt-1.5">{hint}</p>
+    </div>
+  );
 }
 
 export default function EditarCategoriaPage() {
@@ -20,11 +75,15 @@ export default function EditarCategoriaPage() {
   const router = useRouter();
 
   const [category, setCategory] = useState<Category | null>(null);
-  const [newFile, setNewFile] = useState<File | null>(null);
-  const [newPreview, setNewPreview] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [newThumbnail, setNewThumbnail] = useState<File | null>(null);
+  const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null);
+
+  const [newBanner, setNewBanner] = useState<File | null>(null);
+  const [bannerPreview, setBannerPreview] = useState<string | null>(null);
 
   useEffect(() => {
     fetch(`/api/categories/${id}`)
@@ -36,46 +95,51 @@ export default function EditarCategoriaPage() {
 
   useEffect(() => {
     return () => {
-      if (newPreview) URL.revokeObjectURL(newPreview);
+      if (thumbnailPreview) URL.revokeObjectURL(thumbnailPreview);
+      if (bannerPreview) URL.revokeObjectURL(bannerPreview);
     };
-  }, [newPreview]);
+  }, [thumbnailPreview, bannerPreview]);
 
-  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleThumbnailFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (newPreview) URL.revokeObjectURL(newPreview);
-    setNewFile(file);
-    setNewPreview(URL.createObjectURL(file));
+    if (thumbnailPreview) URL.revokeObjectURL(thumbnailPreview);
+    setNewThumbnail(file);
+    setThumbnailPreview(URL.createObjectURL(file));
     e.target.value = "";
   };
 
-  const removeImage = () => {
-    if (newPreview) URL.revokeObjectURL(newPreview);
-    setNewFile(null);
-    setNewPreview(null);
-    setCategory((prev) => prev ? { ...prev, thumbnail: undefined } : prev);
+  const handleBannerFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (bannerPreview) URL.revokeObjectURL(bannerPreview);
+    setNewBanner(file);
+    setBannerPreview(URL.createObjectURL(file));
+    e.target.value = "";
+  };
+
+  const uploadFile = async (file: File) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    const up = await fetch("/api/upload", { method: "POST", body: formData });
+    if (!up.ok) throw new Error("Error al subir la imagen");
+    const data = await up.json();
+    return data.secure_url as string;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!category) return;
     setError(null);
-
     if (!category.name.trim()) return setError("El nombre es obligatorio");
     if (category.name.trim().length < 3) return setError("El nombre debe tener al menos 3 caracteres");
 
     setLoading(true);
     try {
-      let thumbnailUrl = category.thumbnail;
-
-      if (newFile) {
-        const formData = new FormData();
-        formData.append("file", newFile);
-        const up = await fetch("/api/upload", { method: "POST", body: formData });
-        if (!up.ok) throw new Error("Error al subir la imagen");
-        const upData = await up.json();
-        thumbnailUrl = upData.secure_url;
-      }
+      const [thumbnailUrl, bannerImageUrl] = await Promise.all([
+        newThumbnail ? uploadFile(newThumbnail) : Promise.resolve(category.thumbnail),
+        newBanner ? uploadFile(newBanner) : Promise.resolve(category.bannerImage),
+      ]);
 
       const res = await fetch(`/api/categories/${id}`, {
         method: "PUT",
@@ -85,6 +149,7 @@ export default function EditarCategoriaPage() {
           description: category.description?.trim(),
           status: category.status,
           thumbnail: thumbnailUrl,
+          bannerImage: bannerImageUrl,
         }),
       });
 
@@ -101,11 +166,9 @@ export default function EditarCategoriaPage() {
     }
   };
 
-  const currentPreview = newPreview ?? category?.thumbnail ?? null;
-
   if (fetching) {
     return (
-      <div className="bg-gray-50 min-h-screen p-6 md:p-8 flex items-center justify-center">
+      <div className="bg-gray-50 min-h-screen flex items-center justify-center">
         <div className="flex items-center gap-2 text-gray-400">
           <Loader2 className="w-5 h-5 animate-spin" />
           <span className="text-sm">Cargando categoría...</span>
@@ -117,9 +180,7 @@ export default function EditarCategoriaPage() {
   if (!category) {
     return (
       <div className="bg-gray-50 min-h-screen p-6 md:p-8">
-        <div className="max-w-3xl mx-auto">
-          <p className="text-sm text-red-500">{error || "Categoría no encontrada"}</p>
-        </div>
+        <p className="text-sm text-red-500">{error || "Categoría no encontrada"}</p>
       </div>
     );
   }
@@ -148,42 +209,42 @@ export default function EditarCategoriaPage() {
         )}
 
         <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Columna izquierda: imagen + estado */}
+          {/* Columna izquierda */}
           <div className="space-y-6">
-            {/* Imagen */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-              <h2 className="text-sm font-semibold text-gray-700 mb-4">Imagen</h2>
-              {currentPreview ? (
-                <div className="relative">
-                  <img
-                    src={currentPreview}
-                    alt="Vista previa"
-                    className="w-full aspect-square object-contain rounded-xl border border-gray-100 bg-gray-50 p-2"
-                  />
-                  <button
-                    type="button"
-                    onClick={removeImage}
-                    className="absolute top-2 right-2 bg-black/60 text-white rounded-full p-1 hover:bg-black/80 transition-colors"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                  <label className="mt-3 flex items-center justify-center gap-1.5 text-xs text-gray-400 hover:text-[#1E3A8A] cursor-pointer transition-colors">
-                    <ImagePlus className="w-3.5 h-3.5" />
-                    Cambiar imagen
-                    <input type="file" accept="image/*" onChange={handleFile} className="hidden" />
-                  </label>
-                </div>
-              ) : (
-                <label className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-gray-200 rounded-xl p-8 cursor-pointer hover:border-blue-300 hover:bg-blue-50/40 transition-colors">
-                  <ImagePlus className="w-7 h-7 text-gray-300" />
-                  <span className="text-sm text-gray-400 text-center">Hacé clic para subir una imagen</span>
-                  <span className="text-xs text-gray-300">JPG, PNG, WebP</span>
-                  <input type="file" accept="image/*" onChange={handleFile} className="hidden" />
-                </label>
-              )}
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-5">
+              <h2 className="text-sm font-semibold text-gray-700">Imágenes</h2>
+
+              <ImageUploader
+                label="Miniatura"
+                hint="Grilla de categorías · 1:1 · mín. 400×400px"
+                currentUrl={category.thumbnail}
+                newPreview={thumbnailPreview}
+                onFile={handleThumbnailFile}
+                onRemove={() => {
+                  if (thumbnailPreview) URL.revokeObjectURL(thumbnailPreview);
+                  setNewThumbnail(null);
+                  setThumbnailPreview(null);
+                  setCategory({ ...category, thumbnail: undefined });
+                }}
+                aspect="aspect-square"
+              />
+
+              <ImageUploader
+                label="Banner homepage"
+                hint="Sección de productos destacados · 3:1 · mín. 1200×400px"
+                currentUrl={category.bannerImage}
+                newPreview={bannerPreview}
+                onFile={handleBannerFile}
+                onRemove={() => {
+                  if (bannerPreview) URL.revokeObjectURL(bannerPreview);
+                  setNewBanner(null);
+                  setBannerPreview(null);
+                  setCategory({ ...category, bannerImage: undefined });
+                }}
+                aspect="aspect-[3/1]"
+              />
             </div>
 
-            {/* Estado */}
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
               <h2 className="text-sm font-semibold text-gray-700 mb-4">Estado</h2>
               <select
@@ -197,7 +258,7 @@ export default function EditarCategoriaPage() {
             </div>
           </div>
 
-          {/* Columna derecha: info */}
+          {/* Columna derecha */}
           <div className="lg:col-span-2 space-y-6">
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
               <h2 className="text-sm font-semibold text-gray-700 mb-4">Información</h2>
@@ -209,15 +270,12 @@ export default function EditarCategoriaPage() {
                   <input
                     value={category.name}
                     onChange={(e) => setCategory({ ...category, name: e.target.value })}
-                    placeholder="Ej: Celulares, Accesorios"
                     required
                     className={INPUT}
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-medium text-gray-600 mb-1.5 block">
-                    Descripción
-                  </label>
+                  <label className="text-xs font-medium text-gray-600 mb-1.5 block">Descripción</label>
                   <textarea
                     value={category.description ?? ""}
                     onChange={(e) => setCategory({ ...category, description: e.target.value })}
@@ -235,9 +293,7 @@ export default function EditarCategoriaPage() {
                 disabled={loading}
                 className="bg-[#1E3A8A] text-white text-sm font-semibold px-6 py-2.5 rounded-xl hover:bg-blue-800 transition-colors disabled:opacity-60 flex items-center gap-2"
               >
-                {loading ? (
-                  <><Loader2 className="w-4 h-4 animate-spin" /> Guardando...</>
-                ) : "Guardar cambios"}
+                {loading ? <><Loader2 className="w-4 h-4 animate-spin" /> Guardando...</> : "Guardar cambios"}
               </button>
             </div>
           </div>

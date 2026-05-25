@@ -13,6 +13,7 @@ interface Product {
 
 interface CategoryBlockProps {
   bannerImage: string;
+  thumbnail: string;
   bannerTitle: string;
   categorySlug: string;
   products: Product[];
@@ -20,10 +21,12 @@ interface CategoryBlockProps {
 
 export default function CategoryBlock({
   bannerImage,
+  thumbnail,
   bannerTitle,
   categorySlug,
   products,
 }: CategoryBlockProps) {
+  const displayImage = bannerImage || thumbnail;
   return (
     <div className="bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-sm">
       {/* Banner */}
@@ -31,9 +34,9 @@ export default function CategoryBlock({
         href={`/category/${categorySlug}`}
         className="relative flex h-36 sm:h-44 overflow-hidden group"
       >
-        {bannerImage ? (
+        {displayImage ? (
           <Image
-            src={bannerImage}
+            src={displayImage}
             alt={bannerTitle}
             fill
             sizes="(max-width: 768px) 100vw, 50vw"

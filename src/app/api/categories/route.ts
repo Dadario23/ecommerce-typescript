@@ -19,16 +19,7 @@ export async function POST(req: Request) {
     await connectDB();
     const body = await req.json();
 
-    const {
-      name,
-      description,
-      status,
-      template,
-      metaTitle,
-      metaDescription,
-      metaKeywords,
-      thumbnail,
-    } = body;
+    const { name, description, status, thumbnail, bannerImage } = body;
 
     if (!name) {
       return NextResponse.json({ error: "Name is required" }, { status: 400 });
@@ -38,11 +29,8 @@ export async function POST(req: Request) {
       name,
       description,
       status,
-      template,
-      metaTitle,
-      metaDescription,
-      metaKeywords,
       thumbnail,
+      bannerImage,
     });
 
     return NextResponse.json({ category }, { status: 201 });

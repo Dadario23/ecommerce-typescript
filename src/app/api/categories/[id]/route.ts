@@ -49,29 +49,11 @@ export async function PUT(
     await connectDB();
     const body = await req.json();
 
-    const {
-      name,
-      description,
-      status,
-      template,
-      metaTitle,
-      metaDescription,
-      metaKeywords,
-      thumbnail,
-    } = body;
+    const { name, description, status, thumbnail, bannerImage } = body;
 
     const updated = await Category.findByIdAndUpdate(
       id,
-      {
-        name,
-        description,
-        status,
-        template,
-        metaTitle,
-        metaDescription,
-        metaKeywords,
-        thumbnail,
-      },
+      { name, description, status, thumbnail, bannerImage },
       { new: true }
     );
 

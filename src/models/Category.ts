@@ -17,8 +17,9 @@ const categorySchema = new Schema(
     metaDescription: { type: String },
     metaKeywords: { type: String },
 
-    // Imagen
-    thumbnail: { type: String }, // URL a Cloudinary / S3
+    // Imágenes
+    thumbnail: { type: String }, // miniatura (grilla de categorías)
+    bannerImage: { type: String }, // banner ancho (homepage)
   },
   { timestamps: true }
 );
