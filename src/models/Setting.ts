@@ -10,6 +10,7 @@ export interface ISetting extends Document {
   instagramUrl: string;
   facebookUrl: string;
   whatsappNumber: string;
+  carouselImages: string[];
   updatedAt: Date;
 }
 
@@ -24,6 +25,7 @@ const SettingSchema = new Schema(
     instagramUrl:          { type: String, default: "" },
     facebookUrl:           { type: String, default: "" },
     whatsappNumber:        { type: String, default: "" },
+    carouselImages:        { type: [String], default: [] },
   },
   { timestamps: true }
 );

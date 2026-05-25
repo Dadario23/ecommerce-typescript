@@ -38,6 +38,7 @@ export async function PUT(req: Request) {
     "storeName", "storeEmail", "storePhone", "storeDescription",
     "shippingCost", "freeShippingThreshold",
     "instagramUrl", "facebookUrl", "whatsappNumber",
+    "carouselImages",
   ];
   const update: Record<string, unknown> = {};
   for (const key of allowed) {
@@ -45,8 +46,10 @@ export async function PUT(req: Request) {
   }
 
   await connectDB();
-  const doc = await Setting.findOneAndUpdate({}, update, {
-    new: true, upsert: true, lean: true,
-  });
+  const doc = await Setting.findOneAndUpdate(
+    {},
+    { $set: update },
+    { new: true, upsert: true, lean: true, strict: false },
+  );
   return NextResponse.json(doc);
 }

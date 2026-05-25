@@ -16,6 +16,9 @@ export async function POST(req: Request) {
 
     const formData = await req.formData();
     const file = formData.get("file") as File;
+    const folderParam = (formData.get("folder") as string) || "products";
+    const ALLOWED_FOLDERS = ["products", "carousel", "categories"];
+    const folder = ALLOWED_FOLDERS.includes(folderParam) ? folderParam : "products";
 
     if (!file) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
@@ -44,7 +47,7 @@ export async function POST(req: Request) {
       cloudinary.uploader
         .upload_stream(
           {
-            folder: "products",
+            folder,
             resource_type: "image",
             transformation: [{ quality: "auto" }, { fetch_format: "auto" }],
           },

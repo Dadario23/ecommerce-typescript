@@ -9,10 +9,14 @@ import "swiper/css/pagination";
 import "swiper/css/navigation";
 
 const FALLBACK_IMAGES = [
-  "https://i.ibb.co/b5xjn536/Chat-GPT-Image-11-may-2026-02-01-04-a-m.png",
+  "https://i.ibb.co/KzwgFL8H/Chat-GPT-Image-25-may-2026-03-23-52-p-m.png",
 ];
 
-export default function Carousel({ images = FALLBACK_IMAGES }: { images?: string[] }) {
+export default function Carousel({
+  images = FALLBACK_IMAGES,
+}: {
+  images?: string[];
+}) {
   return (
     <div className="w-full aspect-4/3 sm:aspect-video lg:aspect-21/9 rounded-xl overflow-hidden">
       <Swiper

@@ -18,6 +18,7 @@ import {
   Users,
   BarChart2,
   Settings,
+  GalleryHorizontal,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
@@ -46,6 +47,7 @@ const NAV: NavItem[] = [
       { href: "/dashboard/categories/new", label: "Nueva categoría", icon: Plus },
     ],
   },
+  { href: "/dashboard/carousel", label: "Carousel", icon: GalleryHorizontal },
   { href: "/dashboard/settings", label: "Configuración", icon: Settings },
 ];
 
