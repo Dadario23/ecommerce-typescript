@@ -1,100 +1,93 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { normalizeCategories, CategoryOption } from "@/lib/normalizeCategories";
 
-export default function ProductDetailsSection({ product }: { product?: any }) {
+const INPUT =
+  "w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-300 placeholder:text-gray-300 transition-colors";
+
+interface Product {
+  category?: { _id: string } | string;
+  brand?: string;
+  sku?: string;
+  stock?: number;
+}
+
+export default function ProductDetailsSection({ product }: { product?: Product }) {
   const [categories, setCategories] = useState<CategoryOption[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>("");
 
   useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        const res = await fetch("/api/categories");
-        const data = await res.json();
+    fetch("/api/categories")
+      .then((r) => r.json())
+      .then((data) => {
         const normalized = normalizeCategories(
           Array.isArray(data) ? data : data.categories || []
         );
         setCategories(normalized);
-
-        // 👇 si estamos en edición, seteamos la categoría por defecto
         if (product?.category) {
-          const defaultValue =
+          const def =
             typeof product.category === "object"
               ? product.category._id
               : String(product.category);
-
-          setSelectedCategory(defaultValue);
+          setSelectedCategory(def);
         }
-      } catch (err) {
-        console.error("Error fetching categories", err);
-      }
-    };
-
-    fetchCategories();
+      })
+      .catch(() => {});
   }, [product?.category]);
 
   return (
-    <Card className="rounded-2xl shadow-sm border">
-      <CardHeader>
-        <CardTitle className="text-lg font-semibold">Product Details</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {/* Category */}
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+      <h2 className="text-sm font-semibold text-gray-700 mb-4">Detalles</h2>
+      <div className="space-y-4">
         <div>
-          <Label className="text-sm font-medium">Category</Label>
-          <Select
+          <label className="text-xs font-medium text-gray-600 mb-1.5 block">Categoría</label>
+          <select
             name="category"
             value={selectedCategory}
-            onValueChange={(val) => setSelectedCategory(val)}
+            onChange={(e) => setSelectedCategory(e.target.value)}
+            className={INPUT}
           >
-            <SelectTrigger className="mt-1">
-              <SelectValue placeholder="Select category" />
-            </SelectTrigger>
-            <SelectContent>
-              {categories.map((cat) => (
-                <SelectItem key={cat._id} value={cat._id}>
-                  {cat.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            <option value="">Sin categoría</option>
+            {categories.map((cat) => (
+              <option key={cat._id} value={cat._id}>
+                {cat.name}
+              </option>
+            ))}
+          </select>
         </div>
 
-        {/* Brand */}
         <div>
-          <Label className="text-sm font-medium">Brand</Label>
-          <Input className="mt-1" name="brand" defaultValue={product?.brand} />
+          <label className="text-xs font-medium text-gray-600 mb-1.5 block">Marca</label>
+          <input
+            name="brand"
+            defaultValue={product?.brand}
+            placeholder="Ej: Samsung, Apple"
+            className={INPUT}
+          />
         </div>
 
-        {/* SKU */}
         <div>
-          <Label className="text-sm font-medium">SKU</Label>
-          <Input className="mt-1" name="sku" defaultValue={product?.sku} />
+          <label className="text-xs font-medium text-gray-600 mb-1.5 block">SKU</label>
+          <input
+            name="sku"
+            defaultValue={product?.sku}
+            placeholder="Ej: IPH15-256-BLK"
+            className={INPUT}
+          />
         </div>
 
-        {/* Stock */}
         <div>
-          <Label className="text-sm font-medium">Stock</Label>
-          <Input
-            className="mt-1"
+          <label className="text-xs font-medium text-gray-600 mb-1.5 block">Stock</label>
+          <input
             type="number"
             name="stock"
             min={0}
-            defaultValue={product?.stock}
+            defaultValue={product?.stock ?? 0}
+            className={INPUT}
           />
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

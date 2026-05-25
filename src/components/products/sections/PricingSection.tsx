@@ -1,72 +1,50 @@
 "use client";
 
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
+const INPUT =
+  "w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-300 placeholder:text-gray-300 transition-colors";
 
-export default function PricingSection({ product }: { product?: any }) {
+export default function PricingSection({ product }: { product?: { price?: number; compareAtPrice?: number } }) {
   return (
-    <Card className="rounded-2xl shadow-sm border">
-      <CardHeader>
-        <CardTitle className="text-lg font-semibold">Pricing</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+      <h2 className="text-sm font-semibold text-gray-700 mb-4">Precios</h2>
+      <div className="space-y-4">
         <div>
-          <Label className="text-sm font-medium">Base Price *</Label>
-          <Input
-            className="mt-1"
-            type="number"
-            step="0.01"
-            name="price"
-            defaultValue={product?.price}
-            required
-          />
-        </div>
-        <div>
-          <Label className="text-sm font-medium">Compare at Price</Label>
-          <Input
-            className="mt-1"
-            type="number"
-            step="0.01"
-            name="compareAtPrice"
-            defaultValue={product?.compareAtPrice}
-          />
-        </div>
-
-        <div>
-          <Label className="text-sm font-medium">Discount Type</Label>
-          <div className="flex gap-4 mt-2 text-sm">
-            <label className="flex items-center gap-2">
-              <input
-                type="radio"
-                name="discountType"
-                value="none"
-                defaultChecked
-              />
-              No Discount
-            </label>
-            <label className="flex items-center gap-2">
-              <input type="radio" name="discountType" value="percentage" />
-              Percentage %
-            </label>
-            <label className="flex items-center gap-2">
-              <input type="radio" name="discountType" value="fixed" />
-              Fixed Price
-            </label>
+          <label className="text-xs font-medium text-gray-600 mb-1.5 block">
+            Precio <span className="text-red-400">*</span>
+          </label>
+          <div className="relative">
+            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm text-gray-400">$</span>
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              name="price"
+              defaultValue={product?.price}
+              required
+              placeholder="0.00"
+              className={`${INPUT} pl-7`}
+            />
           </div>
         </div>
-
         <div>
-          <Label className="text-sm font-medium">Discount Percentage</Label>
-          <Input
-            className="mt-1"
-            type="number"
-            step="1"
-            name="discountPercentage"
-            placeholder="10"
-          />
+          <label className="text-xs font-medium text-gray-600 mb-1.5 block">
+            Precio de lista
+            <span className="ml-1.5 text-[10px] font-normal text-gray-400">(precio tachado para mostrar descuento)</span>
+          </label>
+          <div className="relative">
+            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm text-gray-400">$</span>
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              name="compareAtPrice"
+              defaultValue={product?.compareAtPrice}
+              placeholder="0.00"
+              className={`${INPUT} pl-7`}
+            />
+          </div>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
