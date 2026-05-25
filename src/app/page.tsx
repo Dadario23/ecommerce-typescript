@@ -2,6 +2,7 @@ import Carousel from "@/components/Carousel";
 import BenefitsBar from "@/components/BenefitsBar";
 import CategoriesGrid from "@/components/home/CategoriesGrid";
 import HomeProductsSection from "@/components/home/HomeProductsSection";
+import SupportBanner from "@/components/home/SupportBanner";
 
 import { connectDB } from "@/lib/mongodb";
 import { initModels } from "@/lib/initModels";
@@ -42,6 +43,9 @@ export default async function HomePage() {
       <BenefitsBar />
 
       <div className="px-4 max-w-7xl mx-auto">
+        <div className="mb-4">
+          <SupportBanner />
+        </div>
         <CategoriesGrid categories={categories} />
         <HomeProductsSection />
       </div>

@@ -16,6 +16,7 @@ import {
   MapPin,
   Lock,
   ChevronRight,
+  Wrench,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -232,6 +233,14 @@ export default function Navbar() {
                   {cat.name}
                 </button>
               ))}
+              <div className="w-px h-4 bg-gray-200 mx-1 shrink-0" />
+              <Link
+                href="/soporte-tecnico"
+                className="flex items-center gap-1.5 px-3.5 py-2.5 whitespace-nowrap text-sm text-[#1E3A8A] hover:bg-blue-50 font-semibold transition-colors rounded-md shrink-0"
+              >
+                <Wrench className="w-3.5 h-3.5" />
+                Soporte Técnico
+              </Link>
             </div>
           </div>
         </nav>
@@ -302,6 +311,16 @@ export default function Navbar() {
                     </button>
                   </li>
                 ))}
+                <li>
+                  <Link
+                    href="/soporte-tecnico"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="flex items-center gap-3 px-4 py-3 text-sm text-[#1E3A8A] font-semibold hover:bg-blue-50"
+                  >
+                    <Wrench className="w-4 h-4" />
+                    Soporte Técnico
+                  </Link>
+                </li>
               </ul>
 
               {/* Account links */}
