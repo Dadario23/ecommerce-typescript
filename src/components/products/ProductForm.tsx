@@ -22,6 +22,7 @@ interface Product {
   compareAtPrice?: number;
   images?: string[];
   isActive?: boolean;
+  featured?: boolean;
   category?: { _id: string } | string;
   brand?: string;
   sku?: string;
@@ -75,6 +76,7 @@ export default function ProductForm({ product, loading, onSubmit, actionLabel }:
       stock: formData.get("stock") ? Number(formData.get("stock")) : 0,
       images: finalImageUrls,
       isActive: isActiveRaw === "true",
+      featured: formData.get("featured") === "true",
     });
   };
 

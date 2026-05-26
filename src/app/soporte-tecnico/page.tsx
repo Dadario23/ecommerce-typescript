@@ -7,7 +7,9 @@ import {
   Clock,
   MessageCircle,
   CheckCircle2,
+  Search,
 } from "lucide-react";
+import Link from "next/link";
 
 export const revalidate = 300;
 
@@ -36,10 +38,10 @@ const ENTERPRISE_SERVICES = [
 
 export default function SoporteTecnicoPage() {
   return (
-    <main className="pt-24 md:pt-36 pb-20 bg-gray-50 min-h-screen">
+    <main className="pb-20 bg-gray-50 min-h-screen">
 
       {/* ── HERO ── */}
-      <section className="bg-[#1E3A8A] text-white py-12 md:py-16 px-4">
+      <section className="bg-[#1E3A8A] text-white pt-20 pb-12 md:pt-24 md:pb-16 px-4">
         <div className="max-w-4xl mx-auto text-center">
           <p className="text-blue-300 text-xs font-semibold uppercase tracking-widest mb-3">
             Compumobile · Soporte Técnico
@@ -142,6 +144,23 @@ export default function SoporteTecnicoPage() {
 
           <ChatBot />
         </div>
+
+        {/* ── TRACKING CTA ── */}
+        <Link
+          href="/soporte-tecnico/seguimiento"
+          className="mt-4 flex items-center justify-between bg-white rounded-2xl border border-gray-100 shadow-sm px-5 py-4 hover:border-blue-200 hover:bg-blue-50 transition-colors group"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center shrink-0 group-hover:bg-blue-100 transition-colors">
+              <Search className="w-4 h-4 text-[#1E3A8A]" />
+            </div>
+            <div>
+              <p className="font-bold text-gray-900 text-sm">Seguí tu reparación</p>
+              <p className="text-xs text-gray-400">Consultá el estado de tu equipo con tu código</p>
+            </div>
+          </div>
+          <span className="text-[#1E3A8A] font-bold text-sm">Ver →</span>
+        </Link>
 
         {/* ── ENTERPRISE CTA ── */}
         <div className="mt-5 bg-gray-900 text-white rounded-2xl p-5 md:p-7 flex flex-col md:flex-row items-center justify-between gap-4">

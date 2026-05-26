@@ -3,9 +3,10 @@
 import { useSession, signOut } from "next-auth/react";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
-import { ClipboardList, MapPin, Lock, LogOut, ChevronRight } from "lucide-react";
+import { ClipboardList, MapPin, Lock, LogOut, ChevronRight, User } from "lucide-react";
 
 const NAV_LINKS = [
+  { href: "/account/profile", label: "Mi perfil", icon: User },
   { href: "/account/orders", label: "Mis pedidos", icon: ClipboardList },
   { href: "/account/addresses", label: "Direcciones", icon: MapPin },
   { href: "/account/change-password", label: "Cambiar contraseña", icon: Lock },

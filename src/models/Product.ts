@@ -13,6 +13,7 @@ export interface IProduct extends Document {
   sku?: string;
   avgRating?: number;
   reviewCount?: number;
+  featured?: boolean;
 }
 
 const ProductSchema: Schema = new Schema(
@@ -40,6 +41,7 @@ const ProductSchema: Schema = new Schema(
     stock: { type: Number, default: 0 },
     avgRating: { type: Number, default: 0 },
     reviewCount: { type: Number, default: 0 },
+    featured: { type: Boolean, default: false },
   },
   { timestamps: true },
 );

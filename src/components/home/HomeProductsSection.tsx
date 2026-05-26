@@ -1,17 +1,7 @@
 import { connectDB } from "@/lib/mongodb";
 import { initModels } from "@/lib/initModels";
-import Category from "@/models/Category";
 import Product from "@/models/Product";
-import CategoryBlock from "./CategoryBlock";
-import Link from "next/link";
-import { slugify } from "@/lib/slugify";
-
-interface CategoryDoc {
-  _id: string;
-  name: string;
-  thumbnail?: string;
-  bannerImage?: string;
-}
+import HomeProductCard from "./HomeProductCard";
 
 interface ProductDoc {
   _id: string;
@@ -23,55 +13,43 @@ interface ProductDoc {
   brand?: string;
 }
 
-async function getCategoriesWithProducts() {
+async function getFeaturedProducts(): Promise<ProductDoc[]> {
   await connectDB();
   initModels();
 
-  const categories = await Category.find({ status: "published" })
-    .sort({ name: 1 })
+  const featured = await Product.find({ featured: true })
+    .select("name slug price compareAtPrice images brand")
     .limit(8)
-    .lean<CategoryDoc[]>();
+    .lean<ProductDoc[]>();
 
-  const results = await Promise.all(
-    categories.map(async (cat) => {
-      const products = await Product.find({ category: cat._id })
-        .select("name slug price compareAtPrice images brand")
-        .sort({ createdAt: -1 })
-        .limit(3)
-        .lean<ProductDoc[]>();
-      return { category: cat, products };
-    })
-  );
+  if (featured.length > 0) return featured;
 
-  return results.filter((r) => r.products.length > 0).slice(0, 4);
+  return Product.find()
+    .select("name slug price compareAtPrice images brand")
+    .sort({ createdAt: -1 })
+    .limit(8)
+    .lean<ProductDoc[]>();
 }
 
 export default async function HomeProductsSection() {
-  const sections = await getCategoriesWithProducts();
+  const products = await getFeaturedProducts();
 
-  if (sections.length === 0) return null;
+  if (products.length === 0) return null;
 
   return (
-    <section className="mt-10 space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold text-gray-900">Productos destacados</h2>
-        <Link
-          href="/category"
-          className="text-sm text-blue-600 hover:text-blue-800 font-medium"
-        >
-          Ver todo →
-        </Link>
-      </div>
+    <section className="mt-10 space-y-5">
+      <h2 className="text-xl font-bold text-gray-900">Productos destacados</h2>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        {sections.map(({ category, products }) => (
-          <CategoryBlock
-            key={String(category._id)}
-            bannerImage={category.bannerImage ?? ""}
-            thumbnail={category.thumbnail ?? ""}
-            bannerTitle={category.name}
-            categorySlug={slugify(category.name)}
-            products={JSON.parse(JSON.stringify(products))}
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+        {products.map((p) => (
+          <HomeProductCard
+            key={String(p._id)}
+            slug={p.slug}
+            image={p.images?.[0] ?? ""}
+            name={p.name}
+            price={p.price}
+            compareAtPrice={p.compareAtPrice}
+            brand={p.brand}
           />
         ))}
       </div>

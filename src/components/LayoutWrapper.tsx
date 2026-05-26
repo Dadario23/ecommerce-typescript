@@ -11,8 +11,10 @@ export default function LayoutWrapper({
 }) {
   const pathname = usePathname();
 
-  // Ocultamos el Navbar en /dashboard y subrutas
-  const hideNavbar = pathname.startsWith("/dashboard");
+  // Ocultamos el Navbar de la tienda en /dashboard y /soporte-tecnico (tienen su propio navbar)
+  const hideNavbar =
+    pathname.startsWith("/dashboard") ||
+    pathname.startsWith("/soporte-tecnico");
 
   return (
     <>

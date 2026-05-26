@@ -17,6 +17,9 @@ const PAGE_TITLES: Record<string, string> = {
   "/dashboard/coupons": "Cupones",
   "/dashboard/customers": "Clientes",
   "/dashboard/analytics": "Analytics",
+  "/dashboard/presupuestos": "Presupuestos",
+  "/dashboard/reparaciones": "Reparaciones",
+  "/dashboard/reparaciones/nueva": "Nueva reparación",
   "/dashboard/carousel": "Carousel",
   "/dashboard/settings": "Configuración",
 };
