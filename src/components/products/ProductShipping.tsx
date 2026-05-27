@@ -12,8 +12,8 @@ const benefits = [
     icon: Store,
     title: "Retiro gratis en sucursal",
     sub: "Disponible en 3 horas",
-    color: "text-emerald-600",
-    bg: "bg-emerald-50",
+    color: "text-amber-600",
+    bg: "bg-amber-50",
   },
   {
     icon: CreditCard,
@@ -26,8 +26,8 @@ const benefits = [
     icon: Shield,
     title: "Garantía oficial 12 meses",
     sub: "Compra 100% protegida",
-    color: "text-blue-600",
-    bg: "bg-blue-50",
+    color: "text-emerald-800",
+    bg: "bg-emerald-100",
   },
 ];
 

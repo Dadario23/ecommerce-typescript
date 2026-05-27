@@ -251,7 +251,7 @@ export default function CheckoutClient() {
 
   if (status === "loading" || isLoading) {
     return (
-      <div className="pt-20 md:pt-36 flex flex-col items-center justify-center min-h-screen bg-gray-50">
+      <div className="pt-20 md:pt-32 flex flex-col items-center justify-center min-h-screen bg-gray-50">
         <Spinner />
         <p className="mt-4 text-gray-500 text-sm">Cargando...</p>
       </div>
@@ -260,7 +260,7 @@ export default function CheckoutClient() {
 
   if (!items || items.length === 0) {
     return (
-      <div className="pt-20 md:pt-36 flex flex-col items-center justify-center min-h-screen bg-gray-50 text-center px-4">
+      <div className="pt-20 md:pt-32 flex flex-col items-center justify-center min-h-screen bg-gray-50 text-center px-4">
         <p className="text-lg font-semibold text-gray-700 mb-4">No tenés productos en el carrito</p>
         <button
           onClick={() => router.push("/")}
@@ -273,7 +273,7 @@ export default function CheckoutClient() {
   }
 
   return (
-    <main className="pt-20 md:pt-36 pb-16 min-h-screen bg-gray-50">
+    <main className="pt-20 md:pt-32 pb-16 min-h-screen bg-gray-50">
       <div className="max-w-5xl mx-auto px-4">
         <h1 className="text-2xl font-bold text-gray-900 mb-1">Checkout</h1>
         <p className="text-sm text-gray-500 mb-6">Completá tus datos para finalizar la compra</p>

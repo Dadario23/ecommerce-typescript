@@ -42,7 +42,7 @@ export default function OrderPage() {
 
   if (!ready || status === "loading") {
     return (
-      <div className="pt-20 md:pt-36 flex flex-col items-center justify-center min-h-screen bg-gray-50">
+      <div className="pt-20 md:pt-32 flex flex-col items-center justify-center min-h-screen bg-gray-50">
         <Spinner />
         <p className="mt-4 text-gray-500 text-sm">Cargando tu pedido...</p>
       </div>
@@ -51,7 +51,7 @@ export default function OrderPage() {
 
   if (items.length === 0) {
     return (
-      <div className="pt-20 md:pt-36 min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4 text-center">
+      <div className="pt-20 md:pt-32 min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4 text-center">
         <div className="w-20 h-20 rounded-full bg-blue-50 flex items-center justify-center mb-4">
           <ShoppingBag className="w-9 h-9 text-blue-200" />
         </div>
@@ -69,7 +69,7 @@ export default function OrderPage() {
   }
 
   return (
-    <main className="pt-20 md:pt-36 pb-16 min-h-screen bg-gray-50">
+    <main className="pt-20 md:pt-32 pb-16 min-h-screen bg-gray-50">
       <div className="max-w-2xl mx-auto px-4">
         <h1 className="text-2xl font-bold text-gray-900 mb-1">Tu pedido</h1>
         <p className="text-sm text-gray-500 mb-6">Revisá los productos antes de continuar</p>

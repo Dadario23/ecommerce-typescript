@@ -1,5 +1,12 @@
 import mongoose, { Schema, Document } from "mongoose";
 
+export interface IDescriptionBlock {
+  type: "text" | "heading" | "image";
+  content?: string;
+  imageUrl?: string;
+  caption?: string;
+}
+
 export interface IProduct extends Document {
   name: string;
   slug: string;
@@ -13,7 +20,10 @@ export interface IProduct extends Document {
   sku?: string;
   avgRating?: number;
   reviewCount?: number;
+  unitsSold?: number;
+  homeDelivery?: boolean;
   featured?: boolean;
+  descriptionBlocks?: IDescriptionBlock[];
 }
 
 const ProductSchema: Schema = new Schema(
@@ -41,7 +51,21 @@ const ProductSchema: Schema = new Schema(
     stock: { type: Number, default: 0 },
     avgRating: { type: Number, default: 0 },
     reviewCount: { type: Number, default: 0 },
+    unitsSold: { type: Number, default: 0 },
+    homeDelivery: { type: Boolean, default: true },
     featured: { type: Boolean, default: false },
+    descriptionBlocks: {
+      type: [new Schema(
+        {
+          type:     { type: String, enum: ["text", "heading", "image"], required: true },
+          content:  { type: String },
+          imageUrl: { type: String },
+          caption:  { type: String },
+        },
+        { _id: false }
+      )],
+      default: [],
+    },
   },
   { timestamps: true },
 );
@@ -60,5 +84,10 @@ ProductSchema.pre<IProduct>("validate", function (next) {
   next();
 });
 
-export default mongoose.models.Product ||
+// In development, clear the cached model so schema changes take effect on hot reload
+if (process.env.NODE_ENV !== "production" && mongoose.models["Product"]) {
+  delete (mongoose.models as Record<string, unknown>)["Product"];
+}
+
+export default (mongoose.models["Product"] as mongoose.Model<IProduct>) ||
   mongoose.model<IProduct>("Product", ProductSchema);

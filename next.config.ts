@@ -14,6 +14,7 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "static.vecteezy.com" },
       { protocol: "https", hostname: "img.freepik.com" },
       { protocol: "https", hostname: "images.unsplash.com" },
+      { protocol: "https", hostname: "i.pinimg.com" },
     ],
   },
 };

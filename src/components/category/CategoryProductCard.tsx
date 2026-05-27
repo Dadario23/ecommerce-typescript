@@ -12,18 +12,81 @@ interface Product {
   stock?: number;
 }
 
-export default function CategoryProductCard({ product }: { product: Product }) {
-  const image = product.images?.[0] ?? "";
-  const hasDiscount =
-    product.compareAtPrice && product.compareAtPrice > product.price;
+interface Props {
+  product: Product;
+  listView?: boolean;
+}
+
+export default function CategoryProductCard({ product, listView = false }: Props) {
+  const image       = product.images?.[0] ?? "";
+  const priceDiff   = product.compareAtPrice ? product.compareAtPrice - product.price : 0;
+  const hasDiscount = !!(product.compareAtPrice && product.compareAtPrice > product.price && priceDiff >= 500);
   const discountPct = hasDiscount
-    ? Math.round(
-        ((product.compareAtPrice! - product.price) / product.compareAtPrice!) * 100
-      )
+    ? Math.round((priceDiff / product.compareAtPrice!) * 100)
     : 0;
   const installment = Math.ceil(product.price / 12);
-  const outOfStock = product.stock === 0;
+  const outOfStock  = (product.stock ?? 0) === 0;
 
+  /* ── VISTA LISTA ── */
+  if (listView) {
+    return (
+      <Link
+        href={`/products/${product.slug}`}
+        className="group bg-white rounded-xl border border-gray-100 hover:border-blue-200 hover:shadow-md transition-all duration-200 flex items-center gap-3 p-3 overflow-hidden"
+      >
+        {/* Imagen */}
+        <div className="relative w-20 h-20 shrink-0 rounded-lg bg-gray-50 overflow-hidden border border-gray-100">
+          {hasDiscount && (
+            <span className="absolute top-1 left-1 z-10 bg-red-500 text-white text-[9px] font-bold px-1 py-0.5 rounded leading-none">
+              -{discountPct}%
+            </span>
+          )}
+          <Image
+            src={image || "/placeholder-category.jpg"}
+            alt={product.name}
+            fill
+            sizes="80px"
+            className="object-contain p-1.5 group-hover:scale-105 transition-transform duration-300"
+          />
+        </div>
+
+        {/* Info */}
+        <div className="flex-1 min-w-0">
+          {product.brand && (
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-blue-600 mb-0.5">
+              {product.brand}
+            </p>
+          )}
+          <h3 className="text-sm font-medium text-gray-800 line-clamp-2 leading-snug">
+            {product.name}
+          </h3>
+          <div className="mt-1.5 flex items-end gap-2 flex-wrap">
+            <div>
+              {hasDiscount && (
+                <p className="text-[10px] text-gray-400 line-through leading-none">
+                  ${product.compareAtPrice!.toLocaleString("es-AR")}
+                </p>
+              )}
+              <p className="text-base font-bold text-gray-900 leading-tight">
+                ${product.price.toLocaleString("es-AR")}
+              </p>
+            </div>
+            {!outOfStock ? (
+              <p className="text-[10px] text-blue-700 font-medium">
+                12x ${installment.toLocaleString("es-AR")}
+              </p>
+            ) : (
+              <span className="text-[10px] font-semibold text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">
+                Sin stock
+              </span>
+            )}
+          </div>
+        </div>
+      </Link>
+    );
+  }
+
+  /* ── VISTA CUADRÍCULA (default) ── */
   return (
     <Link
       href={`/products/${product.slug}`}

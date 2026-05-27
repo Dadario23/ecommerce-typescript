@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Home, ChevronRight, SlidersHorizontal, X, ChevronDown } from "lucide-react";
+import { Home, ChevronRight, SlidersHorizontal, X, ChevronDown, LayoutGrid, List } from "lucide-react";
 import FiltersSidebar, { ActiveFilters } from "@/components/category/FiltersSidebar";
 import CategoryProductCard from "@/components/category/CategoryProductCard";
 import {
@@ -31,6 +31,7 @@ interface CategoryClientProps {
 }
 
 type SortOption = "newest" | "price-asc" | "price-desc" | "discount";
+type ViewMode  = "grid" | "list";
 
 const SORT_LABELS: Record<SortOption, string> = {
   newest: "Más nuevos",
@@ -49,6 +50,7 @@ export default function CategoryClient({
   const [sort, setSort] = useState<SortOption>("newest");
   const [sortOpen, setSortOpen] = useState(false);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>("grid");
 
   const availableBrands = useMemo(
     () =>
@@ -107,7 +109,7 @@ export default function CategoryClient({
     (filters.minPrice > priceRange.min || filters.maxPrice < priceRange.max ? 1 : 0);
 
   return (
-    <main className="pt-20 md:pt-36 pb-16 min-h-screen bg-gray-50">
+    <main className="pt-20 md:pt-32 pb-16 min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4">
         {/* Breadcrumb */}
         <nav className="flex items-center gap-1.5 text-xs text-gray-500 py-3">
@@ -129,6 +131,24 @@ export default function CategoryClient({
           </div>
 
           <div className="flex items-center gap-2">
+            {/* Mobile: view toggle */}
+            <div className="md:hidden flex items-center border border-gray-200 rounded-lg bg-white shadow-sm overflow-hidden">
+              <button
+                onClick={() => setViewMode("grid")}
+                className={`p-2 transition-colors ${viewMode === "grid" ? "bg-[#1E3A8A] text-white" : "text-gray-500 hover:bg-gray-50"}`}
+                aria-label="Vista cuadrícula"
+              >
+                <LayoutGrid className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setViewMode("list")}
+                className={`p-2 transition-colors ${viewMode === "list" ? "bg-[#1E3A8A] text-white" : "text-gray-500 hover:bg-gray-50"}`}
+                aria-label="Vista lista"
+              >
+                <List className="w-4 h-4" />
+              </button>
+            </div>
+
             {/* Mobile: filter button */}
             <button
               onClick={() => setMobileFiltersOpen(true)}
@@ -192,9 +212,13 @@ export default function CategoryClient({
           {/* Products */}
           <section className="flex-1 min-w-0">
             {paginatedProducts.length > 0 ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 gap-3 md:gap-4">
+              <div className={`grid gap-3 md:gap-4 ${
+                viewMode === "list"
+                  ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
+                  : "grid-cols-2 sm:grid-cols-3 lg:grid-cols-3"
+              }`}>
                 {paginatedProducts.map((product) => (
-                  <CategoryProductCard key={product._id} product={product} />
+                  <CategoryProductCard key={product._id} product={product} listView={viewMode === "list"} />
                 ))}
               </div>
             ) : (

@@ -7,6 +7,7 @@ import MediaSection from "./sections/MediaSection";
 import PricingSection from "./sections/PricingSection";
 import StatusSection from "./sections/StatusSection";
 import ProductDetailsSection from "./sections/ProductDetailsSection";
+import DescriptionBlocksSection, { DescriptionBlock } from "./sections/DescriptionBlocksSection";
 
 interface ImageItem {
   id: string;
@@ -15,9 +16,17 @@ interface ImageItem {
   existing?: boolean;
 }
 
+interface RawBlock {
+  type: "text" | "heading" | "image";
+  content?: string;
+  imageUrl?: string;
+  caption?: string;
+}
+
 interface Product {
   name?: string;
   description?: string;
+  descriptionBlocks?: RawBlock[];
   price?: number;
   compareAtPrice?: number;
   images?: string[];
@@ -39,6 +48,10 @@ interface ProductFormProps {
 export default function ProductForm({ product, loading, onSubmit, actionLabel }: ProductFormProps) {
   const [images, setImages] = useState<ImageItem[]>(
     product?.images?.map((url) => ({ id: crypto.randomUUID(), preview: url, existing: true })) || []
+  );
+
+  const [descriptionBlocks, setDescriptionBlocks] = useState<DescriptionBlock[]>(
+    (product?.descriptionBlocks ?? []).map((b) => ({ ...b, clientId: crypto.randomUUID() }))
   );
 
   const uploadToCloudinary = async (file: File) => {
@@ -63,20 +76,26 @@ export default function ProductForm({ product, loading, onSubmit, actionLabel }:
       }
     }
 
+    // Strip client-only fields before saving
+    const cleanBlocks = descriptionBlocks
+      .filter((b) => b.type !== "image" || !!b.imageUrl)
+      .map(({ clientId: _cid, uploading: _up, ...rest }) => rest);
+
     const isActiveRaw = formData.get("isActive");
 
     onSubmit({
-      name: formData.get("name"),
-      description: formData.get("description"),
-      price: Number(formData.get("price")),
-      compareAtPrice: formData.get("compareAtPrice") ? Number(formData.get("compareAtPrice")) : undefined,
-      category: formData.get("category") ? String(formData.get("category")) : undefined,
-      brand: formData.get("brand"),
-      sku: formData.get("sku"),
-      stock: formData.get("stock") ? Number(formData.get("stock")) : 0,
-      images: finalImageUrls,
-      isActive: isActiveRaw === "true",
-      featured: formData.get("featured") === "true",
+      name:              formData.get("name"),
+      description:       formData.get("description"),
+      descriptionBlocks: cleanBlocks,
+      price:             Number(formData.get("price")),
+      compareAtPrice:    formData.get("compareAtPrice") ? Number(formData.get("compareAtPrice")) : undefined,
+      category:          formData.get("category") ? String(formData.get("category")) : undefined,
+      brand:             formData.get("brand"),
+      sku:               formData.get("sku"),
+      stock:             formData.get("stock") ? Number(formData.get("stock")) : 0,
+      images:            finalImageUrls,
+      isActive:          isActiveRaw === "true",
+      featured:          formData.get("featured") === "true",
     });
   };
 
@@ -84,6 +103,10 @@ export default function ProductForm({ product, loading, onSubmit, actionLabel }:
     <form id="product-form" onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <div className="lg:col-span-2 space-y-6">
         <GeneralSection product={product} />
+        <DescriptionBlocksSection
+          blocks={descriptionBlocks}
+          onChange={setDescriptionBlocks}
+        />
         <MediaSection product={product} onImagesChange={setImages} />
         <PricingSection product={product} />
       </div>

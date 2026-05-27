@@ -41,14 +41,17 @@ export default function ProductDetailsSection({ product }: { product?: Product }
       <h2 className="text-sm font-semibold text-gray-700 mb-4">Detalles</h2>
       <div className="space-y-4">
         <div>
-          <label className="text-xs font-medium text-gray-600 mb-1.5 block">Categoría</label>
+          <label className="text-xs font-medium text-gray-600 mb-1.5 block">
+            Categoría <span className="text-red-400">*</span>
+          </label>
           <select
             name="category"
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
+            required
             className={INPUT}
           >
-            <option value="">Sin categoría</option>
+            <option value="" disabled>Seleccioná una categoría</option>
             {categories.map((cat) => (
               <option key={cat._id} value={cat._id}>
                 {cat.name}

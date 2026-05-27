@@ -38,7 +38,7 @@ export async function PUT(req: Request) {
     "storeName", "storeEmail", "storePhone", "storeDescription",
     "shippingCost", "freeShippingThreshold",
     "instagramUrl", "facebookUrl", "whatsappNumber",
-    "carouselImages",
+    "carouselImages", "homeFeaturedMode",
   ];
   const update: Record<string, unknown> = {};
   for (const key of allowed) {

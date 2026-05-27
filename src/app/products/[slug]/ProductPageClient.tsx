@@ -1,5 +1,6 @@
 "use client";
 
+import { AlertTriangle } from "lucide-react";
 import { IProduct } from "@/models/Product";
 import ProductBreadcrumb from "@/components/products/ProductBreadcrumb";
 import ProductGallery from "@/components/products/ProductGallery";
@@ -7,10 +8,20 @@ import ProductInfo from "@/components/products/ProductInfo";
 import ProductBuyActions from "@/components/products/ProductBuyActions";
 import ProductShipping from "@/components/products/ProductShipping";
 import ProductTabs from "@/components/products/ProductTabs";
+import SimilarProducts from "@/components/products/SimilarProducts";
 
 export default function ProductPageClient({ product }: { product: IProduct }) {
+  const homeDelivery = product.homeDelivery ?? true;
+
+  const categoryId =
+    product.category && typeof product.category === "object"
+      ? String((product.category as { _id: string })._id)
+      : "";
+
   return (
-    <div className="pt-20 md:pt-36 pb-20 min-h-screen bg-white">
+    // pt-28 mobile (64px navbar + 32px promobar + 16px buffer)
+    // md:pt-44 desktop (106px navbar + 32px promobar + 38px buffer)
+    <div className="pt-28 md:pt-44 pb-20 min-h-screen bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
 
         <ProductBreadcrumb product={product} />
@@ -18,15 +29,31 @@ export default function ProductPageClient({ product }: { product: IProduct }) {
         {/* Main layout */}
         <div className="mt-6 flex flex-col lg:flex-row gap-10 xl:gap-14">
 
-          {/* Left — gallery (takes remaining space) */}
+          {/* Left — gallery */}
           <div className="flex-1 min-w-0">
             <ProductGallery product={product} />
           </div>
 
-          {/* Right — info panel (fixed width, sticky on desktop) */}
+          {/* Right — info panel */}
           <div className="w-full lg:w-[420px] xl:w-[460px] shrink-0">
-            <div className="lg:sticky lg:top-36 space-y-5">
+            <div className="lg:sticky lg:top-44 space-y-5">
               <ProductInfo product={product} />
+
+              {/* Advertencia: solo retiro en sucursal */}
+              {!homeDelivery && (
+                <div className="flex items-start gap-3 bg-yellow-50 border border-yellow-300 rounded-xl p-4">
+                  <AlertTriangle className="w-5 h-5 text-yellow-600 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-semibold text-yellow-800">
+                      Solo retiro en sucursal
+                    </p>
+                    <p className="text-xs text-yellow-700 mt-0.5">
+                      Este producto no tiene envío a domicilio disponible. Podés retirarlo en nuestro local.
+                    </p>
+                  </div>
+                </div>
+              )}
+
               <ProductBuyActions product={product} />
               <ProductShipping />
             </div>
@@ -37,6 +64,14 @@ export default function ProductPageClient({ product }: { product: IProduct }) {
         <div className="mt-14">
           <ProductTabs product={product} />
         </div>
+
+        {/* Productos similares */}
+        {categoryId && (
+          <SimilarProducts
+            categoryId={categoryId}
+            excludeId={String(product._id)}
+          />
+        )}
 
       </div>
     </div>

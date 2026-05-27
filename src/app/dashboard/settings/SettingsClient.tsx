@@ -4,6 +4,7 @@ import { useState } from "react";
 import {
   Store, Mail, Phone, FileText, Truck, CheckCircle,
   AlertCircle, Instagram, Facebook, MessageCircle, User, Lock,
+  LayoutGrid, Tag,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -17,6 +18,7 @@ interface Settings {
   instagramUrl: string;
   facebookUrl: string;
   whatsappNumber: string;
+  homeFeaturedMode: "products" | "categories";
 }
 
 interface Props {
@@ -303,6 +305,66 @@ export default function SettingsClient({ initialSettings, adminName, adminEmail 
             facebookUrl: data.facebookUrl,
             whatsappNumber: data.whatsappNumber,
           }}
+        />
+      </div>
+
+      {/* Home featured mode */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+        <SectionTitle
+          icon={LayoutGrid}
+          title="Sección de destacados — Home"
+          description="Elegí cómo mostrar los productos destacados en la página de inicio"
+        />
+        <div className="grid grid-cols-2 gap-3">
+          {(
+            [
+              {
+                value: "products",
+                icon: LayoutGrid,
+                label: "Productos individuales",
+                description: "Muestra hasta 8 productos marcados como destacados.",
+              },
+              {
+                value: "categories",
+                icon: Tag,
+                label: "Por categoría",
+                description: "Muestra banners de categorías con sus 3 productos principales.",
+              },
+            ] as const
+          ).map(({ value, icon: Icon, label, description }) => {
+            const active = data.homeFeaturedMode === value;
+            return (
+              <button
+                key={value}
+                type="button"
+                onClick={() => set("homeFeaturedMode", value)}
+                className={`flex flex-col items-start gap-2 p-4 rounded-xl border-2 text-left transition-all ${
+                  active
+                    ? "border-[#1E3A8A] bg-blue-50"
+                    : "border-gray-200 hover:border-blue-200 hover:bg-gray-50"
+                }`}
+              >
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${active ? "bg-[#1E3A8A]" : "bg-gray-100"}`}>
+                  <Icon className={`w-4 h-4 ${active ? "text-white" : "text-gray-500"}`} />
+                </div>
+                <div>
+                  <p className={`text-sm font-semibold ${active ? "text-[#1E3A8A]" : "text-gray-700"}`}>
+                    {label}
+                  </p>
+                  <p className="text-[11px] text-gray-400 mt-0.5 leading-relaxed">{description}</p>
+                </div>
+                {active && (
+                  <span className="text-[10px] font-bold text-[#1E3A8A] uppercase tracking-wider">
+                    Activo
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+        <SaveBtn
+          section="featuredMode"
+          payload={{ homeFeaturedMode: data.homeFeaturedMode }}
         />
       </div>
 

@@ -7,7 +7,7 @@ import { ClipboardList, MapPin, Lock, LogOut, ChevronRight, User } from "lucide-
 
 const NAV_LINKS = [
   { href: "/account/profile", label: "Mi perfil", icon: User },
-  { href: "/account/orders", label: "Mis pedidos", icon: ClipboardList },
+  { href: "/account/orders", label: "Mis compras", icon: ClipboardList },
   { href: "/account/addresses", label: "Direcciones", icon: MapPin },
   { href: "/account/change-password", label: "Cambiar contraseña", icon: Lock },
 ];
@@ -23,7 +23,7 @@ export default function AccountLayoutClient({
 
   if (!session) {
     return (
-      <div className="pt-20 md:pt-36 min-h-screen bg-gray-50 flex items-center justify-center px-4">
+      <div className="pt-20 md:pt-32 min-h-screen bg-gray-50 flex items-center justify-center px-4">
         <div className="text-center">
           <p className="text-lg font-semibold text-gray-700 mb-4">
             Iniciá sesión para ver tu cuenta
@@ -47,7 +47,7 @@ export default function AccountLayoutClient({
     .toUpperCase();
 
   return (
-    <main className="pt-20 md:pt-36 pb-16 min-h-screen bg-gray-50">
+    <main className="pt-20 md:pt-32 pb-16 min-h-screen bg-gray-50">
       <div className="max-w-6xl mx-auto px-4">
 
         {/* Mobile: horizontal tab bar */}

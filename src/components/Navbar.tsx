@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
+import PromoBar from "@/components/PromoBar";
 import { useState, useEffect } from "react";
 import {
   ShoppingCart,
@@ -17,6 +18,7 @@ import {
   Lock,
   ChevronRight,
   Wrench,
+  UserCircle,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -53,6 +55,7 @@ function getSlug(cat: Category) {
 
 export default function Navbar() {
   const router = useRouter();
+  const pathname = usePathname();
   const { data: session } = useSession();
 
   const { isLoading } = useCartWithSession();
@@ -152,9 +155,16 @@ export default function Navbar() {
                     <DropdownMenuSeparator />
 
                     <DropdownMenuItem asChild>
+                      <Link href="/account/profile" className="flex items-center gap-2">
+                        <UserCircle className="w-4 h-4 text-gray-400" />
+                        Mi perfil
+                      </Link>
+                    </DropdownMenuItem>
+
+                    <DropdownMenuItem asChild>
                       <Link href="/account/orders" className="flex items-center gap-2">
                         <ClipboardList className="w-4 h-4 text-gray-400" />
-                        Mis pedidos
+                        Mis compras
                       </Link>
                     </DropdownMenuItem>
 
@@ -221,7 +231,7 @@ export default function Navbar() {
         )}
 
         {/* ── CATEGORY BAR (desktop) ── */}
-        <nav className="hidden md:block bg-white border-b border-gray-200 shadow-sm">
+        <nav className="hidden md:block bg-white border-b border-gray-200">
           <div className="max-w-7xl mx-auto px-4">
             <div className="flex items-center overflow-x-auto scrollbar-none gap-1">
               {categories.map((cat) => (
@@ -244,6 +254,8 @@ export default function Navbar() {
             </div>
           </div>
         </nav>
+        {/* ── PROMO BAR — solo en páginas de producto ── */}
+        {pathname.startsWith("/products/") && <PromoBar />}
       </header>
 
       {/* ── MOBILE DRAWER ── */}
@@ -332,12 +344,22 @@ export default function Navbar() {
                   <ul className="divide-y divide-gray-100">
                     <li>
                       <Link
+                        href="/account/profile"
+                        onClick={() => setMobileMenuOpen(false)}
+                        className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-blue-50"
+                      >
+                        <UserCircle className="w-4 h-4 text-gray-400" />
+                        Mi perfil
+                      </Link>
+                    </li>
+                    <li>
+                      <Link
                         href="/account/orders"
                         onClick={() => setMobileMenuOpen(false)}
                         className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-blue-50"
                       >
                         <ClipboardList className="w-4 h-4 text-gray-400" />
-                        Mis pedidos
+                        Mis compras
                       </Link>
                     </li>
                     <li>

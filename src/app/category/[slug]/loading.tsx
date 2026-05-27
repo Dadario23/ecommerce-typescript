@@ -2,7 +2,7 @@ import ProductGridSkeleton from "@/components/category/ProductGridSkeleton";
 
 export default function Loading() {
   return (
-    <main className="pt-20 md:pt-36 px-4 max-w-7xl mx-auto">
+    <main className="pt-20 md:pt-32 px-4 max-w-7xl mx-auto">
       <div className="flex gap-6">
         {/* Sidebar skeleton */}
         <aside className="w-64 hidden md:block">

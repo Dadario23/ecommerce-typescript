@@ -17,6 +17,7 @@ export default async function SettingsPage() {
     storeDescription: string; shippingCost: number;
     freeShippingThreshold: number; instagramUrl: string;
     facebookUrl: string; whatsappNumber: string;
+    homeFeaturedMode?: "products" | "categories";
   }>();
   if (!doc) {
     const created = await Setting.create({});
@@ -33,6 +34,7 @@ export default async function SettingsPage() {
     instagramUrl:          doc?.instagramUrl ?? "",
     facebookUrl:           doc?.facebookUrl ?? "",
     whatsappNumber:        doc?.whatsappNumber ?? "",
+    homeFeaturedMode:      doc?.homeFeaturedMode ?? "products",
   };
 
   return (

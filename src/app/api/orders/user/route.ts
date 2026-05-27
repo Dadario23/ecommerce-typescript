@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
       customerEmail: session.user.email,
     })
       .sort({ createdAt: -1 })
-      .select("orderNumber createdAt status total items")
+      .select("orderNumber createdAt status total items payment")
       .lean();
 
     return NextResponse.json(orders);

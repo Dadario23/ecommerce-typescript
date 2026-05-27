@@ -11,6 +11,7 @@ export interface ISetting extends Document {
   facebookUrl: string;
   whatsappNumber: string;
   carouselImages: string[];
+  homeFeaturedMode: "products" | "categories";
   updatedAt: Date;
 }
 
@@ -26,6 +27,7 @@ const SettingSchema = new Schema(
     facebookUrl:           { type: String, default: "" },
     whatsappNumber:        { type: String, default: "" },
     carouselImages:        { type: [String], default: [] },
+    homeFeaturedMode:      { type: String, enum: ["products", "categories"], default: "products" },
   },
   { timestamps: true }
 );

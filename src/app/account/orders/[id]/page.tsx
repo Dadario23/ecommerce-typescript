@@ -146,7 +146,7 @@ export default function OrderDetailPage() {
         className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-[#1E3A8A] font-medium transition-colors"
       >
         <ArrowLeft className="w-4 h-4" />
-        Mis pedidos
+        Mis compras
       </button>
 
       {/* Header */}

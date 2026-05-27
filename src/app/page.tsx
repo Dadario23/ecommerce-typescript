@@ -2,6 +2,7 @@ import Carousel from "@/components/Carousel";
 import BenefitsBar from "@/components/BenefitsBar";
 import CategoriesGrid from "@/components/home/CategoriesGrid";
 import HomeProductsSection from "@/components/home/HomeProductsSection";
+import HomeCategoriesSection from "@/components/home/HomeCategoriesSection";
 import SupportBanner from "@/components/home/SupportBanner";
 
 import { connectDB } from "@/lib/mongodb";
@@ -19,23 +20,26 @@ async function getPageData() {
       Category.find({ status: "published" }, "name slug description thumbnail")
         .sort({ name: 1 })
         .lean(),
-      Setting.findOne({}, "carouselImages").lean<{ carouselImages?: string[] }>(),
+      Setting.findOne({}, "carouselImages homeFeaturedMode").lean<{
+        carouselImages?: string[];
+        homeFeaturedMode?: "products" | "categories";
+      }>(),
     ]);
     return {
       categories: JSON.parse(JSON.stringify(categories)),
-      carouselImages: setting?.carouselImages ?? [],
+      carouselImages:    setting?.carouselImages    ?? [],
+      homeFeaturedMode:  setting?.homeFeaturedMode  ?? "products",
     };
   } catch {
-    return { categories: [], carouselImages: [] };
+    return { categories: [], carouselImages: [], homeFeaturedMode: "products" as const };
   }
 }
 
 export default async function HomePage() {
-  const { categories, carouselImages } = await getPageData();
+  const { categories, carouselImages, homeFeaturedMode } = await getPageData();
 
   return (
     <main className="pt-20 md:pt-32">
-      {/* Carousel — visible en todos los viewports */}
       <div className="px-3 sm:px-4 max-w-7xl mx-auto">
         <Carousel images={carouselImages.length ? carouselImages : undefined} />
       </div>
@@ -47,7 +51,11 @@ export default async function HomePage() {
           <SupportBanner />
         </div>
         <CategoriesGrid categories={categories} />
-        <HomeProductsSection />
+
+        {homeFeaturedMode === "categories"
+          ? <HomeCategoriesSection />
+          : <HomeProductsSection />
+        }
       </div>
     </main>
   );
