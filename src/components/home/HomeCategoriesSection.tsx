@@ -1,60 +1,63 @@
 import { connectDB } from "@/lib/mongodb";
 import { initModels } from "@/lib/initModels";
-import Category from "@/models/Category";
 import Product from "@/models/Product";
 import CategoryBlock from "./CategoryBlock";
 import { slugify } from "@/lib/slugify";
 
 interface CatDoc {
-  _id: unknown;
+  _id: string;
   name: string;
+  slug?: string;
   bannerImage?: string;
   thumbnail?: string;
 }
 
 interface ProductDoc {
+  _id: unknown;
   slug: string;
   name: string;
   price: number;
   compareAtPrice?: number;
   images: string[];
   brand?: string;
+  category: unknown;
 }
 
-async function getCategoriesWithProducts(): Promise<{ cat: CatDoc; products: ProductDoc[] }[]> {
+interface Props {
+  categories: CatDoc[];
+}
+
+export default async function HomeCategoriesSection({ categories }: Props) {
+  if (categories.length === 0) return null;
+
   await connectDB();
   initModels();
 
-  const categories = await Category.find({
-    status: "published",
-    $or: [
-      { bannerImage: { $exists: true, $ne: "" } },
-      { thumbnail:   { $exists: true, $ne: "" } },
-    ],
+  // Single query for all categories instead of one query per category (N+1)
+  const categoryIds = categories.map((c) => c._id);
+  const allProducts = await Product.find({
+    category: { $in: categoryIds },
+    stock: { $gt: 0 },
   })
-    .sort({ bannerImage: -1 })
-    .limit(4)
-    .select("name bannerImage thumbnail")
-    .lean<CatDoc[]>();
+    .select("name slug price compareAtPrice images brand category")
+    .sort({ featured: -1, createdAt: -1 })
+    .lean<ProductDoc[]>();
 
-  if (categories.length === 0) return [];
+  // Group up to 3 products per category
+  const productsByCategory = new Map<string, ProductDoc[]>();
+  for (const p of allProducts) {
+    const catId = String(p.category);
+    const bucket = productsByCategory.get(catId) ?? [];
+    if (bucket.length < 3) {
+      bucket.push(p);
+      productsByCategory.set(catId, bucket);
+    }
+  }
 
-  const result = await Promise.all(
-    categories.map(async (cat) => {
-      const products = await Product.find({ category: cat._id, stock: { $gt: 0 } })
-        .select("name slug price compareAtPrice images brand")
-        .sort({ featured: -1, createdAt: -1 })
-        .limit(3)
-        .lean<ProductDoc[]>();
-      return { cat, products: JSON.parse(JSON.stringify(products)) };
-    })
-  );
+  const data = categories
+    .map((cat) => ({ cat, products: productsByCategory.get(cat._id) ?? [] }))
+    .filter(({ products }) => products.length > 0);
 
-  return result.filter(({ products }) => products.length > 0);
-}
-
-export default async function HomeCategoriesSection() {
-  const data = await getCategoriesWithProducts();
   if (data.length === 0) return null;
 
   return (
@@ -63,11 +66,11 @@ export default async function HomeCategoriesSection() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         {data.map(({ cat, products }) => (
           <CategoryBlock
-            key={String(cat._id)}
+            key={cat._id}
             bannerImage={cat.bannerImage ?? ""}
             thumbnail={cat.thumbnail ?? ""}
             bannerTitle={cat.name}
-            categorySlug={slugify(cat.name)}
+            categorySlug={cat.slug ?? slugify(cat.name)}
             products={products}
           />
         ))}

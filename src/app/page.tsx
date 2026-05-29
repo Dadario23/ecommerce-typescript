@@ -12,31 +12,54 @@ import Setting from "@/models/Setting";
 
 export const revalidate = 60;
 
+interface CategoryDoc {
+  _id: string;
+  name: string;
+  slug?: string;
+  description?: string;
+  thumbnail?: string;
+  bannerImage?: string;
+}
+
 async function getPageData() {
   try {
     await connectDB();
     initModels();
-    const [categories, setting] = await Promise.all([
-      Category.find({ status: "published" }, "name slug description thumbnail")
+    const [categoriesRaw, setting] = await Promise.all([
+      Category.find({ status: "published" }, "name slug description thumbnail bannerImage")
         .sort({ name: 1 })
-        .lean(),
+        .lean<CategoryDoc[]>(),
       Setting.findOne({}, "carouselImages homeFeaturedMode").lean<{
         carouselImages?: string[];
         homeFeaturedMode?: "products" | "categories";
       }>(),
     ]);
+
+    const categories: CategoryDoc[] = JSON.parse(JSON.stringify(categoriesRaw));
+
+    // Pre-filter categories that have an image for HomeCategoriesSection
+    const categoriesWithImages = categories
+      .filter((c) => c.bannerImage || c.thumbnail)
+      .slice(0, 4);
+
     return {
-      categories: JSON.parse(JSON.stringify(categories)),
-      carouselImages:    setting?.carouselImages    ?? [],
-      homeFeaturedMode:  setting?.homeFeaturedMode  ?? "products",
+      categories,
+      categoriesWithImages,
+      carouselImages:   setting?.carouselImages   ?? [],
+      homeFeaturedMode: setting?.homeFeaturedMode ?? "products",
     };
   } catch {
-    return { categories: [], carouselImages: [], homeFeaturedMode: "products" as const };
+    return {
+      categories: [],
+      categoriesWithImages: [],
+      carouselImages: [],
+      homeFeaturedMode: "products" as const,
+    };
   }
 }
 
 export default async function HomePage() {
-  const { categories, carouselImages, homeFeaturedMode } = await getPageData();
+  const { categories, categoriesWithImages, carouselImages, homeFeaturedMode } = await getPageData();
 
   return (
     <main className="pt-20 md:pt-32">
@@ -53,7 +76,7 @@ export default async function HomePage() {
         <CategoriesGrid categories={categories} />
 
         {homeFeaturedMode === "categories"
-          ? <HomeCategoriesSection />
+          ? <HomeCategoriesSection categories={categoriesWithImages} />
           : <HomeProductsSection />
         }
       </div>
