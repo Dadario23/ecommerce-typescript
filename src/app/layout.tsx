@@ -8,6 +8,8 @@ import { CartProvider } from "@/providers/CartProvider";
 import LayoutWrapper from "@/components/LayoutWrapper";
 import { ToastProvider } from "@/hooks/use-toast";
 import { getPublicCategories } from "@/lib/getPublicCategories";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -29,14 +31,17 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const categories = await getPublicCategories();
+  const [categories, session] = await Promise.all([
+    getPublicCategories(),
+    getServerSession(authOptions),
+  ]);
 
   return (
     <html lang="es">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <AuthProvider>
+        <AuthProvider session={session}>
           <ToastProvider>
             <CartProvider>
               <CartDrawer />
