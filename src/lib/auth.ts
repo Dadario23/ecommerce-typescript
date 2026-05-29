@@ -76,22 +76,37 @@ export const authOptions: AuthOptions = {
     },
     async session({ session, token }) {
       if (session.user) {
-        session.user.id = token.sub!;
+        session.user.id = (token.id ?? token.sub) as string;
         session.user.role = token.role as string;
         session.user.name = token.name;
         session.user.email = token.email as string;
       }
       return session;
     },
-    async jwt({ token, user }) {
+    async jwt({ token, user, account }) {
       if (user) {
-        token.role = (user as { role?: string }).role ?? "user";
         token.name = user.name;
         token.email = user.email;
+        token.role = (user as { role?: string }).role ?? "user";
+
+        if (account?.provider === "google") {
+          // user.id es el ID de Google, no el _id de MongoDB
+          await connectDB();
+          const dbUser = await User.findOne({ email: user.email });
+          if (dbUser) {
+            token.id = dbUser._id.toString();
+            token.role = dbUser.role;
+          }
+        } else {
+          // Credentials: user.id ya es el _id de MongoDB
+          token.id = user.id;
+        }
       } else {
+        // Requests subsiguientes: refrescar datos del usuario desde DB
         await connectDB();
         const dbUser = await User.findOne({ email: token.email });
         if (dbUser) {
+          token.id = dbUser._id.toString();
           token.role = dbUser.role;
           token.name = dbUser.name;
           token.email = dbUser.email;

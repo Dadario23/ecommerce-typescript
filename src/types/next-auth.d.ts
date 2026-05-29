@@ -23,7 +23,7 @@ declare module "next-auth" {
 
 declare module "next-auth/jwt" {
   interface JWT {
-    id?: string;
+    id?: string;   // MongoDB _id (siempre válido para ObjectId)
     role?: string;
   }
 }
