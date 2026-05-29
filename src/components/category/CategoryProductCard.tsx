@@ -35,7 +35,7 @@ export default function CategoryProductCard({ product, listView = false }: Props
         className="group bg-white rounded-xl border border-gray-100 hover:border-blue-200 hover:shadow-md transition-all duration-200 flex items-center gap-3 p-3 overflow-hidden"
       >
         {/* Imagen */}
-        <div className="relative w-20 h-20 shrink-0 rounded-lg bg-gray-50 overflow-hidden border border-gray-100">
+        <div className="relative w-28 h-28 shrink-0 rounded-lg bg-gray-50 overflow-hidden border border-gray-100">
           {hasDiscount && (
             <span className="absolute top-1 left-1 z-10 bg-red-500 text-white text-[9px] font-bold px-1 py-0.5 rounded leading-none">
               -{discountPct}%
@@ -45,8 +45,8 @@ export default function CategoryProductCard({ product, listView = false }: Props
             src={image || "/placeholder-category.jpg"}
             alt={product.name}
             fill
-            sizes="80px"
-            className="object-contain p-1.5 group-hover:scale-105 transition-transform duration-300"
+            sizes="112px"
+            className="object-contain p-2 group-hover:scale-105 transition-transform duration-300"
           />
         </div>
 
@@ -57,10 +57,10 @@ export default function CategoryProductCard({ product, listView = false }: Props
               {product.brand}
             </p>
           )}
-          <h3 className="text-sm font-medium text-gray-800 line-clamp-2 leading-snug">
+          <h3 className="text-sm font-medium text-gray-800 line-clamp-3 leading-snug">
             {product.name}
           </h3>
-          <div className="mt-1.5 flex items-end gap-2 flex-wrap">
+          <div className="mt-2 flex items-end gap-2 flex-wrap">
             <div>
               {hasDiscount && (
                 <p className="text-[10px] text-gray-400 line-through leading-none">
