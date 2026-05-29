@@ -124,8 +124,6 @@ export async function DELETE() {
       { new: true }
     );
 
-    console.log("Carrito vaciado con éxito.");
-
     // 🔹 Flag reset para frontend
     return NextResponse.json({
       success: true,

@@ -14,8 +14,6 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "No autenticado" }, { status: 401 });
     }
 
-    console.log("Buscando órdenes para:", session.user.email); // ← Log aquí
-
     // Buscar órdenes del usuario, ordenadas por fecha descendente
     const orders = await Order.find({
       customerEmail: session.user.email,
