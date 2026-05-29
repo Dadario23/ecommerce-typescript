@@ -7,6 +7,7 @@ import CartDrawer from "@/components/cart/CartDrawer";
 import { CartProvider } from "@/providers/CartProvider";
 import LayoutWrapper from "@/components/LayoutWrapper";
 import { ToastProvider } from "@/hooks/use-toast";
+import { getPublicCategories } from "@/lib/getPublicCategories";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -23,11 +24,13 @@ export const metadata: Metadata = {
   description: "Tu tienda de confianza",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const categories = await getPublicCategories();
+
   return (
     <html lang="es">
       <body
@@ -37,7 +40,7 @@ export default function RootLayout({
           <ToastProvider>
             <CartProvider>
               <CartDrawer />
-              <LayoutWrapper>{children}</LayoutWrapper>
+              <LayoutWrapper categories={categories}>{children}</LayoutWrapper>
             </CartProvider>
           </ToastProvider>
         </AuthProvider>

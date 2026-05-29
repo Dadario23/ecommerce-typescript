@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import PromoBar from "@/components/PromoBar";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   ShoppingCart,
   User,
@@ -53,7 +53,7 @@ function getSlug(cat: Category) {
   );
 }
 
-export default function Navbar() {
+export default function Navbar({ initialCategories = [] }: { initialCategories?: Category[] }) {
   const router = useRouter();
   const pathname = usePathname();
   const { data: session } = useSession();
@@ -64,16 +64,8 @@ export default function Navbar() {
   );
   const { toggle } = useCartUI();
 
-  const [categories, setCategories] = useState<Category[]>([]);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
-
-  useEffect(() => {
-    fetch("/api/categories/public")
-      .then((r) => r.json())
-      .then((d) => setCategories(d.categories || []))
-      .catch(() => {});
-  }, []);
 
   const goToCategory = (cat: Category) => {
     setMobileMenuOpen(false);
@@ -234,7 +226,7 @@ export default function Navbar() {
         <nav className="hidden md:block bg-white border-b border-gray-200">
           <div className="max-w-7xl mx-auto px-4">
             <div className="flex items-center overflow-x-auto scrollbar-none gap-1">
-              {categories.map((cat) => (
+              {initialCategories.map((cat) => (
                 <button
                   key={cat._id}
                   onClick={() => goToCategory(cat)}
@@ -312,7 +304,7 @@ export default function Navbar() {
                 Categorías
               </p>
               <ul className="divide-y divide-gray-100">
-                {categories.map((cat) => (
+                {initialCategories.map((cat) => (
                   <li key={cat._id}>
                     <button
                       onClick={() => goToCategory(cat)}
