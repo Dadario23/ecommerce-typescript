@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 // Importar todos los modelos
 import "@/models/Category";
 import "@/models/Product";
+import "@/models/RepairCatalog";
 
 /**
  * Inicializa y verifica que todos los modelos estén registrados
@@ -10,7 +11,7 @@ import "@/models/Product";
 export function initModels() {
   const modelNames = Object.keys(mongoose.models);
 
-  const requiredModels = ["Category", "Product"];
+  const requiredModels = ["Category", "Product", "RepairCatalog"];
   const missingModels = requiredModels.filter(
     (model) => !modelNames.includes(model)
   );

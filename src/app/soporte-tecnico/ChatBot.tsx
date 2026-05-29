@@ -31,23 +31,14 @@ type Step =
 
 type DeviceType = "celular" | "laptop" | "pc";
 
-interface ModelRow { Marca: string; Modelo: string; Activo: string }
-interface PriceRow { Marca: string; Modelo: string; TipoReparacion: string; PrecioFinal: string }
+interface RepairModel { brand: string; model: string }
+interface RepairPrice { brand: string; model: string; repairType: string; price: number }
 
 // ── Constants ─────────────────────────────────────────────────────────
-const SHEET_ID =
-  process.env.NEXT_PUBLIC_GOOGLE_SHEETS_ID ??
-  "1JC3oSS3CRqMuqzkjtVpIHuqG_mlUW7YALPnp55Y5Ark";
 const WA = "5491150610043";
 
 const GENERIC_BRAND = "Sin marca";
 const GENERIC_MODEL = "Sin modelo";
-
-const SHEET_TABS: Record<DeviceType, { models: string; prices: string }> = {
-  celular: { models: "Modelos", prices: "Precios" },
-  laptop: { models: "ModelosLaptop", prices: "PreciosLaptop" },
-  pc: { models: "ModelosPC", prices: "PreciosPC" },
-};
 
 const DEVICE_LABEL: Record<DeviceType, string> = {
   celular: "celular",
@@ -168,13 +159,10 @@ function norm(s = "") {
     .trim();
 }
 
-async function fetchSheet<T>(name: string): Promise<T[]> {
-  const url = `https://opensheet.elk.sh/${SHEET_ID}/${encodeURIComponent(name)}`;
-  const res = await fetch(url);
+async function fetchCatalog(device: DeviceType): Promise<{ brands: string[]; models: RepairModel[]; prices: RepairPrice[] }> {
+  const res = await fetch(`/api/repair-catalog?device=${device}`);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  const data = await res.json();
-  if (!Array.isArray(data)) throw new Error("Non-array");
-  return data as T[];
+  return res.json();
 }
 
 // ── Main component ────────────────────────────────────────────────────
@@ -183,8 +171,8 @@ export default function ChatBot() {
   const [typing, setTyping] = useState(false);
   const [step, setStep] = useState<Step>("init");
   const [deviceType, setDeviceType] = useState<DeviceType | "">("");
-  const [models, setModels] = useState<ModelRow[]>([]);
-  const [prices, setPrices] = useState<PriceRow[]>([]);
+  const [models, setModels] = useState<RepairModel[]>([]);
+  const [prices, setPrices] = useState<RepairPrice[]>([]);
   const [brands, setBrands] = useState<string[]>([]);
   const [sel, setSel] = useState({ brand: "", model: "", repair: "", price: "" });
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -276,13 +264,9 @@ export default function ChatBot() {
     setMsgs((p) => [...p, { id: loadId, role: "bot", html: "Cargando catálogo…" }]);
 
     try {
-      const [mRows, pRows] = await Promise.all([
-        fetchSheet<ModelRow>(SHEET_TABS[type].models),
-        fetchSheet<PriceRow>(SHEET_TABS[type].prices),
-      ]);
+      const { brands: b, models: mRows, prices: pRows } = await fetchCatalog(type);
       if (!mounted.current) return;
 
-      const b = [...new Set(mRows.map((r) => r.Marca).filter(Boolean))].sort();
       setModels(mRows);
       setPrices(pRows);
       setBrands(b);
@@ -363,13 +347,13 @@ export default function ChatBot() {
 
     const row = prices.find(
       (r) =>
-        norm(r.Marca) === norm(brand) &&
-        norm(r.Modelo) === norm(model) &&
-        norm(r.TipoReparacion) === norm(repair),
+        norm(r.brand) === norm(brand) &&
+        norm(r.model) === norm(model) &&
+        norm(r.repairType) === norm(repair),
     );
 
-    if (row?.PrecioFinal) {
-      const price = row.PrecioFinal;
+    if (row && row.price > 0) {
+      const price = String(row.price);
       setSel((p) => ({ ...p, price }));
       setCart((c) => [...c, { repair, price }]);
       addMsg({
@@ -520,13 +504,8 @@ export default function ChatBot() {
   const availableModels = [
     ...new Set(
       models
-        .filter((r) => {
-          if (r.Marca?.toLowerCase() !== sel.brand.toLowerCase()) return false;
-          const a = r.Activo?.trim();
-          if (!a) return true;
-          return a.toLowerCase() === "sí" || a.toLowerCase() === "si";
-        })
-        .map((r) => r.Modelo)
+        .filter((r) => r.brand.toLowerCase() === sel.brand.toLowerCase())
+        .map((r) => r.model)
         .filter(Boolean),
     ),
   ].sort();
@@ -540,12 +519,12 @@ export default function ChatBot() {
       prices
         .filter(
           (r) =>
-            norm(r.Marca) === norm(sel.brand) &&
-            norm(r.Modelo) === norm(sel.model) &&
-            r.TipoReparacion &&
-            !selectedInCart.includes(norm(r.TipoReparacion)),
+            norm(r.brand) === norm(sel.brand) &&
+            norm(r.model) === norm(sel.model) &&
+            r.repairType &&
+            !selectedInCart.includes(norm(r.repairType)),
         )
-        .map((r) => r.TipoReparacion.trim())
+        .map((r) => r.repairType.trim())
         .filter(Boolean),
     ),
   ];

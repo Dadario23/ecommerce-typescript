@@ -21,6 +21,7 @@ import {
   GalleryHorizontal,
   Wrench,
   ClipboardCheck,
+  BookOpen,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
@@ -71,6 +72,7 @@ const NAV_SECTIONS: NavSection[] = [
     items: [
       { href: "/dashboard/presupuestos", label: "Presupuestos", icon: ClipboardCheck },
       { href: "/dashboard/reparaciones", label: "Reparaciones", icon: Wrench },
+      { href: "/dashboard/catalogo", label: "Catálogo precios", icon: BookOpen },
     ],
   },
 ];
