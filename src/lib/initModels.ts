@@ -9,9 +9,7 @@ import "@/models/Product";
  */
 export function initModels() {
   const modelNames = Object.keys(mongoose.models);
-  console.log("📦 Modelos registrados en Mongoose:", modelNames);
 
-  // Verificar que los modelos esenciales estén registrados
   const requiredModels = ["Category", "Product"];
   const missingModels = requiredModels.filter(
     (model) => !modelNames.includes(model)
@@ -22,7 +20,6 @@ export function initModels() {
     throw new Error(`Modelos no registrados: ${missingModels.join(", ")}`);
   }
 
-  console.log("✅ Todos los modelos registrados correctamente");
   return modelNames;
 }
 
