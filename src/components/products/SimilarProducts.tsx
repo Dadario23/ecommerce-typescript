@@ -1,11 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Star } from "lucide-react";
 
-interface SimilarProduct {
+export interface SimilarProduct {
   _id: string;
   name: string;
   slug: string;
@@ -28,7 +27,6 @@ function ProductCard({ p }: { p: SimilarProduct }) {
       href={`/products/${p.slug}`}
       className="group flex flex-col bg-white border border-gray-100 rounded-2xl overflow-hidden hover:border-blue-200 hover:shadow-md transition-all"
     >
-      {/* Image */}
       <div className="relative aspect-square bg-gray-50 overflow-hidden">
         {p.images?.[0] ? (
           <Image
@@ -50,7 +48,6 @@ function ProductCard({ p }: { p: SimilarProduct }) {
         )}
       </div>
 
-      {/* Info */}
       <div className="p-3 flex flex-col gap-1.5 flex-1">
         <p className="text-sm font-medium text-gray-800 line-clamp-2 leading-snug">
           {p.name}
@@ -83,50 +80,18 @@ function ProductCard({ p }: { p: SimilarProduct }) {
   );
 }
 
-function CardSkeleton() {
-  return (
-    <div className="animate-pulse border border-gray-100 rounded-2xl overflow-hidden bg-white">
-      <div className="aspect-square bg-gray-100" />
-      <div className="p-3 space-y-2">
-        <div className="h-3 bg-gray-100 rounded w-full" />
-        <div className="h-3 bg-gray-100 rounded w-3/4" />
-        <div className="h-4 bg-gray-100 rounded w-1/2 mt-3" />
-      </div>
-    </div>
-  );
-}
-
-interface Props {
-  categoryId: string;
-  excludeId: string;
-}
-
-export default function SimilarProducts({ categoryId, excludeId }: Props) {
-  const [products, setProducts] = useState<SimilarProduct[]>([]);
-  const [loading, setLoading]   = useState(true);
-
-  useEffect(() => {
-    if (!categoryId) { setLoading(false); return; }
-    fetch(`/api/products/similar?categoryId=${categoryId}&excludeId=${excludeId}`)
-      .then((r) => (r.ok ? r.json() : []))
-      .then((data) => setProducts(Array.isArray(data) ? data : []))
-      .catch(() => setProducts([]))
-      .finally(() => setLoading(false));
-  }, [categoryId, excludeId]);
-
-  if (!loading && products.length === 0) return null;
+export default function SimilarProducts({ products }: { products: SimilarProduct[] }) {
+  if (products.length === 0) return null;
 
   return (
     <section className="mt-14">
       <div className="flex items-center justify-between mb-5">
         <h2 className="text-xl font-bold text-gray-900">Productos similares</h2>
       </div>
-
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-        {loading
-          ? [1, 2, 3, 4].map((i) => <CardSkeleton key={i} />)
-          : products.map((p) => <ProductCard key={p._id} p={p} />)
-        }
+        {products.map((p) => (
+          <ProductCard key={p._id} p={p} />
+        ))}
       </div>
     </section>
   );

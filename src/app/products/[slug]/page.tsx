@@ -1,8 +1,10 @@
+import { cache } from "react";
 import { notFound } from "next/navigation";
 import { connectDB } from "@/lib/mongodb";
-import Product from "@/models/Product";
+import { initModels } from "@/lib/initModels";
+import Product, { IProduct } from "@/models/Product";
+import Review from "@/models/Review";
 import ProductPageClient from "./ProductPageClient";
-import { IProduct } from "@/models/Product";
 import type { Metadata } from "next";
 
 export const revalidate = 60;
@@ -11,19 +13,40 @@ interface ProductPageProps {
   params: Promise<{ slug: string }>;
 }
 
-export async function generateMetadata({ params }: ProductPageProps): Promise<Metadata> {
+function normalizeSlug(slug: string) {
+  return decodeURIComponent(slug).toLowerCase().replace(/\s+/g, "-");
+}
+
+// cache() deduplicates calls within the same request —
+// generateMetadata and the page component share one DB round-trip.
+const getProduct = cache(async (slug: string) => {
   await connectDB();
+  initModels();
+  const doc = await Product.findOne({ slug: normalizeSlug(slug) })
+    .populate("category", "name slug")
+    .lean<IProduct>();
+  return doc ? (JSON.parse(JSON.stringify(doc)) as IProduct) : null;
+});
+
+export async function generateStaticParams() {
+  await connectDB();
+  initModels();
+  const products = await Product.find({}, "slug").lean<{ slug: string }[]>();
+  return products.map((p) => ({ slug: p.slug }));
+}
+
+export async function generateMetadata({ params }: ProductPageProps): Promise<Metadata> {
   const { slug } = await params;
-  const doc = await Product.findOne({ slug }).select("name description images").lean<IProduct>();
-  if (!doc) return { title: "Producto no encontrado" };
+  const product = await getProduct(slug);
+  if (!product) return { title: "Producto no encontrado" };
 
   return {
-    title: `${doc.name} | Compumobile`,
-    description: doc.description?.slice(0, 160) ?? `Comprá ${doc.name} al mejor precio.`,
+    title: `${product.name} | Compumobile`,
+    description: product.description?.slice(0, 160) ?? `Comprá ${product.name} al mejor precio.`,
     openGraph: {
-      title: doc.name,
-      description: doc.description?.slice(0, 160) ?? "",
-      images: doc.images?.[0] ? [{ url: doc.images[0] }] : [],
+      title: product.name,
+      description: product.description?.slice(0, 160) ?? "",
+      images: product.images?.[0] ? [{ url: product.images[0] }] : [],
     },
   };
 }
@@ -34,17 +57,31 @@ const BASE_URL =
   "http://localhost:3000";
 
 export default async function ProductPage({ params }: ProductPageProps) {
-  await connectDB();
-
   const { slug } = await params;
-  const formattedSlug = decodeURIComponent(slug).toLowerCase().replace(/\s+/g, "-");
+  const product = await getProduct(slug);
+  if (!product) return notFound();
 
-  const doc = await Product.findOne({ slug: formattedSlug })
-    .populate("category", "name slug")
-    .lean<IProduct>();
-  if (!doc) return notFound();
+  const categoryId =
+    product.category && typeof product.category === "object"
+      ? String((product.category as { _id: string })._id)
+      : null;
+  const productId = String(product._id);
 
-  const product = JSON.parse(JSON.stringify(doc));
+  // Fetch related data in parallel on the server — no client-side waterfalls.
+  const [similarProducts, initialReviews] = await Promise.all([
+    categoryId
+      ? Product.find({ category: categoryId, _id: { $ne: productId }, stock: { $gt: 0 } })
+          .sort({ featured: -1, avgRating: -1, createdAt: -1 })
+          .limit(8)
+          .select("name slug price compareAtPrice images avgRating reviewCount")
+          .lean()
+          .then((docs) => JSON.parse(JSON.stringify(docs)))
+      : [],
+    Review.find({ productId })
+      .sort({ createdAt: -1 })
+      .lean()
+      .then((docs) => JSON.parse(JSON.stringify(docs))),
+  ]);
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -72,7 +109,11 @@ export default async function ProductPage({ params }: ProductPageProps) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <ProductPageClient product={product} />
+      <ProductPageClient
+        product={product}
+        similarProducts={similarProducts}
+        initialReviews={initialReviews}
+      />
     </>
   );
 }

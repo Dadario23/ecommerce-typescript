@@ -9,14 +9,21 @@ import ProductBuyActions from "@/components/products/ProductBuyActions";
 import ProductShipping from "@/components/products/ProductShipping";
 import ProductTabs from "@/components/products/ProductTabs";
 import SimilarProducts from "@/components/products/SimilarProducts";
+import type { SimilarProduct } from "@/components/products/SimilarProducts";
+import type { SerializedReview } from "@/components/products/ReviewsSection";
 
-export default function ProductPageClient({ product }: { product: IProduct }) {
+interface ProductPageClientProps {
+  product: IProduct;
+  similarProducts: SimilarProduct[];
+  initialReviews: SerializedReview[];
+}
+
+export default function ProductPageClient({
+  product,
+  similarProducts,
+  initialReviews,
+}: ProductPageClientProps) {
   const homeDelivery = product.homeDelivery ?? true;
-
-  const categoryId =
-    product.category && typeof product.category === "object"
-      ? String((product.category as { _id: string })._id)
-      : "";
 
   return (
     // pt-28 mobile (64px navbar + 32px promobar + 16px buffer)
@@ -62,15 +69,12 @@ export default function ProductPageClient({ product }: { product: IProduct }) {
 
         {/* Tabs: description + reviews */}
         <div className="mt-14">
-          <ProductTabs product={product} />
+          <ProductTabs product={product} initialReviews={initialReviews} />
         </div>
 
         {/* Productos similares */}
-        {categoryId && (
-          <SimilarProducts
-            categoryId={categoryId}
-            excludeId={String(product._id)}
-          />
+        {similarProducts.length > 0 && (
+          <SimilarProducts products={similarProducts} />
         )}
 
       </div>

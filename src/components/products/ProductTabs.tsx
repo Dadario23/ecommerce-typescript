@@ -54,11 +54,14 @@ function BlockRenderer({ blocks }: { blocks: IDescriptionBlock[] }) {
   );
 }
 
+import type { SerializedReview } from "./ReviewsSection";
+
 interface ProductTabsProps {
   product: IProduct;
+  initialReviews?: SerializedReview[];
 }
 
-export default function ProductTabs({ product }: ProductTabsProps) {
+export default function ProductTabs({ product, initialReviews = [] }: ProductTabsProps) {
   const productId  = String(product._id);
   const avg        = product.avgRating  ?? 0;
   const count      = product.reviewCount ?? 0;
@@ -89,7 +92,7 @@ export default function ProductTabs({ product }: ProductTabsProps) {
         </TabsContent>
 
         <TabsContent value="reviews" className="mt-4">
-          <ReviewsSection productId={productId} initialAvg={avg} initialCount={count} />
+          <ReviewsSection productId={productId} initialAvg={avg} initialCount={count} initialReviews={initialReviews} />
         </TabsContent>
       </Tabs>
     </div>

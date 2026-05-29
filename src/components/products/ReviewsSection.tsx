@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useSession } from "next-auth/react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { Star, CheckCircle } from "lucide-react";
 
-interface Review {
+export interface SerializedReview {
   _id: string;
   authorName: string;
   rating: number;
@@ -21,6 +21,9 @@ interface Review {
   verified: boolean;
   createdAt: string;
 }
+
+// Keep internal alias for readability
+type Review = SerializedReview;
 
 const reviewSchema = z.object({
   rating: z.number().min(1).max(5),
@@ -89,14 +92,20 @@ function ReviewCard({ review }: { review: Review }) {
   );
 }
 
-export default function ReviewsSection({ productId, initialAvg = 0, initialCount = 0 }: {
+export default function ReviewsSection({
+  productId,
+  initialAvg = 0,
+  initialCount = 0,
+  initialReviews = [],
+}: {
   productId: string;
   initialAvg?: number;
   initialCount?: number;
+  initialReviews?: Review[];
 }) {
   const { data: session } = useSession();
-  const [reviews, setReviews] = useState<Review[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [reviews, setReviews] = useState<Review[]>(initialReviews);
+  const [loading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState("");
@@ -108,14 +117,6 @@ export default function ReviewsSection({ productId, initialAvg = 0, initialCount
   });
 
   const rating = watch("rating");
-
-  useEffect(() => {
-    fetch(`/api/products/${productId}/reviews`)
-      .then((r) => r.json())
-      .then((data) => setReviews(Array.isArray(data) ? data : []))
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, [productId]);
 
   const onSubmit = async (data: ReviewForm) => {
     setSubmitting(true);
