@@ -31,9 +31,6 @@ export default function AuthModal({
   // ✅ Redirigir a /order después de login exitoso desde el carrito
   useEffect(() => {
     if (open && status === "authenticated" && fromCart) {
-      console.log(
-        "[AuthModal] Usuario autenticado desde carrito, redirigiendo a /order"
-      );
       onOpenChange(false);
       router.push("/order");
     }

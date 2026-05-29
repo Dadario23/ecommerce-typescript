@@ -12,7 +12,6 @@ export async function GET() {
   try {
     // 1. Conectar a la base de datos
     await connectDB();
-    console.log("✅ Conectado a MongoDB");
 
     // 2. Inicializar modelos
     const modelNames = initModels();
