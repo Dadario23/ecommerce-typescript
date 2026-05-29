@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { notFound } from "next/navigation";
 import { connectDB } from "@/lib/mongodb";
 import { initModels } from "@/lib/initModels";
@@ -13,18 +14,28 @@ interface Props {
   params: Promise<{ slug: string }>;
 }
 
-async function getCategoryAndProducts(slug: string) {
+// cache() deduplicates calls within the same request —
+// generateMetadata and the page component share one DB round-trip.
+const getCategoryAndProducts = cache(async (slug: string) => {
   await connectDB();
   initModels();
 
-  const categories = await Category.find({ status: "published" }).lean<
-    { _id: unknown; name: string; thumbnail?: string }[]
-  >();
-
   const requestedSlug = slugify(decodeURIComponent(slug));
-  const category = categories.find(
-    (c) => slugify(c.name) === requestedSlug
-  );
+
+  // Try direct slug field first (populated for categories saved after the slug field was added).
+  // Fall back to name-based matching for categories that predate the field.
+  let category = await Category.findOne(
+    { slug: requestedSlug, status: "published" },
+    "name slug thumbnail",
+  ).lean<{ _id: unknown; name: string; slug?: string; thumbnail?: string }>();
+
+  if (!category) {
+    const all = await Category.find(
+      { status: "published" },
+      "name slug thumbnail",
+    ).lean<{ _id: unknown; name: string; slug?: string; thumbnail?: string }[]>();
+    category = all.find((c) => slugify(c.name) === requestedSlug) ?? null;
+  }
 
   if (!category) return null;
 
@@ -37,6 +48,16 @@ async function getCategoryAndProducts(slug: string) {
     category,
     products: JSON.parse(JSON.stringify(products)),
   };
+});
+
+export async function generateStaticParams() {
+  await connectDB();
+  initModels();
+  const categories = await Category.find(
+    { status: "published" },
+    "name slug",
+  ).lean<{ name: string; slug?: string }[]>();
+  return categories.map((c) => ({ slug: c.slug ?? slugify(c.name) }));
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {

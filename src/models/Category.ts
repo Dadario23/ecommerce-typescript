@@ -1,9 +1,11 @@
 // src/models/Category.ts
 import { Schema, model, models } from "mongoose";
+import { slugify } from "@/lib/slugify";
 
 const categorySchema = new Schema(
   {
     name: { type: String, required: true, unique: true, trim: true },
+    slug: { type: String, unique: true, sparse: true },
     description: { type: String },
     status: {
       type: String,
@@ -23,6 +25,14 @@ const categorySchema = new Schema(
   },
   { timestamps: true }
 );
+
+// Auto-generate slug from name on save
+categorySchema.pre("save", function (next) {
+  if (this.isModified("name") || !this.slug) {
+    this.slug = slugify(this.name as string);
+  }
+  next();
+});
 
 const Category = models.Category || model("Category", categorySchema);
 
