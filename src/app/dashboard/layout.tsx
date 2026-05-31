@@ -31,6 +31,7 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const { data: session } = useSession();
   const pathname = usePathname();
 
@@ -50,7 +51,10 @@ export default function DashboardLayout({
     <div className="min-h-screen bg-slate-50 flex">
       {/* Sidebar desktop */}
       <div className="hidden lg:flex sticky top-0 h-screen">
-        <Sidebar />
+        <Sidebar
+          collapsed={sidebarCollapsed}
+          onToggle={() => setSidebarCollapsed((p) => !p)}
+        />
       </div>
 
       {/* Mobile drawer overlay */}
