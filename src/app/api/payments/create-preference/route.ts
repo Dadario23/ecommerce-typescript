@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
       subtotal,
       shipping: 0,
       tax: 0,
-      discount: 0,
+      discount: orderData.discount ?? 0,
       total: orderData.total,
       shippingAddress: orderData.shippingAddress,
       payment: {
@@ -88,6 +88,8 @@ export async function POST(request: NextRequest) {
         status: "pending",
       },
       status: "pending",
+      shippingMethod: orderData.shippingMethod,
+      notes: orderData.notes,
     });
 
     await order.save();

@@ -162,7 +162,7 @@ export default function OrderPage() {
           onClick={() => router.push("/checkout")}
           className="w-full bg-[#1E3A8A] hover:bg-blue-800 text-white font-semibold py-4 rounded-xl transition-colors flex items-center justify-center gap-2"
         >
-          Continuar con el pago
+          Continuar
           <ArrowRight className="w-4 h-4" />
         </button>
 

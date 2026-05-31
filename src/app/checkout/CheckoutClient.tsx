@@ -4,27 +4,43 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import Image from "next/image";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import AddressAutocomplete from "@/components/ui/AddressAutocomplete";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useCartStore } from "@/store/useCartStore";
 import Spinner from "@/components/ui/Spinner";
+import AddressAutocomplete from "@/components/ui/AddressAutocomplete";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   MapPin,
-  ChevronDown,
-  ChevronUp,
+  Home,
+  Truck,
+  Calendar,
+  CreditCard,
   Tag,
   X,
-  CreditCard,
-  Package,
-  ArrowRight,
   ShieldCheck,
   Lock,
+  Check,
+  ChevronLeft,
+  Package,
+  Banknote,
+  Pencil,
+  ListChecks,
 } from "lucide-react";
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+type WizardStep =
+  | "init-loading"
+  | "delivery"
+  | "trans-date"
+  | "date"
+  | "trans-payment"
+  | "payment"
+  | "review";
+
+type DeliveryMethod = "domicilio" | "contraentrega";
+type PaymentMethod = "mercadopago" | "cash" | "transfer";
+type AddressUIMode = "default" | "list" | "edit";
 
 interface CartItem {
   id: string;
@@ -48,103 +64,406 @@ interface SavedAddress {
   isDefault: boolean;
 }
 
-const checkoutSchema = z.object({
-  name: z.string().min(2, "El nombre es obligatorio"),
-  email: z.string().email("Correo electrónico inválido"),
-  address: z.string().min(5, "La dirección es obligatoria"),
-  city: z.string().min(2, "La ciudad es obligatoria"),
-  state: z.string().min(2, "La provincia es obligatoria"),
-  postalCode: z.string().min(4, "El código postal es obligatorio"),
-  country: z.string().min(2, "El país es obligatorio"),
-  paymentMethod: z.enum(["mercadopago", "cash"]),
-});
+interface AddressData {
+  firstName: string;
+  lastName: string;
+  street: string;
+  city: string;
+  state: string;
+  postalCode: string;
+  country: string;
+  phone: string;
+}
 
-type CheckoutForm = z.infer<typeof checkoutSchema>;
+type AddressErrors = Partial<Record<keyof AddressData, string>>;
 
-function SectionTitle({ children }: { children: React.ReactNode }) {
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+const DAYS_ES = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+const MONTHS_ES = [
+  "ene","feb","mar","abr","may","jun",
+  "jul","ago","sep","oct","nov","dic",
+];
+
+function addBusinessDays(date: Date, n: number): Date {
+  let count = 0;
+  const d = new Date(date);
+  while (count < n) {
+    d.setDate(d.getDate() + 1);
+    if (d.getDay() !== 0 && d.getDay() !== 6) count++;
+  }
+  return d;
+}
+
+function formatDateLong(date: Date): string {
+  return `${date.getDate()} de ${MONTHS_ES[date.getMonth()]}`;
+}
+
+function getSelectableDates(from: Date): Date[] {
+  return Array.from({ length: 14 }, (_, i) => {
+    const d = new Date(from);
+    d.setDate(d.getDate() + i + 1);
+    return d;
+  }).filter((d) => d.getDay() !== 0 && d.getDay() !== 6);
+}
+
+function toDateStr(d: Date): string {
+  return d.toISOString().split("T")[0];
+}
+
+function parseLocalDate(str: string): Date {
+  return new Date(str + "T00:00:00");
+}
+
+function fromSaved(addr: SavedAddress, fallback: AddressData): AddressData {
+  return {
+    firstName: addr.firstName || fallback.firstName,
+    lastName: addr.lastName || fallback.lastName,
+    street: addr.street,
+    city: addr.city,
+    state: addr.state,
+    postalCode: addr.zipCode,
+    country: addr.country || "Argentina",
+    phone: addr.phone || "",
+  };
+}
+
+// ─── Sub-components ───────────────────────────────────────────────────────────
+
+function InitLoader() {
   return (
-    <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-4">
-      {children}
-    </p>
+    <div className="flex flex-col items-center justify-center min-h-[65vh] gap-6">
+      <div className="relative w-20 h-20">
+        <div className="absolute inset-0 rounded-full border-4 border-blue-100" />
+        <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-[#1E3A8A] animate-spin" />
+        <div className="absolute inset-0 flex items-center justify-center">
+          <Package className="w-8 h-8 text-[#1E3A8A]" />
+        </div>
+      </div>
+      <div className="text-center">
+        <p className="text-gray-800 font-semibold text-lg">
+          Preparando todo para tu compra
+        </p>
+        <p className="text-gray-400 text-sm mt-1">Un momento...</p>
+      </div>
+    </div>
   );
 }
 
-function FieldError({ message }: { message?: string }) {
-  if (!message) return null;
-  return <p className="text-xs text-red-500 mt-1">{message}</p>;
+function TransLoader({ message }: { message: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+      <div className="relative w-12 h-12">
+        <div className="absolute inset-0 rounded-full border-4 border-blue-100" />
+        <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-[#1E3A8A] animate-spin" />
+      </div>
+      <p className="text-gray-500 text-sm">{message}</p>
+    </div>
+  );
 }
+
+function StepBar({ step }: { step: WizardStep }) {
+  const activeIdx: Record<WizardStep, number> = {
+    "init-loading": -1,
+    delivery: 0,
+    "trans-date": 1,
+    date: 1,
+    "trans-payment": 2,
+    payment: 2,
+    review: 3,
+  };
+  const active = activeIdx[step];
+  const labels = ["Entrega", "Fecha", "Pago", "Confirmá"];
+
+  return (
+    <div className="flex items-start justify-center mb-8">
+      {labels.map((label, i) => (
+        <div key={label} className="flex items-center">
+          <div className="flex flex-col items-center gap-1.5">
+            <div
+              className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
+                i < active
+                  ? "bg-green-500 text-white"
+                  : i === active
+                  ? "bg-[#1E3A8A] text-white"
+                  : "bg-gray-100 text-gray-400"
+              }`}
+            >
+              {i < active ? <Check className="w-4 h-4" /> : i + 1}
+            </div>
+            <span
+              className={`text-[10px] font-medium leading-none ${
+                i === active
+                  ? "text-[#1E3A8A]"
+                  : i < active
+                  ? "text-green-600"
+                  : "text-gray-400"
+              }`}
+            >
+              {label}
+            </span>
+          </div>
+          {i < 3 && (
+            <div
+              className={`w-10 sm:w-16 h-0.5 mx-1 mb-5 ${
+                i < active ? "bg-green-400" : "bg-gray-200"
+              }`}
+            />
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function BackBtn({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 mb-4"
+    >
+      <ChevronLeft className="w-4 h-4" /> Volver
+    </button>
+  );
+}
+
+// ─── Address mini-form (reutilizado en edit mode) ─────────────────────────────
+
+interface AddressFormProps {
+  address: AddressData;
+  errors: AddressErrors;
+  onChange: (data: Partial<AddressData>) => void;
+  onPlaceSelect: (data: Partial<AddressData>) => void;
+}
+
+function AddressForm({ address, errors, onChange, onPlaceSelect }: AddressFormProps) {
+  return (
+    <div className="space-y-3">
+      <div>
+        <Label htmlFor="street" className="text-xs font-medium text-gray-600 mb-1 block">
+          Dirección
+        </Label>
+        <AddressAutocomplete
+          id="street"
+          value={address.street}
+          onChange={(v) => onChange({ street: v })}
+          onPlaceSelect={(c) =>
+            onPlaceSelect({
+              street: c.street,
+              city: c.city,
+              state: c.state,
+              postalCode: c.postalCode,
+              country: c.country || "Argentina",
+            })
+          }
+          placeholder="Calle y número..."
+        />
+        {errors.street && (
+          <p className="text-xs text-red-500 mt-1">{errors.street}</p>
+        )}
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <Label htmlFor="city" className="text-xs font-medium text-gray-600 mb-1 block">
+            Ciudad
+          </Label>
+          <Input
+            id="city"
+            value={address.city}
+            onChange={(e) => onChange({ city: e.target.value })}
+            placeholder="Ciudad"
+            className="rounded-lg"
+          />
+          {errors.city && (
+            <p className="text-xs text-red-500 mt-1">{errors.city}</p>
+          )}
+        </div>
+        <div>
+          <Label htmlFor="state" className="text-xs font-medium text-gray-600 mb-1 block">
+            Provincia
+          </Label>
+          <Input
+            id="state"
+            value={address.state}
+            onChange={(e) => onChange({ state: e.target.value })}
+            placeholder="Provincia"
+            className="rounded-lg"
+          />
+          {errors.state && (
+            <p className="text-xs text-red-500 mt-1">{errors.state}</p>
+          )}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <Label htmlFor="postalCode" className="text-xs font-medium text-gray-600 mb-1 block">
+            Cód. Postal
+          </Label>
+          <Input
+            id="postalCode"
+            value={address.postalCode}
+            onChange={(e) => onChange({ postalCode: e.target.value })}
+            placeholder="1234"
+            className="rounded-lg"
+          />
+          {errors.postalCode && (
+            <p className="text-xs text-red-500 mt-1">{errors.postalCode}</p>
+          )}
+        </div>
+        <div>
+          <Label htmlFor="phone" className="text-xs font-medium text-gray-600 mb-1 block">
+            Teléfono
+          </Label>
+          <Input
+            id="phone"
+            value={address.phone}
+            onChange={(e) => onChange({ phone: e.target.value })}
+            placeholder="11 1234-5678"
+            className="rounded-lg"
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function CheckoutClient() {
   const router = useRouter();
-  const { data: session, status } = useSession();
-  const items = useCartStore((state) => state.items);
-  const clearCart = useCartStore((state) => state.clearCart);
+  const { data: session, status: authStatus } = useSession();
+  const items = useCartStore((s) => s.items);
+  const clearCart = useCartStore((s) => s.clearCart);
 
-  const [isLoading, setIsLoading] = useState(true);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [errorMsg, setErrorMsg] = useState("");
+  const [step, setStep] = useState<WizardStep>("init-loading");
 
+  // Delivery
+  const [deliveryMethod, setDeliveryMethod] = useState<DeliveryMethod>("domicilio");
   const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([]);
-  const [showAddressSelector, setShowAddressSelector] = useState(true);
+  const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
+  const [address, setAddress] = useState<AddressData>({
+    firstName: "",
+    lastName: "",
+    street: "",
+    city: "",
+    state: "",
+    postalCode: "",
+    country: "Argentina",
+    phone: "",
+  });
+  const [addressErrors, setAddressErrors] = useState<AddressErrors>({});
+  const [addressUIMode, setAddressUIMode] = useState<AddressUIMode>("default");
 
+  // Date
+  const [deliveryDateOption, setDeliveryDateOption] = useState<string>("any");
+
+  // Payment
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("mercadopago");
   const [couponCode, setCouponCode] = useState("");
   const [couponError, setCouponError] = useState("");
   const [couponDiscount, setCouponDiscount] = useState(0);
   const [appliedCoupon, setAppliedCoupon] = useState("");
   const [checkingCoupon, setCheckingCoupon] = useState(false);
 
-  const subtotal = items?.reduce(
-    (sum: number, item: CartItem) => sum + item.price * item.quantity,
-    0
-  ) ?? 0;
+  // Submission
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
+
+  const subtotal =
+    items?.reduce(
+      (sum: number, item: CartItem) => sum + item.price * item.quantity,
+      0
+    ) ?? 0;
   const total = Math.max(0, subtotal - couponDiscount);
-  const installment = Math.ceil(total / 12);
 
-  const {
-    register,
-    handleSubmit,
-    watch,
-    setValue,
-    formState: { errors },
-  } = useForm<CheckoutForm>({
-    resolver: zodResolver(checkoutSchema),
-    defaultValues: { country: "Argentina", paymentMethod: "mercadopago" },
-  });
+  const today = new Date();
+  const minDate = addBusinessDays(today, 3);
+  const maxDate = addBusinessDays(today, 7);
+  const selectableDates = getSelectableDates(today);
 
-  const selectedPayment = watch("paymentMethod");
-  const addressValue = watch("address") ?? "";
+  // ── Init ──────────────────────────────────────────────────────────────────────
 
   useEffect(() => {
-    if (status === "unauthenticated") { router.push("/"); return; }
-    if (status === "authenticated") {
-      setValue("name", session?.user?.name ?? "");
-      setValue("email", session?.user?.email ?? "");
-      setIsLoading(false);
-      fetch("/api/user/addresses")
-        .then((r) => r.json())
-        .then((data: SavedAddress[]) => {
-          if (Array.isArray(data) && data.length > 0) {
-            setSavedAddresses(data);
-            const def = data.find((a) => a.isDefault) ?? data[0];
-            fillFormFromAddress(def);
-          }
-        })
-        .catch(() => {});
+    if (authStatus === "unauthenticated") {
+      router.push("/login");
+      return;
     }
-    if (status === "loading") return;
-    setIsLoading(false);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status]);
+    if (authStatus !== "authenticated") return;
 
-  const fillFormFromAddress = (addr: SavedAddress) => {
-    setValue("address", addr.street);
-    setValue("city", addr.city);
-    setValue("state", addr.state);
-    setValue("postalCode", addr.zipCode);
-    setValue("country", addr.country || "Argentina");
-  };
+    const parts = (session?.user?.name ?? "").split(" ");
+    const baseName = {
+      firstName: parts[0] ?? "",
+      lastName: parts.slice(1).join(" ") || "-",
+    };
 
-  const applyCoupon = async () => {
+    setAddress((prev) => ({ ...prev, ...baseName }));
+
+    fetch("/api/user/addresses")
+      .then((r) => r.json())
+      .then((data: SavedAddress[]) => {
+        if (Array.isArray(data) && data.length > 0) {
+          setSavedAddresses(data);
+          const def = data.find((a) => a.isDefault) ?? data[0];
+          setSelectedAddressId(def._id ?? null);
+          setAddress((prev) => fromSaved(def, { ...prev, ...baseName }));
+          setAddressUIMode("default");
+        } else {
+          // No saved addresses — show edit form directly
+          setAddressUIMode("edit");
+        }
+      })
+      .catch(() => {
+        setAddressUIMode("edit");
+      });
+
+    const timer = setTimeout(() => setStep("delivery"), 1800);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authStatus]);
+
+  // Reset payment method when delivery changes
+  useEffect(() => {
+    setPaymentMethod(deliveryMethod === "contraentrega" ? "cash" : "mercadopago");
+  }, [deliveryMethod]);
+
+  // ── Handlers ─────────────────────────────────────────────────────────────────
+
+  function patchAddress(data: Partial<AddressData>) {
+    setAddress((prev) => ({ ...prev, ...data }));
+  }
+
+  function handleSelectSaved(addr: SavedAddress) {
+    setSelectedAddressId(addr._id ?? null);
+    setAddress((prev) => fromSaved(addr, prev));
+    setAddressUIMode("default");
+  }
+
+  function validateAddress(): boolean {
+    const errs: AddressErrors = {};
+    if (!address.street?.trim()) errs.street = "La dirección es obligatoria";
+    if (!address.city?.trim()) errs.city = "La ciudad es obligatoria";
+    if (!address.state?.trim()) errs.state = "La provincia es obligatoria";
+    if (!address.postalCode?.trim()) errs.postalCode = "El código postal es obligatorio";
+    setAddressErrors(errs);
+    return Object.keys(errs).length === 0;
+  }
+
+  function goToDate() {
+    if (!validateAddress()) return;
+    setAddressUIMode("default");
+    setStep("trans-date");
+    setTimeout(() => setStep("date"), 1000);
+  }
+
+  function goToPayment() {
+    setStep("trans-payment");
+    setTimeout(() => setStep("payment"), 1000);
+  }
+
+  async function applyCoupon() {
     if (!couponCode.trim()) return;
     setCheckingCoupon(true);
     setCouponError("");
@@ -169,44 +488,54 @@ export default function CheckoutClient() {
     } finally {
       setCheckingCoupon(false);
     }
-  };
+  }
 
-  const removeCoupon = () => {
+  function removeCoupon() {
     setCouponCode("");
     setCouponDiscount(0);
     setAppliedCoupon("");
     setCouponError("");
-  };
+  }
 
-  const buildShippingAddress = (data: CheckoutForm) => ({
-    firstName: data.name.split(" ")[0],
-    lastName: data.name.split(" ").slice(1).join(" ") || "-",
-    street: data.address,
-    city: data.city,
-    state: data.state,
-    zipCode: data.postalCode,
-    country: data.country,
-    phone: "",
-  });
-
-  const onSubmit = async (data: CheckoutForm) => {
-    setIsProcessing(true);
-    setErrorMsg("");
-    const orderPayload = {
+  function buildPayload() {
+    const notes =
+      deliveryDateOption !== "any"
+        ? `Preferencia de entrega: ${deliveryDateOption}`
+        : undefined;
+    return {
       items,
       subtotal,
+      shipping: 0,
       discount: couponDiscount,
       couponCode: appliedCoupon || undefined,
       total,
-      paymentMethod: data.paymentMethod,
-      shippingAddress: buildShippingAddress(data),
+      paymentMethod,
+      shippingMethod: deliveryMethod,
+      notes,
+      shippingAddress: {
+        firstName: address.firstName,
+        lastName: address.lastName,
+        street: address.street,
+        city: address.city,
+        state: address.state,
+        zipCode: address.postalCode,
+        country: address.country,
+        phone: address.phone,
+      },
     };
+  }
+
+  async function confirmPurchase() {
+    setIsProcessing(true);
+    setErrorMsg("");
+    const payload = buildPayload();
+
     try {
-      if (data.paymentMethod === "mercadopago") {
+      if (paymentMethod === "mercadopago") {
         const res = await fetch("/api/payments/create-preference", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(orderPayload),
+          body: JSON.stringify(payload),
         });
         if (!res.ok) {
           const body = await res.json().catch(() => ({}));
@@ -215,18 +544,18 @@ export default function CheckoutClient() {
               ? body.details.join("\n")
               : "Error al crear preferencia de pago"
           );
+          setIsProcessing(false);
           return;
         }
         const { initPoint } = await res.json();
         clearCart();
         window.location.href = initPoint;
-        return;
-      }
-      if (data.paymentMethod === "cash") {
+        // isProcessing queda en true hasta que el browser navega
+      } else {
         const res = await fetch("/api/orders", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(orderPayload),
+          body: JSON.stringify(payload),
         });
         if (!res.ok) {
           const body = await res.json().catch(() => ({}));
@@ -235,36 +564,75 @@ export default function CheckoutClient() {
               ? body.details.join("\n")
               : "Error al crear la orden"
           );
+          setIsProcessing(false);
           return;
         }
-        const createdOrder = await res.json();
+        const created = await res.json();
         clearCart();
-        router.push(`/order-success?orderId=${createdOrder.orderId}`);
-        return;
+        router.push(`/order-success?orderId=${created.orderId}`);
+        // isProcessing queda en true hasta que el router navega
       }
     } catch {
       setErrorMsg("Hubo un error al procesar tu pedido. Intentá de nuevo.");
-    } finally {
       setIsProcessing(false);
     }
-  };
+  }
 
-  if (status === "loading" || isLoading) {
+  // ── Guards ────────────────────────────────────────────────────────────────────
+
+  if (authStatus === "loading") {
     return (
-      <div className="pt-20 md:pt-32 flex flex-col items-center justify-center min-h-screen bg-gray-50">
+      <div className="pt-20 md:pt-32 flex items-center justify-center min-h-screen bg-gray-50">
         <Spinner />
-        <p className="mt-4 text-gray-500 text-sm">Cargando...</p>
       </div>
+    );
+  }
+
+  if (step === "init-loading") {
+    return (
+      <main className="pt-20 md:pt-32 pb-16 min-h-screen bg-gray-50">
+        <div className="max-w-lg mx-auto px-4">
+          <InitLoader />
+        </div>
+      </main>
+    );
+  }
+
+  if (isProcessing) {
+    return (
+      <main className="pt-20 md:pt-32 pb-16 min-h-screen bg-gray-50">
+        <div className="max-w-lg mx-auto px-4">
+          <div className="flex flex-col items-center justify-center min-h-[65vh] gap-6">
+            <div className="relative w-20 h-20">
+              <div className="absolute inset-0 rounded-full border-4 border-blue-100" />
+              <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-[#1E3A8A] animate-spin" />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <ShieldCheck className="w-8 h-8 text-[#1E3A8A]" />
+              </div>
+            </div>
+            <div className="text-center">
+              <p className="text-gray-800 font-semibold text-lg">
+                Procesando tu pedido
+              </p>
+              <p className="text-gray-400 text-sm mt-1">
+                No cerrés esta ventana...
+              </p>
+            </div>
+          </div>
+        </div>
+      </main>
     );
   }
 
   if (!items || items.length === 0) {
     return (
       <div className="pt-20 md:pt-32 flex flex-col items-center justify-center min-h-screen bg-gray-50 text-center px-4">
-        <p className="text-lg font-semibold text-gray-700 mb-4">No tenés productos en el carrito</p>
+        <p className="text-lg font-semibold text-gray-700 mb-4">
+          No tenés productos en el carrito
+        </p>
         <button
           onClick={() => router.push("/")}
-          className="bg-[#1E3A8A] text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-blue-800 transition-colors"
+          className="bg-[#1E3A8A] text-white px-5 py-2.5 rounded-xl text-sm font-semibold"
         >
           Volver a la tienda
         </button>
@@ -272,140 +640,512 @@ export default function CheckoutClient() {
     );
   }
 
+  if (step === "trans-date") {
+    return (
+      <main className="pt-20 md:pt-32 pb-16 min-h-screen bg-gray-50">
+        <div className="max-w-lg mx-auto px-4">
+          <TransLoader message="Calculando opciones de entrega..." />
+        </div>
+      </main>
+    );
+  }
+
+  if (step === "trans-payment") {
+    return (
+      <main className="pt-20 md:pt-32 pb-16 min-h-screen bg-gray-50">
+        <div className="max-w-lg mx-auto px-4">
+          <TransLoader message="Cargando métodos de pago..." />
+        </div>
+      </main>
+    );
+  }
+
+  const paymentLabel = {
+    mercadopago: "Mercado Pago",
+    cash: "Efectivo al recibir",
+    transfer: "Transferencia bancaria",
+  }[paymentMethod];
+
+  // ── Render ────────────────────────────────────────────────────────────────────
+
   return (
     <main className="pt-20 md:pt-32 pb-16 min-h-screen bg-gray-50">
-      <div className="max-w-5xl mx-auto px-4">
-        <h1 className="text-2xl font-bold text-gray-900 mb-1">Checkout</h1>
-        <p className="text-sm text-gray-500 mb-6">Completá tus datos para finalizar la compra</p>
+      <div className="max-w-lg mx-auto px-4">
+        <StepBar step={step} />
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+        {/* ── STEP 1: Forma de entrega ── */}
+        {step === "delivery" && (
+          <div className="space-y-4">
+            <h1 className="text-xl font-bold text-gray-900">
+              Elegí la forma de entrega
+            </h1>
 
-          {/* ── FORM ── */}
-          <form
-            onSubmit={handleSubmit(onSubmit)}
-            className="lg:col-span-2 space-y-4"
-          >
-            {/* Direcciones guardadas */}
-            {savedAddresses.length > 0 && (
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                <button
-                  type="button"
-                  onClick={() => setShowAddressSelector((s) => !s)}
-                  className="w-full flex items-center justify-between px-5 py-4 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
+            {/* Delivery method options */}
+            <div className="space-y-3">
+              <button
+                type="button"
+                onClick={() => setDeliveryMethod("domicilio")}
+                className={`w-full text-left flex items-start gap-4 p-4 rounded-2xl border-2 transition-all ${
+                  deliveryMethod === "domicilio"
+                    ? "border-[#1E3A8A] bg-blue-50"
+                    : "border-gray-100 bg-white hover:border-gray-200"
+                }`}
+              >
+                <div
+                  className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 mt-0.5 ${
+                    deliveryMethod === "domicilio" ? "bg-[#1E3A8A]" : "bg-gray-100"
+                  }`}
                 >
-                  <span className="flex items-center gap-2">
-                    <MapPin className="w-4 h-4 text-[#1E3A8A]" />
-                    Mis direcciones guardadas
-                  </span>
-                  {showAddressSelector ? (
-                    <ChevronUp className="w-4 h-4 text-gray-400" />
-                  ) : (
-                    <ChevronDown className="w-4 h-4 text-gray-400" />
-                  )}
-                </button>
-
-                {showAddressSelector && (
-                  <div className="px-5 pb-4 space-y-2 border-t border-gray-50 pt-3">
-                    {savedAddresses.map((addr) => (
-                      <label
-                        key={addr._id}
-                        className="flex items-start gap-3 p-3 border border-gray-100 rounded-xl cursor-pointer hover:border-blue-300 hover:bg-blue-50/50 transition-colors"
-                      >
-                        <input
-                          type="radio"
-                          name="savedAddress"
-                          className="mt-0.5 accent-[#1E3A8A]"
-                          onChange={() => fillFormFromAddress(addr)}
-                          defaultChecked={addr.isDefault}
-                        />
-                        <div>
-                          <p className="font-medium text-sm text-gray-800">
-                            {addr.title}
-                            {addr.isDefault && (
-                              <span className="ml-2 text-[10px] text-blue-600 font-semibold bg-blue-50 px-1.5 py-0.5 rounded-full">
-                                Predeterminada
-                              </span>
-                            )}
-                          </p>
-                          <p className="text-xs text-gray-500 mt-0.5">
-                            {addr.street}, {addr.city}, {addr.state} {addr.zipCode}
-                          </p>
-                        </div>
-                      </label>
-                    ))}
-                  </div>
+                  <Home
+                    className={`w-5 h-5 ${
+                      deliveryMethod === "domicilio" ? "text-white" : "text-gray-400"
+                    }`}
+                  />
+                </div>
+                <div className="flex-1">
+                  <p className="font-semibold text-sm text-gray-800">
+                    Envío a domicilio
+                  </p>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    Recibís en tu casa o donde quieras
+                  </p>
+                  <p className="text-xs text-green-600 font-medium mt-1">
+                    Envío gratis
+                  </p>
+                </div>
+                {deliveryMethod === "domicilio" && (
+                  <Check className="w-5 h-5 text-[#1E3A8A] shrink-0 mt-0.5" />
                 )}
-              </div>
-            )}
+              </button>
 
-            {/* Quién compra — solo lectura */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-              <SectionTitle>Tus datos</SectionTitle>
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-[#1E3A8A] flex items-center justify-center text-white font-bold text-sm shrink-0">
-                  {session?.user?.name?.charAt(0).toUpperCase() ?? "?"}
+              {/* Punto de encuentro — próximamente */}
+              <div className="flex items-start gap-4 p-4 rounded-2xl border-2 border-gray-100 bg-white opacity-50 cursor-not-allowed">
+                <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center shrink-0 mt-0.5">
+                  <MapPin className="w-5 h-5 text-gray-400" />
                 </div>
-                <div>
-                  <p className="text-sm font-semibold text-gray-800">{session?.user?.name}</p>
-                  <p className="text-xs text-gray-400">{session?.user?.email}</p>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="font-semibold text-sm text-gray-800">
+                      Retiro en punto de encuentro
+                    </p>
+                    <span className="text-[10px] bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-semibold">
+                      Próximamente
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    Retirá en una sucursal o punto cercano
+                  </p>
                 </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setDeliveryMethod("contraentrega")}
+                className={`w-full text-left flex items-start gap-4 p-4 rounded-2xl border-2 transition-all ${
+                  deliveryMethod === "contraentrega"
+                    ? "border-[#1E3A8A] bg-blue-50"
+                    : "border-gray-100 bg-white hover:border-gray-200"
+                }`}
+              >
+                <div
+                  className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 mt-0.5 ${
+                    deliveryMethod === "contraentrega" ? "bg-[#1E3A8A]" : "bg-gray-100"
+                  }`}
+                >
+                  <Package
+                    className={`w-5 h-5 ${
+                      deliveryMethod === "contraentrega" ? "text-white" : "text-gray-400"
+                    }`}
+                  />
+                </div>
+                <div className="flex-1">
+                  <p className="font-semibold text-sm text-gray-800">
+                    Contraentrega
+                  </p>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    Pagás cuando recibís en tu casa
+                  </p>
+                  <p className="text-xs text-green-600 font-medium mt-1">
+                    Envío gratis
+                  </p>
+                </div>
+                {deliveryMethod === "contraentrega" && (
+                  <Check className="w-5 h-5 text-[#1E3A8A] shrink-0 mt-0.5" />
+                )}
+              </button>
+            </div>
+
+            {/* ── Address section ── */}
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+              <div className="px-5 py-4 border-b border-gray-50 flex items-center gap-2">
+                <MapPin className="w-4 h-4 text-[#1E3A8A]" />
+                <p className="text-sm font-semibold text-gray-700">
+                  Dirección de entrega
+                </p>
+              </div>
+
+              <div className="p-5 space-y-4">
+                {/* DEFAULT MODE: show selected address */}
+                {addressUIMode === "default" && (
+                  <>
+                    <div className="flex items-start gap-3 p-3 rounded-xl bg-blue-50 border border-[#1E3A8A]/20">
+                      <Check className="w-4 h-4 text-[#1E3A8A] mt-0.5 shrink-0" />
+                      <div>
+                        <p className="text-sm font-semibold text-gray-800">
+                          {savedAddresses.find((a) => a._id === selectedAddressId)
+                            ?.title ?? "Mi dirección"}
+                        </p>
+                        <p className="text-xs text-gray-600 mt-0.5">
+                          {address.street}, {address.city}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {address.state} {address.postalCode}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setAddressUIMode("edit")}
+                        className="flex items-center gap-1.5 text-xs font-semibold text-[#1E3A8A] hover:text-blue-800 border border-[#1E3A8A]/30 hover:border-[#1E3A8A] px-3 py-2 rounded-lg transition-colors"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                        Modificar domicilio
+                      </button>
+                      {savedAddresses.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => setAddressUIMode("list")}
+                          className="flex items-center gap-1.5 text-xs font-semibold text-gray-600 hover:text-gray-800 border border-gray-200 hover:border-gray-400 px-3 py-2 rounded-lg transition-colors"
+                        >
+                          <ListChecks className="w-3.5 h-3.5" />
+                          Elegir otro
+                        </button>
+                      )}
+                    </div>
+                  </>
+                )}
+
+                {/* LIST MODE: show all saved addresses */}
+                {addressUIMode === "list" && (
+                  <>
+                    <div className="space-y-2">
+                      {savedAddresses.map((addr) => (
+                        <button
+                          key={addr._id}
+                          type="button"
+                          onClick={() => handleSelectSaved(addr)}
+                          className={`w-full text-left flex items-start gap-3 p-3 border rounded-xl transition-colors ${
+                            selectedAddressId === addr._id
+                              ? "border-[#1E3A8A] bg-blue-50"
+                              : "border-gray-100 hover:border-gray-300"
+                          }`}
+                        >
+                          <div
+                            className={`w-4 h-4 rounded-full border-2 mt-0.5 shrink-0 flex items-center justify-center ${
+                              selectedAddressId === addr._id
+                                ? "border-[#1E3A8A] bg-[#1E3A8A]"
+                                : "border-gray-300"
+                            }`}
+                          >
+                            {selectedAddressId === addr._id && (
+                              <div className="w-1.5 h-1.5 rounded-full bg-white" />
+                            )}
+                          </div>
+                          <div>
+                            <p className="font-medium text-sm text-gray-800">
+                              {addr.title}
+                              {addr.isDefault && (
+                                <span className="ml-2 text-[10px] text-blue-600 font-semibold bg-blue-50 px-1.5 py-0.5 rounded-full">
+                                  Predeterminada
+                                </span>
+                              )}
+                            </p>
+                            <p className="text-xs text-gray-500 mt-0.5">
+                              {addr.street}, {addr.city}, {addr.state}{" "}
+                              {addr.zipCode}
+                            </p>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setAddressUIMode("default")}
+                      className="text-xs text-gray-500 hover:text-gray-700 underline"
+                    >
+                      Cancelar
+                    </button>
+                  </>
+                )}
+
+                {/* EDIT MODE: form */}
+                {addressUIMode === "edit" && (
+                  <>
+                    <AddressForm
+                      address={address}
+                      errors={addressErrors}
+                      onChange={patchAddress}
+                      onPlaceSelect={patchAddress}
+                    />
+                    {savedAddresses.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setAddressUIMode("default")}
+                        className="text-xs text-gray-500 hover:text-gray-700 underline"
+                      >
+                        Cancelar
+                      </button>
+                    )}
+                  </>
+                )}
               </div>
             </div>
 
-            {/* Dirección de envío */}
+            <button
+              type="button"
+              onClick={goToDate}
+              className="w-full bg-[#1E3A8A] hover:bg-blue-800 text-white font-semibold py-4 rounded-xl transition-colors mt-2"
+            >
+              Continuar
+            </button>
+          </div>
+        )}
+
+        {/* ── STEP 2: Fecha de entrega ── */}
+        {step === "date" && (
+          <div className="space-y-4">
+            <BackBtn onClick={() => setStep("delivery")} />
+            <h1 className="text-xl font-bold text-gray-900">
+              ¿Cuándo llega tu compra?
+            </h1>
+
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">
-              <SectionTitle>Dirección de envío</SectionTitle>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center shrink-0">
+                  <Truck className="w-5 h-5 text-green-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-gray-800">
+                    Entrega estimada
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    Entre el {formatDateLong(minDate)} y el{" "}
+                    {formatDateLong(maxDate)}
+                  </p>
+                </div>
+              </div>
 
-              <div>
-                <Label htmlFor="address" className="text-sm font-medium text-gray-700 mb-1.5 block">
-                  Dirección
-                </Label>
-                <AddressAutocomplete
-                  id="address"
-                  value={addressValue}
-                  onChange={(v) => setValue("address", v, { shouldValidate: true })}
-                  onPlaceSelect={(c) => {
-                    setValue("address", c.street, { shouldValidate: true });
-                    setValue("city", c.city, { shouldValidate: true });
-                    setValue("state", c.state, { shouldValidate: true });
-                    setValue("postalCode", c.postalCode, { shouldValidate: true });
-                    setValue("country", c.country || "Argentina");
-                  }}
-                  placeholder="Calle y número..."
+              <p className="text-xs font-medium text-gray-500">
+                Elegí un día específico (opcional)
+              </p>
+
+              <button
+                type="button"
+                onClick={() => setDeliveryDateOption("any")}
+                className={`w-full flex items-center gap-3 p-3 rounded-xl border-2 transition-all text-left ${
+                  deliveryDateOption === "any"
+                    ? "border-[#1E3A8A] bg-blue-50"
+                    : "border-gray-100 hover:border-gray-200"
+                }`}
+              >
+                <Calendar
+                  className={`w-4 h-4 shrink-0 ${
+                    deliveryDateOption === "any" ? "text-[#1E3A8A]" : "text-gray-400"
+                  }`}
                 />
-                <FieldError message={errors.address?.message} />
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-gray-800">
+                    Sin preferencia
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    Lo antes posible dentro del rango estimado
+                  </p>
+                </div>
+                {deliveryDateOption === "any" && (
+                  <Check className="w-4 h-4 text-[#1E3A8A] shrink-0" />
+                )}
+              </button>
+
+              <div className="flex gap-2 overflow-x-auto pb-2">
+                {selectableDates.map((date) => {
+                  const str = toDateStr(date);
+                  const isSelected = deliveryDateOption === str;
+                  const isInRange = date >= minDate && date <= maxDate;
+                  return (
+                    <button
+                      key={str}
+                      type="button"
+                      onClick={() => setDeliveryDateOption(str)}
+                      className={`flex flex-col items-center shrink-0 w-14 py-2.5 rounded-xl border-2 transition-all ${
+                        isSelected
+                          ? "border-[#1E3A8A] bg-[#1E3A8A]"
+                          : isInRange
+                          ? "border-green-200 bg-green-50 hover:border-green-400"
+                          : "border-gray-100 bg-white hover:border-gray-200"
+                      }`}
+                    >
+                      <span
+                        className={`text-[10px] font-medium ${
+                          isSelected ? "text-blue-200" : "text-gray-500"
+                        }`}
+                      >
+                        {DAYS_ES[date.getDay()]}
+                      </span>
+                      <span
+                        className={`text-base font-bold ${
+                          isSelected ? "text-white" : "text-gray-800"
+                        }`}
+                      >
+                        {date.getDate()}
+                      </span>
+                      <span
+                        className={`text-[10px] ${
+                          isSelected ? "text-blue-200" : "text-gray-400"
+                        }`}
+                      >
+                        {MONTHS_ES[date.getMonth()]}
+                      </span>
+                      {isInRange && !isSelected && (
+                        <div className="w-1 h-1 bg-green-500 rounded-full mt-1" />
+                      )}
+                    </button>
+                  );
+                })}
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                <div>
-                  <Label htmlFor="city" className="text-sm font-medium text-gray-700 mb-1.5 block">Ciudad</Label>
-                  <Input id="city" {...register("city")} placeholder="Ciudad" className="rounded-lg" />
-                  <FieldError message={errors.city?.message} />
+              {deliveryDateOption !== "any" && (
+                <p className="text-xs text-[#1E3A8A] font-medium text-center">
+                  Preferís recibirlo el{" "}
+                  {formatDateLong(parseLocalDate(deliveryDateOption))}
+                </p>
+              )}
+            </div>
+
+            <button
+              type="button"
+              onClick={goToPayment}
+              className="w-full bg-[#1E3A8A] hover:bg-blue-800 text-white font-semibold py-4 rounded-xl transition-colors mt-2"
+            >
+              Continuar
+            </button>
+          </div>
+        )}
+
+        {/* ── STEP 3: Método de pago ── */}
+        {step === "payment" && (
+          <div className="space-y-4">
+            <BackBtn onClick={() => setStep("date")} />
+            <h1 className="text-xl font-bold text-gray-900">
+              Elegí cómo pagar
+            </h1>
+
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-3">
+              {deliveryMethod === "domicilio" ? (
+                /* Domicilio → solo Mercado Pago */
+                <div className="flex items-center gap-4 p-4 rounded-xl border-2 border-[#1E3A8A] bg-blue-50">
+                  <div className="w-10 h-10 rounded-xl bg-[#1E3A8A] flex items-center justify-center shrink-0">
+                    <CreditCard className="w-5 h-5 text-white" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-semibold text-sm text-gray-800">
+                      Mercado Pago
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      Tarjeta, transferencia, cuotas sin interés
+                    </p>
+                  </div>
+                  <Check className="w-5 h-5 text-[#1E3A8A] shrink-0" />
                 </div>
-                <div>
-                  <Label htmlFor="state" className="text-sm font-medium text-gray-700 mb-1.5 block">Provincia</Label>
-                  <Input id="state" {...register("state")} placeholder="Provincia" className="rounded-lg" />
-                  <FieldError message={errors.state?.message} />
-                </div>
-                <div className="col-span-2 sm:col-span-1">
-                  <Label htmlFor="postalCode" className="text-sm font-medium text-gray-700 mb-1.5 block">Cód. Postal</Label>
-                  <Input id="postalCode" {...register("postalCode")} placeholder="1234" className="rounded-lg" />
-                  <FieldError message={errors.postalCode?.message} />
-                </div>
-              </div>
+              ) : (
+                /* Contraentrega → Efectivo o Transferencia */
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setPaymentMethod("cash")}
+                    className={`w-full text-left flex items-center gap-4 p-4 rounded-xl border-2 transition-all ${
+                      paymentMethod === "cash"
+                        ? "border-[#1E3A8A] bg-blue-50"
+                        : "border-gray-100 hover:border-gray-200"
+                    }`}
+                  >
+                    <div
+                      className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+                        paymentMethod === "cash" ? "bg-[#1E3A8A]" : "bg-gray-100"
+                      }`}
+                    >
+                      <Package
+                        className={`w-5 h-5 ${
+                          paymentMethod === "cash" ? "text-white" : "text-gray-400"
+                        }`}
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-semibold text-sm text-gray-800">
+                        Efectivo al recibir
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        Pagás en efectivo cuando el envío llega a tu casa
+                      </p>
+                    </div>
+                    {paymentMethod === "cash" && (
+                      <Check className="w-5 h-5 text-[#1E3A8A] shrink-0" />
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setPaymentMethod("transfer")}
+                    className={`w-full text-left flex items-center gap-4 p-4 rounded-xl border-2 transition-all ${
+                      paymentMethod === "transfer"
+                        ? "border-[#1E3A8A] bg-blue-50"
+                        : "border-gray-100 hover:border-gray-200"
+                    }`}
+                  >
+                    <div
+                      className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+                        paymentMethod === "transfer" ? "bg-[#1E3A8A]" : "bg-gray-100"
+                      }`}
+                    >
+                      <Banknote
+                        className={`w-5 h-5 ${
+                          paymentMethod === "transfer" ? "text-white" : "text-gray-400"
+                        }`}
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-semibold text-sm text-gray-800">
+                        Transferencia bancaria
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        Te enviamos los datos por email al confirmar
+                      </p>
+                    </div>
+                    {paymentMethod === "transfer" && (
+                      <Check className="w-5 h-5 text-[#1E3A8A] shrink-0" />
+                    )}
+                  </button>
+                </>
+              )}
             </div>
 
             {/* Cupón */}
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-              <SectionTitle>Cupón de descuento</SectionTitle>
-
+              <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3">
+                Cupón de descuento
+              </p>
               {appliedCoupon ? (
                 <div className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-xl px-4 py-3">
                   <Tag className="w-4 h-4 text-green-600 shrink-0" />
                   <span className="text-sm text-green-700 font-medium flex-1">
                     {appliedCoupon} — −${couponDiscount.toLocaleString("es-AR")}
                   </span>
-                  <button type="button" onClick={removeCoupon} className="text-green-500 hover:text-red-500 transition-colors">
+                  <button
+                    type="button"
+                    onClick={removeCoupon}
+                    className="text-green-500 hover:text-red-500"
+                  >
                     <X className="w-4 h-4" />
                   </button>
                 </div>
@@ -416,7 +1156,9 @@ export default function CheckoutClient() {
                     onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
                     placeholder="INGRESÁ TU CÓDIGO"
                     className="uppercase tracking-widest font-mono rounded-lg"
-                    onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), applyCoupon())}
+                    onKeyDown={(e) =>
+                      e.key === "Enter" && (e.preventDefault(), applyCoupon())
+                    }
                   />
                   <button
                     type="button"
@@ -428,70 +1170,131 @@ export default function CheckoutClient() {
                   </button>
                 </div>
               )}
-              {couponError && <p className="text-xs text-red-500 mt-2">{couponError}</p>}
+              {couponError && (
+                <p className="text-xs text-red-500 mt-2">{couponError}</p>
+              )}
             </div>
 
-            {/* Método de pago */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-              <SectionTitle>Método de pago</SectionTitle>
+            <button
+              type="button"
+              onClick={() => setStep("review")}
+              className="w-full bg-[#1E3A8A] hover:bg-blue-800 text-white font-semibold py-4 rounded-xl transition-colors mt-2"
+            >
+              Continuar
+            </button>
+          </div>
+        )}
 
-              <RadioGroup
-                defaultValue="mercadopago"
-                onValueChange={(val) =>
-                  setValue("paymentMethod", val as "mercadopago" | "cash")
-                }
-                className="space-y-3"
-              >
-                <label
-                  className={`flex items-center gap-4 border-2 rounded-xl p-4 cursor-pointer transition-all ${
-                    selectedPayment === "mercadopago"
-                      ? "border-[#1E3A8A] bg-blue-50"
-                      : "border-gray-100 hover:border-gray-200"
-                  }`}
-                >
-                  <RadioGroupItem value="mercadopago" id="mercadopago" />
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
-                    selectedPayment === "mercadopago" ? "bg-[#1E3A8A]" : "bg-gray-100"
-                  }`}>
-                    <CreditCard className={`w-5 h-5 ${selectedPayment === "mercadopago" ? "text-white" : "text-gray-400"}`} />
-                  </div>
-                  <div>
-                    <p className="font-semibold text-sm text-gray-800">Mercado Pago</p>
-                    <p className="text-xs text-gray-500">Tarjeta, transferencia, cuotas sin interés</p>
-                  </div>
-                </label>
+        {/* ── STEP 4: Revisá y confirmá ── */}
+        {step === "review" && (
+          <div className="space-y-4">
+            <BackBtn onClick={() => setStep("payment")} />
+            <h1 className="text-xl font-bold text-gray-900">
+              Revisá y confirmá
+            </h1>
 
-                <label
-                  className={`flex items-center gap-4 border-2 rounded-xl p-4 cursor-pointer transition-all ${
-                    selectedPayment === "cash"
-                      ? "border-[#1E3A8A] bg-blue-50"
-                      : "border-gray-100 hover:border-gray-200"
-                  }`}
-                >
-                  <RadioGroupItem value="cash" id="cash" />
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
-                    selectedPayment === "cash" ? "bg-[#1E3A8A]" : "bg-gray-100"
-                  }`}>
-                    <Package className={`w-5 h-5 ${selectedPayment === "cash" ? "text-white" : "text-gray-400"}`} />
-                  </div>
-                  <div>
-                    <p className="font-semibold text-sm text-gray-800">Contra entrega</p>
-                    <p className="text-xs text-gray-500">Pagás en efectivo cuando recibís el pedido</p>
-                  </div>
-                </label>
-              </RadioGroup>
+            {/* Products */}
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+              <div className="px-5 py-4 border-b border-gray-50">
+                <p className="font-semibold text-sm text-gray-800">
+                  Detalle del pedido
+                </p>
+              </div>
+              <ul className="divide-y divide-gray-50 px-5">
+                {items.map((item: CartItem) => (
+                  <li key={item.id} className="flex items-center gap-3 py-3">
+                    <div className="relative w-14 h-14 shrink-0 rounded-xl overflow-hidden border border-gray-100 bg-gray-50">
+                      <Image
+                        src={item.image || "/placeholder-category.jpg"}
+                        alt={item.name}
+                        fill
+                        sizes="56px"
+                        className="object-contain p-1"
+                      />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-800 line-clamp-2 leading-snug">
+                        {item.name}
+                      </p>
+                      <p className="text-xs text-gray-400 mt-0.5">
+                        {item.quantity} × ${item.price.toLocaleString("es-AR")}
+                      </p>
+                    </div>
+                    <span className="text-sm font-semibold text-gray-900 shrink-0">
+                      ${(item.price * item.quantity).toLocaleString("es-AR")}
+                    </span>
+                  </li>
+                ))}
+              </ul>
             </div>
 
-            {/* Error */}
+            {/* Delivery + payment + totals */}
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">
+              <div className="flex items-start gap-3 pb-4 border-b border-gray-50">
+                <Truck className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
+                <div>
+                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">
+                    Entrega
+                  </p>
+                  <p className="text-sm font-medium text-gray-800 mt-0.5">
+                    {deliveryMethod === "domicilio"
+                      ? "Envío a domicilio"
+                      : "Contraentrega"}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {address.street}, {address.city}, {address.state}
+                  </p>
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    {deliveryDateOption === "any"
+                      ? `Estimado: ${formatDateLong(minDate)} – ${formatDateLong(maxDate)}`
+                      : `Preferís el ${formatDateLong(parseLocalDate(deliveryDateOption))}`}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3 pb-4 border-b border-gray-50">
+                <CreditCard className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" />
+                <div>
+                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">
+                    Pago
+                  </p>
+                  <p className="text-sm font-medium text-gray-800 mt-0.5">
+                    {paymentLabel}
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm text-gray-500">
+                  <span>Subtotal</span>
+                  <span>${subtotal.toLocaleString("es-AR")}</span>
+                </div>
+                <div className="flex justify-between text-sm text-gray-500">
+                  <span>Envío</span>
+                  <span className="text-green-600 font-medium">Gratis</span>
+                </div>
+                {couponDiscount > 0 && (
+                  <div className="flex justify-between text-sm text-green-600 font-medium">
+                    <span>Descuento ({appliedCoupon})</span>
+                    <span>−${couponDiscount.toLocaleString("es-AR")}</span>
+                  </div>
+                )}
+                <div className="flex justify-between font-bold text-gray-900 text-base pt-2 border-t border-gray-100">
+                  <span>Total</span>
+                  <span>${total.toLocaleString("es-AR")}</span>
+                </div>
+              </div>
+            </div>
+
             {errorMsg && (
               <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl p-4 text-sm whitespace-pre-line">
                 {errorMsg}
               </div>
             )}
 
-            {/* Submit */}
             <button
-              type="submit"
+              type="button"
+              onClick={confirmPurchase}
               disabled={isProcessing}
               className="w-full bg-[#1E3A8A] hover:bg-blue-800 text-white font-semibold py-4 rounded-xl transition-colors flex items-center justify-center gap-2 disabled:opacity-70"
             >
@@ -501,79 +1304,21 @@ export default function CheckoutClient() {
                   <span>Procesando...</span>
                 </>
               ) : (
-                <>
-                  <span>
-                    {selectedPayment === "mercadopago" ? "Pagar con Mercado Pago" : "Confirmar pedido"}
-                  </span>
-                  <ArrowRight className="w-4 h-4" />
-                </>
+                <span>
+                  {paymentMethod === "mercadopago"
+                    ? "Confirmar y pagar con Mercado Pago"
+                    : "Confirmar pedido"}
+                </span>
               )}
             </button>
 
-            {/* Security badge */}
             <div className="flex items-center justify-center gap-2 text-xs text-gray-400 pb-2">
               <Lock className="w-3.5 h-3.5" />
               Pago seguro con encriptación SSL
               <ShieldCheck className="w-3.5 h-3.5 text-green-400" />
             </div>
-          </form>
-
-          {/* ── RESUMEN ── */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden sticky top-40">
-            <div className="px-5 py-4 border-b border-gray-50">
-              <p className="font-bold text-gray-900">Resumen del pedido</p>
-            </div>
-
-            <ul className="divide-y divide-gray-50 px-5">
-              {items.map((item: CartItem) => (
-                <li key={item.id} className="flex items-center gap-3 py-3">
-                  <div className="relative w-12 h-12 shrink-0 rounded-lg overflow-hidden border border-gray-100 bg-gray-50">
-                    <Image
-                      src={item.image || "/placeholder-category.jpg"}
-                      alt={item.name}
-                      fill
-                      sizes="48px"
-                      className="object-contain p-1"
-                    />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-medium text-gray-800 line-clamp-2 leading-snug">
-                      {item.name}
-                    </p>
-                    <p className="text-[10px] text-gray-400 mt-0.5">
-                      {item.quantity} × ${item.price.toLocaleString("es-AR")}
-                    </p>
-                  </div>
-                  <span className="text-xs font-semibold text-gray-900 shrink-0">
-                    ${(item.price * item.quantity).toLocaleString("es-AR")}
-                  </span>
-                </li>
-              ))}
-            </ul>
-
-            <div className="px-5 py-4 space-y-2 border-t border-gray-50">
-              {couponDiscount > 0 && (
-                <>
-                  <div className="flex justify-between text-sm text-gray-500">
-                    <span>Subtotal</span>
-                    <span>${subtotal.toLocaleString("es-AR")}</span>
-                  </div>
-                  <div className="flex justify-between text-sm text-green-600 font-medium">
-                    <span>Descuento ({appliedCoupon})</span>
-                    <span>−${couponDiscount.toLocaleString("es-AR")}</span>
-                  </div>
-                </>
-              )}
-              <div className="flex justify-between font-bold text-gray-900 pt-1 border-t border-gray-100">
-                <span>Total</span>
-                <span className="text-lg">${total.toLocaleString("es-AR")}</span>
-              </div>
-              <p className="text-xs text-blue-600 font-medium text-right">
-                12x ${installment.toLocaleString("es-AR")} sin interés
-              </p>
-            </div>
           </div>
-        </div>
+        )}
       </div>
     </main>
   );

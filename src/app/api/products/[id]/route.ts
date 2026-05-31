@@ -63,6 +63,37 @@ export async function DELETE(
   }
 }
 
+// PATCH: actualización parcial (quick-edit desde el dashboard)
+export async function PATCH(
+  req: Request,
+  context: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session || !isAdmin(session.user?.role)) {
+      return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+    }
+
+    const { id } = await context.params;
+    const body = await req.json();
+    await connectDB();
+
+    const product = await Product.findByIdAndUpdate(
+      id,
+      { $set: body },
+      { new: true, runValidators: false }
+    ).populate("category", "name");
+
+    if (!product) {
+      return NextResponse.json({ error: "Producto no encontrado" }, { status: 404 });
+    }
+
+    return NextResponse.json(product);
+  } catch (error) {
+    return NextResponse.json({ error: (error as Error).message }, { status: 500 });
+  }
+}
+
 // PUT: actualizar producto
 export async function PUT(
   req: Request,

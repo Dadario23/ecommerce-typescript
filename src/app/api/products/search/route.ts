@@ -29,6 +29,7 @@ export async function GET(req: Request) {
     // Base filter: always regex — works regardless of text indexes
     // Matches name, brand, or products in a matching category
     const filter = {
+      isActive: { $ne: false },
       $or: [
         { name: { $regex: query, $options: "i" } },
         { brand: { $regex: query, $options: "i" } },

@@ -15,12 +15,22 @@ import { ProductsPagination } from "@/components/dashboard/products/ProductsPagi
 import { ConfirmModal } from "@/components/dashboard/shared/ConfirmModal";
 import { Product } from "@/types/product";
 
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
 function getCategoryName(category: unknown): string {
   if (!category) return "Sin categoría";
   if (typeof category === "string") return category;
   if (typeof category === "object" && category !== null && "name" in category)
     return (category as { name: string }).name;
   return "Sin categoría";
+}
+
+function getCategoryId(category: unknown): string {
+  if (!category) return "";
+  if (typeof category === "string") return category;
+  if (typeof category === "object" && category !== null && "_id" in category)
+    return String((category as { _id: string })._id);
+  return "";
 }
 
 function useIsMobile() {
@@ -34,14 +44,37 @@ function useIsMobile() {
   return isMobile;
 }
 
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+type Tab = "all" | "published" | "inactive" | "low-stock" | "out-of-stock";
+
 interface SortConfig { key: keyof Product; direction: "asc" | "desc"; }
 interface Filters {
   search: string; category: string; status: string; stock: string;
   minPrice: string; maxPrice: string; minRating: string;
 }
 
+const TAB_FILTERS: Record<Tab, { status: string; stock: string }> = {
+  "all":          { status: "all",      stock: "all" },
+  "published":    { status: "active",   stock: "all" },
+  "inactive":     { status: "inactive", stock: "all" },
+  "low-stock":    { status: "all",      stock: "low-stock" },
+  "out-of-stock": { status: "all",      stock: "out-of-stock" },
+};
+
+const TABS: { key: Tab; label: string }[] = [
+  { key: "all",          label: "Todos" },
+  { key: "published",    label: "Publicados" },
+  { key: "inactive",     label: "Inactivos" },
+  { key: "low-stock",    label: "Stock bajo" },
+  { key: "out-of-stock", label: "Sin stock" },
+];
+
+// ─── Page ─────────────────────────────────────────────────────────────────────
+
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<{ _id: string; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [viewMode, setViewMode] = useState<"table" | "grid">("table");
@@ -50,6 +83,7 @@ export default function ProductsPage() {
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<Tab>("all");
   const { toast } = useToast();
   const isMobile = useIsMobile();
 
@@ -60,10 +94,7 @@ export default function ProductsPage() {
 
   const debouncedSearch = useDebounce(filters.search, 300);
 
-  const categories = useMemo(() => {
-    const unique = Array.from(new Set(products.map((p) => getCategoryName(p.category))));
-    return ["all", ...unique];
-  }, [products]);
+  // ── Data ──────────────────────────────────────────────────────────────────────
 
   const fetchProducts = useCallback(async () => {
     try {
@@ -81,28 +112,49 @@ export default function ProductsPage() {
 
   useEffect(() => { fetchProducts(); }, [fetchProducts]);
 
+  // Carga las categorías desde la API para el filtro del select
+  useEffect(() => {
+    fetch("/api/categories")
+      .then((r) => r.json())
+      .then((data) => {
+        if (Array.isArray(data.categories)) setCategories(data.categories);
+      })
+      .catch(() => {});
+  }, []);
+
+  // Reset page when filters or tab changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [debouncedSearch, filters.category, filters.status, filters.stock, filters.minPrice, filters.maxPrice, filters.minRating]);
+  }, [debouncedSearch, filters.category, filters.status, filters.stock, filters.minPrice, filters.maxPrice, activeTab]);
 
   useEffect(() => {
     setCurrentPage((prev) => Math.min(prev, Math.max(1, Math.ceil(products.length / itemsPerPage))));
   }, [itemsPerPage, products.length]);
+
+  // ── Derived data ──────────────────────────────────────────────────────────────
+
+  // Tab counts (always from all products, unaffected by other filters)
+  const tabCounts = useMemo<Record<Tab, number>>(() => ({
+    all:           products.length,
+    published:     products.filter((p) => p.isActive).length,
+    inactive:      products.filter((p) => !p.isActive).length,
+    "low-stock":   products.filter((p) => (p.stock ?? 0) > 0 && (p.stock ?? 0) <= 5).length,
+    "out-of-stock": products.filter((p) => (p.stock ?? 0) === 0).length,
+  }), [products]);
 
   const filteredAndSorted = useMemo(() => {
     const filtered = products.filter((p) => {
       const q = debouncedSearch.toLowerCase();
       return (
         (q === "" || p.name.toLowerCase().includes(q) || p.sku?.toLowerCase().includes(q)) &&
-        (filters.category === "all" || getCategoryName(p.category) === filters.category) &&
+        (filters.category === "all" || getCategoryId(p.category) === filters.category) &&
         (filters.status === "all" || (filters.status === "active" ? p.isActive : !p.isActive)) &&
         (filters.stock === "all" ||
-          (filters.stock === "in-stock" && (p.stock ?? 0) > 5) ||
-          (filters.stock === "low-stock" && (p.stock ?? 0) > 0 && (p.stock ?? 0) <= 5) ||
+          (filters.stock === "in-stock"     && (p.stock ?? 0) > 5) ||
+          (filters.stock === "low-stock"    && (p.stock ?? 0) > 0 && (p.stock ?? 0) <= 5) ||
           (filters.stock === "out-of-stock" && (p.stock ?? 0) === 0)) &&
         (!filters.minPrice || p.price >= Number(filters.minPrice)) &&
-        (!filters.maxPrice || p.price <= Number(filters.maxPrice)) &&
-        (!filters.minRating || (p.rating ?? 0) >= Number(filters.minRating))
+        (!filters.maxPrice || p.price <= Number(filters.maxPrice))
       );
     });
 
@@ -127,11 +179,19 @@ export default function ProductsPage() {
   );
 
   const stats = useMemo(() => ({
-    total: products.length,
-    active: products.filter((p) => p.isActive).length,
+    total:      products.length,
+    active:     products.filter((p) => p.isActive).length,
     outOfStock: products.filter((p) => (p.stock || 0) === 0).length,
-    lowStock: products.filter((p) => (p.stock || 0) > 0 && (p.stock || 0) <= 5).length,
+    lowStock:   products.filter((p) => (p.stock || 0) > 0 && (p.stock || 0) <= 5).length,
   }), [products]);
+
+  // ── Handlers ──────────────────────────────────────────────────────────────────
+
+  function handleTabChange(tab: Tab) {
+    setActiveTab(tab);
+    const { status, stock } = TAB_FILTERS[tab];
+    setFilters((prev) => ({ ...prev, status, stock }));
+  }
 
   const handleBulkAction = async (action: "delete" | "activate" | "deactivate") => {
     if (!selectedProducts.length) return;
@@ -150,8 +210,7 @@ export default function ProductsPage() {
     }
   };
 
-  const handleEdit = (id: string) => { window.location.href = `/dashboard/products/${id}/edit`; };
-
+  const handleEdit   = (id: string) => { window.location.href = `/dashboard/products/${id}/edit`; };
   const handleDelete = (id: string) => { setProductToDelete(id); setDeleteModalOpen(true); };
 
   const confirmDelete = async () => {
@@ -160,8 +219,7 @@ export default function ProductsPage() {
       const res = await fetch(`/api/products/${productToDelete}`, { method: "DELETE" });
       if (!res.ok) throw new Error();
       toast({ title: "Éxito", description: "Producto eliminado" });
-      const remaining = filteredAndSorted.length - 1;
-      const newPages = Math.max(1, Math.ceil(remaining / itemsPerPage));
+      const newPages = Math.max(1, Math.ceil((filteredAndSorted.length - 1) / itemsPerPage));
       if (currentPage > newPages) setCurrentPage(newPages);
       fetchProducts();
     } catch {
@@ -180,7 +238,7 @@ export default function ProductsPage() {
         body: JSON.stringify({ [field]: value }),
       });
       if (!res.ok) throw new Error();
-      toast({ title: "Éxito", description: "Producto actualizado" });
+      toast({ title: "Actualizado" });
       fetchProducts();
     } catch {
       toast({ title: "Error", description: "Error al actualizar", variant: "destructive" });
@@ -200,6 +258,8 @@ export default function ProductsPage() {
     a.click();
   };
 
+  // ── Render ────────────────────────────────────────────────────────────────────
+
   if (loading) return <ProductsLoading />;
 
   return (
@@ -207,11 +267,15 @@ export default function ProductsPage() {
       <ProductsStats {...stats} />
 
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-        {/* Header */}
+
+        {/* ── Header ── */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-5 py-4 border-b border-gray-50">
           <p className="font-semibold text-gray-900 text-sm">
             {filteredAndSorted.length}{" "}
             {filteredAndSorted.length === 1 ? "producto" : "productos"}
+            {filteredAndSorted.length !== products.length && (
+              <span className="text-gray-400 font-normal"> de {products.length}</span>
+            )}
           </p>
           <div className="flex items-center gap-2 flex-wrap">
             <button
@@ -219,16 +283,14 @@ export default function ProductsPage() {
               className="flex items-center gap-1.5 text-xs text-gray-600 font-semibold px-3 py-2 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
             >
               <Download className="w-3.5 h-3.5" />
-              Exportar
+              Exportar CSV
             </button>
             {!isMobile && (
               <div className="flex border border-gray-200 rounded-xl overflow-hidden">
                 <button
                   onClick={() => setViewMode("table")}
                   className={`px-3 py-2 transition-colors ${
-                    viewMode === "table"
-                      ? "bg-[#1E3A8A] text-white"
-                      : "text-gray-500 hover:bg-gray-50"
+                    viewMode === "table" ? "bg-[#1E3A8A] text-white" : "text-gray-500 hover:bg-gray-50"
                   }`}
                   title="Vista tabla"
                 >
@@ -237,9 +299,7 @@ export default function ProductsPage() {
                 <button
                   onClick={() => setViewMode("grid")}
                   className={`px-3 py-2 border-l border-gray-200 transition-colors ${
-                    viewMode === "grid"
-                      ? "bg-[#1E3A8A] text-white"
-                      : "text-gray-500 hover:bg-gray-50"
+                    viewMode === "grid" ? "bg-[#1E3A8A] text-white" : "text-gray-500 hover:bg-gray-50"
                   }`}
                   title="Vista grilla"
                 >
@@ -257,8 +317,38 @@ export default function ProductsPage() {
           </div>
         </div>
 
-        {/* Filters */}
-        <div className="px-5 py-4 border-b border-gray-50">
+        {/* ── Status tabs ── */}
+        <div className="flex gap-0 overflow-x-auto border-b border-gray-100">
+          {TABS.map((tab) => {
+            const count = tabCounts[tab.key];
+            const isActive = activeTab === tab.key;
+            return (
+              <button
+                key={tab.key}
+                onClick={() => handleTabChange(tab.key)}
+                className={`flex items-center gap-2 px-4 py-3 text-sm font-medium whitespace-nowrap transition-colors border-b-2 -mb-px ${
+                  isActive
+                    ? "border-[#1E3A8A] text-[#1E3A8A]"
+                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-200"
+                }`}
+              >
+                {tab.label}
+                <span
+                  className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-5 text-center ${
+                    isActive
+                      ? "bg-[#1E3A8A]/10 text-[#1E3A8A]"
+                      : "bg-gray-100 text-gray-500"
+                  }`}
+                >
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* ── Filters ── */}
+        <div className="px-5 py-3.5 border-b border-gray-50">
           <ProductsFilters
             filters={filters}
             onFiltersChange={setFilters}
@@ -266,7 +356,7 @@ export default function ProductsPage() {
           />
         </div>
 
-        {/* Bulk actions */}
+        {/* ── Bulk actions ── */}
         <ProductsBulkActions
           selectedCount={selectedProducts.length}
           onActivate={() => handleBulkAction("activate")}
@@ -274,7 +364,7 @@ export default function ProductsPage() {
           onDelete={() => handleBulkAction("delete")}
         />
 
-        {/* Content */}
+        {/* ── Content ── */}
         {isMobile || viewMode === "grid" ? (
           <ProductsGridView
             products={paginated}
@@ -294,7 +384,7 @@ export default function ProductsPage() {
           />
         )}
 
-        {/* Pagination */}
+        {/* ── Pagination ── */}
         <div className="border-t border-gray-50 px-5 py-4">
           <ProductsPagination
             currentPage={currentPage}

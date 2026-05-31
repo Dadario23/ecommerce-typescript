@@ -18,6 +18,7 @@ export interface IProduct extends Document {
   brand?: string;
   stock?: number;
   sku?: string;
+  isActive?: boolean;
   avgRating?: number;
   reviewCount?: number;
   unitsSold?: number;
@@ -52,6 +53,7 @@ const ProductSchema: Schema = new Schema(
     avgRating: { type: Number, default: 0 },
     reviewCount: { type: Number, default: 0 },
     unitsSold: { type: Number, default: 0 },
+    isActive: { type: Boolean, default: true },
     homeDelivery: { type: Boolean, default: true },
     featured: { type: Boolean, default: false },
     descriptionBlocks: {

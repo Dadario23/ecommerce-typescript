@@ -22,10 +22,14 @@ export async function GET(request: Request) {
     // 3. Construir query
     const { searchParams } = new URL(request.url);
     const categorySlug = searchParams.get("category");
+    const session = await getServerSession(authOptions);
 
-    let query = {};
-    if (categorySlug) {
-      query = { category: categorySlug };
+    const query: Record<string, unknown> = {};
+    if (categorySlug) query.category = categorySlug;
+
+    // Admins ven todos los productos; la tienda pública solo ve los activos
+    if (!isAdmin(session?.user?.role)) {
+      query.isActive = { $ne: false };
     }
 
     // 4. Ejecutar consulta con populate

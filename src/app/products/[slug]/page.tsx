@@ -22,7 +22,7 @@ function normalizeSlug(slug: string) {
 const getProduct = cache(async (slug: string) => {
   await connectDB();
   initModels();
-  const doc = await Product.findOne({ slug: normalizeSlug(slug) })
+  const doc = await Product.findOne({ slug: normalizeSlug(slug), isActive: { $ne: false } })
     .populate("category", "name slug")
     .lean<IProduct>();
   return doc ? (JSON.parse(JSON.stringify(doc)) as IProduct) : null;
@@ -31,7 +31,7 @@ const getProduct = cache(async (slug: string) => {
 export async function generateStaticParams() {
   await connectDB();
   initModels();
-  const products = await Product.find({}, "slug").lean<{ slug: string }[]>();
+  const products = await Product.find({ isActive: { $ne: false } }, "slug").lean<{ slug: string }[]>();
   return products.map((p) => ({ slug: p.slug }));
 }
 
@@ -70,7 +70,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
   // Fetch related data in parallel on the server — no client-side waterfalls.
   const [similarProducts, initialReviews] = await Promise.all([
     categoryId
-      ? Product.find({ category: categoryId, _id: { $ne: productId }, stock: { $gt: 0 } })
+      ? Product.find({ category: categoryId, _id: { $ne: productId }, stock: { $gt: 0 }, isActive: { $ne: false } })
           .sort({ featured: -1, avgRating: -1, createdAt: -1 })
           .limit(8)
           .select("name slug price compareAtPrice images avgRating reviewCount")

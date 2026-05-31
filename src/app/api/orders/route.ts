@@ -24,6 +24,8 @@ interface OrderPayload {
   couponCode?: string;
   total: number;
   paymentMethod: string;
+  shippingMethod?: string;
+  notes?: string;
   shippingAddress: {
     firstName: string;
     lastName: string;
@@ -107,6 +109,8 @@ export async function POST(request: NextRequest) {
         status: "pending",
       },
       status: "pending",
+      shippingMethod: orderData.shippingMethod,
+      notes: orderData.notes,
     });
 
     await order.save();

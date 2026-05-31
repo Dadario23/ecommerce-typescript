@@ -1,4 +1,7 @@
 // src/components/dashboard/products/ProductsFilters.tsx
+"use client";
+
+import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -7,7 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { SlidersHorizontal, X } from "lucide-react";
+import { Search, SlidersHorizontal, X, ChevronDown } from "lucide-react";
 import { normalizeCategories, CategoryOption } from "@/lib/normalizeCategories";
 
 interface Filters {
@@ -23,7 +26,8 @@ interface Filters {
 interface ProductsFiltersProps {
   filters: Filters;
   onFiltersChange: (filters: Filters) => void;
-  categories: any[]; // 👈 puede venir mezclado desde API
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  categories: any[];
   className?: string;
 }
 
@@ -32,37 +36,88 @@ export function ProductsFilters({
   onFiltersChange,
   categories,
 }: ProductsFiltersProps) {
-  // ✅ Normalizamos siempre que renderizamos
-  const normalizedCategories: CategoryOption[] =
-    normalizeCategories(categories);
+  const [showMore, setShowMore] = useState(false);
 
-  const hasActiveFilters = Object.values(filters).some(
-    (value) => value !== "" && value !== "all" && value !== "0"
-  );
+  const normalizedCategories: CategoryOption[] = normalizeCategories(categories);
 
-  const clearFilters = () => {
+  const hasActiveFilters =
+    filters.search !== "" ||
+    filters.category !== "all" ||
+    filters.minPrice !== "" ||
+    filters.maxPrice !== "";
+
+  const hasAdvancedFilters = filters.minPrice !== "" || filters.maxPrice !== "";
+
+  function clearFilters() {
     onFiltersChange({
+      ...filters,
       search: "",
       category: "all",
-      status: "all",
-      stock: "all",
       minPrice: "",
       maxPrice: "",
       minRating: "0",
     });
-  };
+    setShowMore(false);
+  }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <SlidersHorizontal className="h-4 w-4" />
-          <span className="text-sm font-medium">Filtros</span>
+    <div className="space-y-3">
+      <div className="flex gap-2 flex-wrap items-center">
+        {/* Search */}
+        <div className="relative flex-1 min-w-48">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+          <Input
+            className="pl-9 h-9"
+            placeholder="Buscar por nombre o SKU..."
+            value={filters.search}
+            onChange={(e) => onFiltersChange({ ...filters, search: e.target.value })}
+          />
         </div>
+
+        {/* Category */}
+        <Select
+          value={filters.category}
+          onValueChange={(value) => onFiltersChange({ ...filters, category: value })}
+        >
+          <SelectTrigger className="w-44 h-9">
+            <SelectValue placeholder="Categoría" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todas las categorías</SelectItem>
+            {normalizedCategories.map((cat, idx) => (
+              <SelectItem key={cat._id || `cat-${idx}`} value={cat._id}>
+                {cat.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        {/* Más filtros */}
+        <button
+          type="button"
+          onClick={() => setShowMore((p) => !p)}
+          className={`flex items-center gap-1.5 text-xs font-semibold px-3 h-9 border rounded-lg transition-colors ${
+            showMore || hasAdvancedFilters
+              ? "border-[#1E3A8A] text-[#1E3A8A] bg-blue-50"
+              : "border-gray-200 text-gray-600 hover:bg-gray-50"
+          }`}
+        >
+          <SlidersHorizontal className="w-3.5 h-3.5" />
+          Más filtros
+          {hasAdvancedFilters && (
+            <span className="w-4 h-4 rounded-full bg-[#1E3A8A] text-white text-[9px] flex items-center justify-center">
+              !
+            </span>
+          )}
+          <ChevronDown
+            className={`w-3 h-3 transition-transform ${showMore ? "rotate-180" : ""}`}
+          />
+        </button>
+
         {hasActiveFilters && (
           <button
             onClick={clearFilters}
-            className="flex items-center gap-1 text-xs font-semibold text-gray-500 hover:text-[#1E3A8A] px-2 py-1 rounded-lg hover:bg-blue-50 transition-colors"
+            className="flex items-center gap-1 text-xs font-semibold text-gray-400 hover:text-red-500 px-2 h-9 rounded-lg hover:bg-red-50 transition-colors"
           >
             <X className="w-3.5 h-3.5" />
             Limpiar
@@ -70,113 +125,27 @@ export function ProductsFilters({
         )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* 🔍 Buscar */}
-        <Input
-          className="w-full"
-          placeholder="Buscar por nombre o SKU..."
-          value={filters.search}
-          onChange={(e) =>
-            onFiltersChange({ ...filters, search: e.target.value })
-          }
-        />
-
-        {/* 📂 Categoría */}
-        <Select
-          value={filters.category}
-          onValueChange={(value) =>
-            onFiltersChange({ ...filters, category: value })
-          }
-        >
-          <SelectTrigger className="w-full">
-            <SelectValue placeholder="Categoría" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todas las categorías</SelectItem>
-            {normalizedCategories.map((category, idx) => (
-              <SelectItem
-                key={category._id || `cat-${idx}`}
-                value={category._id}
-              >
-                {category.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        {/* 📌 Estado */}
-        <Select
-          value={filters.status}
-          onValueChange={(value) =>
-            onFiltersChange({ ...filters, status: value })
-          }
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Estado" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos los estados</SelectItem>
-            <SelectItem value="active">Activos</SelectItem>
-            <SelectItem value="inactive">Inactivos</SelectItem>
-          </SelectContent>
-        </Select>
-
-        {/* 📦 Stock */}
-        <Select
-          value={filters.stock}
-          onValueChange={(value) =>
-            onFiltersChange({ ...filters, stock: value })
-          }
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Stock" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todo el stock</SelectItem>
-            <SelectItem value="in-stock">Con stock</SelectItem>
-            <SelectItem value="low-stock">Stock bajo</SelectItem>
-            <SelectItem value="out-of-stock">Sin stock</SelectItem>
-          </SelectContent>
-        </Select>
-
-        {/* 💲 Precio mínimo */}
-        <Input
-          type="number"
-          placeholder="Precio mínimo"
-          value={filters.minPrice}
-          onChange={(e) =>
-            onFiltersChange({ ...filters, minPrice: e.target.value })
-          }
-        />
-
-        {/* 💲 Precio máximo */}
-        <Input
-          type="number"
-          placeholder="Precio máximo"
-          value={filters.maxPrice}
-          onChange={(e) =>
-            onFiltersChange({ ...filters, maxPrice: e.target.value })
-          }
-        />
-
-        {/* ⭐ Rating */}
-        <Select
-          value={filters.minRating}
-          onValueChange={(value) =>
-            onFiltersChange({ ...filters, minRating: value })
-          }
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Rating mínimo" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="0">Cualquier rating</SelectItem>
-            <SelectItem value="3">3+ estrellas</SelectItem>
-            <SelectItem value="4">4+ estrellas</SelectItem>
-            <SelectItem value="5">5 estrellas</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+      {/* Más filtros: rango de precio */}
+      {showMore && (
+        <div className="flex gap-2 items-center pt-1">
+          <span className="text-xs text-gray-500 font-medium shrink-0">Precio:</span>
+          <Input
+            type="number"
+            placeholder="Mínimo"
+            value={filters.minPrice}
+            onChange={(e) => onFiltersChange({ ...filters, minPrice: e.target.value })}
+            className="w-32 h-9"
+          />
+          <span className="text-gray-400 text-sm">—</span>
+          <Input
+            type="number"
+            placeholder="Máximo"
+            value={filters.maxPrice}
+            onChange={(e) => onFiltersChange({ ...filters, maxPrice: e.target.value })}
+            className="w-32 h-9"
+          />
+        </div>
+      )}
     </div>
   );
 }

@@ -17,14 +17,16 @@ async function getFeaturedProducts(): Promise<ProductDoc[]> {
   await connectDB();
   initModels();
 
-  const featured = await Product.find({ featured: true })
+  const ACTIVE = { isActive: { $ne: false } };
+
+  const featured = await Product.find({ featured: true, ...ACTIVE })
     .select("name slug price compareAtPrice images brand")
     .limit(8)
     .lean<ProductDoc[]>();
 
   if (featured.length > 0) return featured;
 
-  return Product.find()
+  return Product.find(ACTIVE)
     .select("name slug price compareAtPrice images brand")
     .sort({ createdAt: -1 })
     .limit(8)

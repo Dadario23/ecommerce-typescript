@@ -16,6 +16,7 @@ export async function GET(req: NextRequest) {
   const query: Record<string, unknown> = {
     category: new mongoose.Types.ObjectId(categoryId),
     stock: { $gt: 0 },
+    isActive: { $ne: false },
   };
   if (excludeId && mongoose.isValidObjectId(excludeId)) {
     query._id = { $ne: new mongoose.Types.ObjectId(excludeId) };

@@ -5,16 +5,11 @@ import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import {
-  ArrowLeft,
-  Clock,
-  Package,
-  Truck,
-  CheckCircle,
-  XCircle,
-  Home,
-  CreditCard,
-  MapPin,
+  ArrowLeft, Clock, Package, Truck, CheckCircle, XCircle,
+  Home, CreditCard, MapPin, CalendarDays, Ban, AlertTriangle,
 } from "lucide-react";
+
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 interface OrderItem {
   productId: string;
@@ -46,14 +41,12 @@ interface Order {
   shipping: number;
   total: number;
   shippingAddress: ShippingAddress;
-  payment: {
-    method: string;
-    status: string;
-    transactionId?: string;
-  };
+  payment: { method: string; status: string; transactionId?: string };
   trackingNumber?: string;
   notes?: string;
 }
+
+// ─── Config ───────────────────────────────────────────────────────────────────
 
 const STATUS_CONFIG = {
   pending:    { label: "Pendiente",   icon: Clock,        pill: "bg-yellow-100 text-yellow-700", step: 0 },
@@ -73,8 +66,45 @@ const TIMELINE_STEPS = [
 
 const PAYMENT_LABELS: Record<string, string> = {
   mercadopago: "Mercado Pago",
-  cash: "Contra entrega",
+  cash:        "Contra entrega",
+  transfer:    "Transferencia bancaria",
 };
+
+const CANCELLABLE   = new Set(["pending", "confirmed"]);
+const RESCHEDULABLE = new Set(["pending", "confirmed", "processing"]);
+
+// ─── Date helpers ─────────────────────────────────────────────────────────────
+
+const DAYS_ES   = ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
+const MONTHS_ES = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+
+function addBusinessDays(date: Date, n: number): Date {
+  let count = 0;
+  const d = new Date(date);
+  while (count < n) {
+    d.setDate(d.getDate() + 1);
+    if (d.getDay() !== 0 && d.getDay() !== 6) count++;
+  }
+  return d;
+}
+
+function formatDateLong(date: Date): string {
+  return `${date.getDate()} de ${MONTHS_ES[date.getMonth()]}`;
+}
+
+function getSelectableDates(from: Date): Date[] {
+  return Array.from({ length: 14 }, (_, i) => {
+    const d = new Date(from);
+    d.setDate(d.getDate() + i + 1);
+    return d;
+  }).filter((d) => d.getDay() !== 0 && d.getDay() !== 6);
+}
+
+function toDateStr(d: Date): string {
+  return d.toISOString().split("T")[0];
+}
+
+// ─── Component ────────────────────────────────────────────────────────────────
 
 export default function OrderDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -82,6 +112,18 @@ export default function OrderDetailPage() {
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  // Actions state
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [showReschedule, setShowReschedule] = useState(false);
+  const [selectedDate, setSelectedDate] = useState("any");
+  const [actionLoading, setActionLoading] = useState(false);
+  const [actionError, setActionError] = useState("");
+
+  const today = new Date();
+  const minDate = addBusinessDays(today, 3);
+  const maxDate = addBusinessDays(today, 7);
+  const selectableDates = getSelectableDates(today);
 
   useEffect(() => {
     if (!id) return;
@@ -94,6 +136,59 @@ export default function OrderDetailPage() {
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
   }, [id]);
+
+  async function cancelOrder() {
+    setActionLoading(true);
+    setActionError("");
+    try {
+      const res = await fetch(`/api/orders/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "cancel" }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        setActionError(body.error ?? "No se pudo cancelar la orden");
+        return;
+      }
+      setOrder((prev) => prev ? { ...prev, status: "cancelled" } : null);
+      setShowCancelConfirm(false);
+    } catch {
+      setActionError("Error al cancelar la orden");
+    } finally {
+      setActionLoading(false);
+    }
+  }
+
+  async function rescheduleOrder() {
+    if (selectedDate === "any") { setShowReschedule(false); return; }
+    setActionLoading(true);
+    setActionError("");
+    try {
+      const res = await fetch(`/api/orders/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "reschedule", deliveryDate: selectedDate }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        setActionError(body.error ?? "No se pudo reprogramar el envío");
+        return;
+      }
+      setOrder((prev) =>
+        prev
+          ? { ...prev, notes: `Preferencia de entrega: ${selectedDate}` }
+          : null
+      );
+      setShowReschedule(false);
+    } catch {
+      setActionError("Error al reprogramar el envío");
+    } finally {
+      setActionLoading(false);
+    }
+  }
+
+  // ── Loading / error states ──────────────────────────────────────────────────
 
   if (loading) {
     return (
@@ -135,8 +230,10 @@ export default function OrderDetailPage() {
   const StatusIcon = cfg.icon;
   const isCancelled = order.status === "cancelled";
   const currentStep = cfg.step;
-
   const addr = order.shippingAddress;
+
+  const canCancel   = CANCELLABLE.has(order.status);
+  const canReschedule = RESCHEDULABLE.has(order.status);
 
   return (
     <div className="space-y-5">
@@ -157,10 +254,7 @@ export default function OrderDetailPage() {
           </h2>
           <p className="text-xs text-gray-400 mt-0.5">
             {new Date(order.createdAt).toLocaleDateString("es-AR", {
-              weekday: "long",
-              day: "numeric",
-              month: "long",
-              year: "numeric",
+              weekday: "long", day: "numeric", month: "long", year: "numeric",
             })}
           </p>
         </div>
@@ -174,22 +268,16 @@ export default function OrderDetailPage() {
       {!isCancelled && (
         <div className="bg-gray-50 rounded-xl p-4">
           <div className="flex items-center justify-between relative">
-            {/* Connecting line */}
             <div className="absolute left-4 right-4 top-4 h-px bg-gray-200 z-0" />
-
             {TIMELINE_STEPS.map((step, i) => {
-              const done = i <= currentStep;
+              const done   = i <= currentStep;
               const active = i === currentStep;
-              const Icon = step.icon;
+              const Icon   = step.icon;
               return (
                 <div key={i} className="flex flex-col items-center gap-2 z-10">
-                  <div
-                    className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${
-                      done
-                        ? "bg-[#1E3A8A] border-[#1E3A8A]"
-                        : "bg-white border-gray-200"
-                    } ${active ? "ring-4 ring-blue-100" : ""}`}
-                  >
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 ${
+                    done ? "bg-[#1E3A8A] border-[#1E3A8A]" : "bg-white border-gray-200"
+                  } ${active ? "ring-4 ring-blue-100" : ""}`}>
                     <Icon className={`w-3.5 h-3.5 ${done ? "text-white" : "text-gray-300"}`} />
                   </div>
                   <span className={`text-[10px] font-medium text-center ${done ? "text-[#1E3A8A]" : "text-gray-400"}`}>
@@ -273,7 +361,6 @@ export default function OrderDetailPage() {
 
       {/* Info grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {/* Shipping address */}
         <div className="border border-gray-100 rounded-xl p-4">
           <div className="flex items-center gap-2 mb-3">
             <MapPin className="w-4 h-4 text-gray-400" />
@@ -290,7 +377,6 @@ export default function OrderDetailPage() {
           </div>
         </div>
 
-        {/* Payment */}
         <div className="border border-gray-100 rounded-xl p-4">
           <div className="flex items-center gap-2 mb-3">
             <CreditCard className="w-4 h-4 text-gray-400" />
@@ -303,10 +389,8 @@ export default function OrderDetailPage() {
               {PAYMENT_LABELS[order.payment.method] ?? order.payment.method}
             </p>
             <p className={`text-xs font-semibold ${
-              order.payment.status === "completed"
-                ? "text-green-600"
-                : order.payment.status === "pending"
-                ? "text-yellow-600"
+              order.payment.status === "completed" ? "text-green-600"
+                : order.payment.status === "pending" ? "text-yellow-600"
                 : "text-gray-500"
             }`}>
               {order.payment.status === "completed" ? "Pago recibido"
@@ -325,6 +409,170 @@ export default function OrderDetailPage() {
       {order.notes && (
         <div className="bg-yellow-50 border border-yellow-100 rounded-xl px-4 py-3 text-sm text-yellow-800">
           <span className="font-medium">Nota: </span>{order.notes}
+        </div>
+      )}
+
+      {/* ── Acciones del usuario ── */}
+      {(canCancel || canReschedule) && (
+        <div className="border border-gray-100 rounded-xl overflow-hidden">
+          <p className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-gray-400 border-b border-gray-50">
+            Gestionar pedido
+          </p>
+          <div className="p-4 space-y-3">
+
+            {/* Reprogramar envío */}
+            {canReschedule && !showReschedule && !showCancelConfirm && (
+              <button
+                type="button"
+                onClick={() => { setShowReschedule(true); setActionError(""); }}
+                className="w-full flex items-center gap-3 p-3 rounded-xl border border-gray-200 hover:border-[#1E3A8A] hover:bg-blue-50 transition-all text-left"
+              >
+                <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
+                  <CalendarDays className="w-4 h-4 text-[#1E3A8A]" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-gray-800">
+                    Reprogramar el envío
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    Elegí un día de entrega diferente
+                  </p>
+                </div>
+              </button>
+            )}
+
+            {/* Selector de fecha inline */}
+            {showReschedule && (
+              <div className="rounded-xl border border-[#1E3A8A]/20 bg-blue-50/50 p-4 space-y-3">
+                <p className="text-sm font-semibold text-gray-800 flex items-center gap-2">
+                  <CalendarDays className="w-4 h-4 text-[#1E3A8A]" />
+                  Elegí el día que preferís recibir tu pedido
+                </p>
+                <p className="text-xs text-gray-500">
+                  Entrega estimada: {formatDateLong(minDate)} – {formatDateLong(maxDate)}
+                </p>
+
+                <div className="flex gap-2 overflow-x-auto pb-1">
+                  {selectableDates.map((date) => {
+                    const str = toDateStr(date);
+                    const isSelected = selectedDate === str;
+                    const isInRange = date >= minDate && date <= maxDate;
+                    return (
+                      <button
+                        key={str}
+                        type="button"
+                        onClick={() => setSelectedDate(str)}
+                        className={`flex flex-col items-center shrink-0 w-14 py-2.5 rounded-xl border-2 transition-all ${
+                          isSelected
+                            ? "border-[#1E3A8A] bg-[#1E3A8A]"
+                            : isInRange
+                            ? "border-green-200 bg-green-50 hover:border-green-400"
+                            : "border-gray-200 bg-white hover:border-gray-300"
+                        }`}
+                      >
+                        <span className={`text-[10px] font-medium ${isSelected ? "text-blue-200" : "text-gray-500"}`}>
+                          {DAYS_ES[date.getDay()]}
+                        </span>
+                        <span className={`text-base font-bold ${isSelected ? "text-white" : "text-gray-800"}`}>
+                          {date.getDate()}
+                        </span>
+                        <span className={`text-[10px] ${isSelected ? "text-blue-200" : "text-gray-400"}`}>
+                          {MONTHS_ES[date.getMonth()]}
+                        </span>
+                        {isInRange && !isSelected && (
+                          <div className="w-1 h-1 bg-green-500 rounded-full mt-1" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {selectedDate !== "any" && (
+                  <p className="text-xs text-[#1E3A8A] font-medium">
+                    Seleccionaste el {formatDateLong(new Date(selectedDate + "T00:00:00"))}
+                  </p>
+                )}
+
+                <div className="flex gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={rescheduleOrder}
+                    disabled={actionLoading || selectedDate === "any"}
+                    className="flex-1 bg-[#1E3A8A] hover:bg-blue-800 text-white text-sm font-semibold py-2.5 rounded-xl transition-colors disabled:opacity-60"
+                  >
+                    {actionLoading ? "Guardando..." : "Confirmar fecha"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setShowReschedule(false); setSelectedDate("any"); setActionError(""); }}
+                    className="px-4 text-sm font-semibold text-gray-500 hover:text-gray-700 border border-gray-200 rounded-xl transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Cancelar compra */}
+            {canCancel && !showReschedule && !showCancelConfirm && (
+              <button
+                type="button"
+                onClick={() => { setShowCancelConfirm(true); setActionError(""); }}
+                className="w-full flex items-center gap-3 p-3 rounded-xl border border-gray-200 hover:border-red-300 hover:bg-red-50 transition-all text-left"
+              >
+                <div className="w-9 h-9 rounded-lg bg-red-50 flex items-center justify-center shrink-0">
+                  <Ban className="w-4 h-4 text-red-500" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-gray-800">
+                    Cancelar compra
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    Se cancelará el pedido y se restaurará el stock
+                  </p>
+                </div>
+              </button>
+            )}
+
+            {/* Confirmación de cancelación */}
+            {showCancelConfirm && (
+              <div className="rounded-xl border border-red-200 bg-red-50 p-4 space-y-3">
+                <div className="flex items-start gap-3">
+                  <AlertTriangle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-semibold text-gray-800">
+                      ¿Cancelar este pedido?
+                    </p>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      Esta acción no se puede deshacer. Si pagaste con Mercado Pago, el
+                      reembolso se gestiona por separado.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={cancelOrder}
+                    disabled={actionLoading}
+                    className="flex-1 bg-red-500 hover:bg-red-600 text-white text-sm font-semibold py-2.5 rounded-xl transition-colors disabled:opacity-60"
+                  >
+                    {actionLoading ? "Cancelando..." : "Sí, cancelar"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setShowCancelConfirm(false); setActionError(""); }}
+                    className="px-4 text-sm font-semibold text-gray-600 hover:text-gray-800 border border-gray-200 rounded-xl transition-colors"
+                  >
+                    No
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {actionError && (
+              <p className="text-xs text-red-500 px-1">{actionError}</p>
+            )}
+          </div>
         </div>
       )}
     </div>

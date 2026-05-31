@@ -38,6 +38,7 @@ export default async function HomeCategoriesSection({ categories }: Props) {
   const allProducts = await Product.find({
     category: { $in: categoryIds },
     stock: { $gt: 0 },
+    isActive: { $ne: false },
   })
     .select("name slug price compareAtPrice images brand category")
     .sort({ featured: -1, createdAt: -1 })
