@@ -24,15 +24,26 @@ export default function ProductInfo({ product }: { product: IProduct }) {
 
   return (
     <div className="space-y-5">
-      {/* Brand + stock */}
-      <div className="flex items-center justify-between">
-        {product.brand ? (
-          <span className="text-xs font-semibold uppercase tracking-widest text-blue-600">
-            {product.brand}
+      {/* Brand + condition + stock */}
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          {product.brand && (
+            <span className="text-xs font-semibold uppercase tracking-widest text-blue-600">
+              {product.brand}
+            </span>
+          )}
+          <span
+            className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
+              product.condition === "used"
+                ? "bg-amber-100 text-amber-700"
+                : "bg-gray-100 text-gray-600"
+            }`}
+          >
+            {product.condition === "used" ? "Usado" : "Nuevo"}
           </span>
-        ) : <span />}
+        </div>
         <span
-          className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
+          className={`text-xs font-semibold px-2.5 py-1 rounded-full shrink-0 ${
             isInStock
               ? "bg-green-100 text-green-700"
               : "bg-red-100 text-red-600"
