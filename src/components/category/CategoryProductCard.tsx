@@ -10,6 +10,7 @@ interface Product {
   images: string[];
   brand?: string;
   stock?: number;
+  condition?: "new" | "used";
 }
 
 interface Props {
@@ -26,6 +27,7 @@ export default function CategoryProductCard({ product, listView = false }: Props
     : 0;
   const installment = Math.ceil(product.price / 12);
   const outOfStock  = (product.stock ?? 0) === 0;
+  const isUsed      = product.condition === "used";
 
   /* ── VISTA LISTA ── */
   if (listView) {
@@ -52,11 +54,18 @@ export default function CategoryProductCard({ product, listView = false }: Props
 
         {/* Info */}
         <div className="flex-1 min-w-0 flex flex-col justify-center gap-1.5 py-1">
-          {product.brand && (
-            <p className="text-xs font-semibold uppercase tracking-wide text-blue-600">
-              {product.brand}
-            </p>
-          )}
+          <div className="flex items-center gap-2 flex-wrap">
+            {product.brand && (
+              <p className="text-xs font-semibold uppercase tracking-wide text-blue-600">
+                {product.brand}
+              </p>
+            )}
+            {isUsed && (
+              <span className="text-[10px] font-bold bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded">
+                Usado
+              </span>
+            )}
+          </div>
           <h3 className="text-sm font-medium text-gray-800 line-clamp-3 leading-snug">
             {product.name}
           </h3>
@@ -100,6 +109,11 @@ export default function CategoryProductCard({ product, listView = false }: Props
         {outOfStock && (
           <span className="absolute top-2 right-2 z-10 bg-gray-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
             Sin stock
+          </span>
+        )}
+        {isUsed && !outOfStock && (
+          <span className="absolute top-2 right-2 z-10 bg-amber-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
+            Usado
           </span>
         )}
         <Image

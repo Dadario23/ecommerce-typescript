@@ -24,6 +24,7 @@ interface Product {
   images: string[];
   brand?: string;
   stock?: number;
+  condition?: "new" | "used";
   category: string;
 }
 
@@ -98,6 +99,7 @@ export default function SearchClient() {
     minPrice: 0,
     maxPrice: Infinity,
     inStockOnly: false,
+    condition: "all",
   });
 
   useEffect(() => {
@@ -114,6 +116,8 @@ export default function SearchClient() {
       if (filters.inStockOnly && (p.stock ?? 0) <= 0) return false;
       if (p.price < filters.minPrice || p.price > filters.maxPrice) return false;
       if (filters.brands.length > 0 && (!p.brand || !filters.brands.includes(p.brand)))
+        return false;
+      if (filters.condition !== "all" && (p.condition ?? "new") !== filters.condition)
         return false;
       return true;
     });
@@ -139,6 +143,7 @@ export default function SearchClient() {
   const activeFilterCount =
     filters.brands.length +
     (filters.inStockOnly ? 1 : 0) +
+    (filters.condition !== "all" ? 1 : 0) +
     (filters.minPrice > priceRange.min || filters.maxPrice < priceRange.max ? 1 : 0);
 
   return (
@@ -268,6 +273,7 @@ export default function SearchClient() {
                         minPrice: priceRange.min,
                         maxPrice: priceRange.max,
                         inStockOnly: false,
+                        condition: "all",
                       })
                     }
                     className="text-sm text-[#1E3A8A] font-medium hover:underline"

@@ -11,6 +11,7 @@ interface Product {
   brand?: string;
   sku?: string;
   stock?: number;
+  condition?: "new" | "used";
 }
 
 export default function ProductDetailsSection({ product }: { product?: Product }) {
@@ -89,6 +90,29 @@ export default function ProductDetailsSection({ product }: { product?: Product }
             defaultValue={product?.stock ?? 0}
             className={INPUT}
           />
+        </div>
+
+        <div>
+          <label className="text-xs font-medium text-gray-600 mb-1.5 block">Condición</label>
+          <div className="flex gap-2">
+            {(["new", "used"] as const).map((val) => (
+              <label
+                key={val}
+                className="flex-1 flex items-center justify-center gap-2 border border-gray-200 rounded-xl py-2.5 cursor-pointer has-[:checked]:border-[#1E3A8A] has-[:checked]:bg-blue-50 transition-colors"
+              >
+                <input
+                  type="radio"
+                  name="condition"
+                  value={val}
+                  defaultChecked={(product?.condition ?? "new") === val}
+                  className="accent-[#1E3A8A]"
+                />
+                <span className="text-sm font-medium text-gray-700">
+                  {val === "new" ? "Nuevo" : "Usado"}
+                </span>
+              </label>
+            ))}
+          </div>
         </div>
       </div>
     </div>
