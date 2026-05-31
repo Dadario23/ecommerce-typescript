@@ -10,6 +10,7 @@ export interface ActiveFilters {
   maxPrice: number;
   inStockOnly: boolean;
   condition: "all" | "new" | "used";
+  shipping: "all" | "flex" | "standard";
 }
 
 interface FiltersSidebarProps {
@@ -36,6 +37,7 @@ export default function FiltersSidebar({
     filters.brands.length > 0 ||
     filters.inStockOnly ||
     filters.condition !== "all" ||
+    filters.shipping !== "all" ||
     filters.minPrice > priceRange.min ||
     filters.maxPrice < priceRange.max;
 
@@ -46,6 +48,7 @@ export default function FiltersSidebar({
       maxPrice: priceRange.max,
       inStockOnly: false,
       condition: "all",
+      shipping: "all",
     });
   };
 
@@ -128,6 +131,34 @@ export default function FiltersSidebar({
                 <button
                   key={val}
                   onClick={() => onChange({ ...filters, condition: val })}
+                  className={`flex-1 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
+                    active
+                      ? "bg-[#1E3A8A] text-white border-[#1E3A8A]"
+                      : "bg-white text-gray-600 border-gray-200 hover:border-blue-300"
+                  }`}
+                >
+                  {labels[val]}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="border-t border-gray-100" />
+
+        {/* Tipo de envío */}
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3">
+            Tipo de envío
+          </p>
+          <div className="flex gap-2">
+            {(["all", "flex", "standard"] as const).map((val) => {
+              const labels = { all: "Todos", flex: "⚡ Flex", standard: "🚚 Estándar" };
+              const active = filters.shipping === val;
+              return (
+                <button
+                  key={val}
+                  onClick={() => onChange({ ...filters, shipping: val })}
                   className={`flex-1 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
                     active
                       ? "bg-[#1E3A8A] text-white border-[#1E3A8A]"

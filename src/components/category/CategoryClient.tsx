@@ -24,6 +24,7 @@ interface Product {
   brand?: string;
   stock?: number;
   condition?: "new" | "used";
+  shippingTypes?: string[];
 }
 
 interface CategoryClientProps {
@@ -73,6 +74,7 @@ export default function CategoryClient({
     maxPrice: priceRange.max,
     inStockOnly: false,
     condition: "all",
+    shipping: "all",
   });
 
   const handleFilterChange = (next: ActiveFilters) => {
@@ -87,6 +89,8 @@ export default function CategoryClient({
       if (filters.brands.length > 0 && (!p.brand || !filters.brands.includes(p.brand)))
         return false;
       if (filters.condition !== "all" && (p.condition ?? "new") !== filters.condition)
+        return false;
+      if (filters.shipping !== "all" && !(p.shippingTypes ?? ["flex","standard"]).includes(filters.shipping))
         return false;
       return true;
     });
@@ -111,6 +115,7 @@ export default function CategoryClient({
     filters.brands.length +
     (filters.inStockOnly ? 1 : 0) +
     (filters.condition !== "all" ? 1 : 0) +
+    (filters.shipping !== "all" ? 1 : 0) +
     (filters.minPrice > priceRange.min || filters.maxPrice < priceRange.max ? 1 : 0);
 
   return (
@@ -245,6 +250,7 @@ export default function CategoryClient({
                       maxPrice: priceRange.max,
                       inStockOnly: false,
                       condition: "all",
+    shipping: "all",
                     })
                   }
                   className="text-sm text-[#1E3A8A] font-medium hover:underline"

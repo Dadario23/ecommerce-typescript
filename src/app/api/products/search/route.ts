@@ -4,7 +4,7 @@ import Product from "@/models/Product";
 import Category from "@/models/Category";
 
 const SELECT_FIELDS =
-  "name slug images price compareAtPrice brand stock condition category avgRating reviewCount";
+  "name slug images price compareAtPrice brand stock condition shippingTypes category avgRating reviewCount";
 
 export async function GET(req: Request) {
   try {

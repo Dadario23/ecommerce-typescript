@@ -7,6 +7,7 @@ import ProductGallery from "@/components/products/ProductGallery";
 import ProductInfo from "@/components/products/ProductInfo";
 import ProductBuyActions from "@/components/products/ProductBuyActions";
 import ProductShipping from "@/components/products/ProductShipping";
+import ProductShippingCalculator from "@/components/products/ProductShippingCalculator";
 import ProductTabs from "@/components/products/ProductTabs";
 import SimilarProducts from "@/components/products/SimilarProducts";
 import type { SimilarProduct } from "@/components/products/SimilarProducts";
@@ -62,6 +63,7 @@ export default function ProductPageClient({
               )}
 
               <ProductBuyActions product={product} />
+              <ProductShippingCalculator shippingTypes={product.shippingTypes ?? ["flex", "standard"]} />
               <ProductShipping />
             </div>
           </div>

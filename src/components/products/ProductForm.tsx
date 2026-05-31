@@ -36,6 +36,8 @@ interface Product {
   brand?: string;
   sku?: string;
   stock?: number;
+  condition?: "new" | "used";
+  shippingTypes?: string[];
 }
 
 interface ProductFormProps {
@@ -96,6 +98,10 @@ export default function ProductForm({ product, loading, onSubmit, actionLabel }:
       images:            finalImageUrls,
       isActive:          isActiveRaw === "true",
       featured:          formData.get("featured") === "true",
+      condition:         formData.get("condition") || "new",
+      shippingTypes:     (() => {
+        try { return JSON.parse(formData.get("shippingTypes") as string); } catch { return ["flex", "standard"]; }
+      })(),
     });
   };
 

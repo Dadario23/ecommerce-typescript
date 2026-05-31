@@ -19,6 +19,7 @@ export interface IProduct extends Document {
   stock?: number;
   sku?: string;
   condition?: "new" | "used";
+  shippingTypes?: Array<"flex" | "standard" | "national">;
   isActive?: boolean;
   avgRating?: number;
   reviewCount?: number;
@@ -51,7 +52,8 @@ const ProductSchema: Schema = new Schema(
     brand: { type: String },
     sku: { type: String },
     stock: { type: Number, default: 0 },
-    condition: { type: String, enum: ["new", "used"], default: "new" },
+    condition:     { type: String, enum: ["new", "used"], default: "new" },
+    shippingTypes: { type: [String], default: ["flex", "standard"] },
     avgRating: { type: Number, default: 0 },
     reviewCount: { type: Number, default: 0 },
     unitsSold: { type: Number, default: 0 },

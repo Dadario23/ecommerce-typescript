@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { normalizeCategories, CategoryOption } from "@/lib/normalizeCategories";
+import { Truck, Zap, Globe } from "lucide-react";
 
 const INPUT =
   "w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-300 placeholder:text-gray-300 transition-colors";
@@ -12,11 +13,27 @@ interface Product {
   sku?: string;
   stock?: number;
   condition?: "new" | "used";
+  shippingTypes?: string[];
 }
+
+const SHIPPING_OPTIONS = [
+  { value: "flex",     label: "Envío flex",     icon: Zap,   desc: "Mismo día / día siguiente" },
+  { value: "standard", label: "Envío estándar", icon: Truck, desc: "2-3 días hábiles" },
+  { value: "national", label: "Interior del país", icon: Globe, desc: "Correo Arg / Andreani / OCA" },
+] as const;
 
 export default function ProductDetailsSection({ product }: { product?: Product }) {
   const [categories, setCategories] = useState<CategoryOption[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>("");
+  const [shippingTypes, setShippingTypes] = useState<string[]>(
+    product?.shippingTypes ?? ["flex", "standard"],
+  );
+
+  const toggleShipping = (value: string) => {
+    setShippingTypes((prev) =>
+      prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value],
+    );
+  };
 
   useEffect(() => {
     fetch("/api/categories")
@@ -90,6 +107,41 @@ export default function ProductDetailsSection({ product }: { product?: Product }
             defaultValue={product?.stock ?? 0}
             className={INPUT}
           />
+        </div>
+
+        {/* Tipos de envío */}
+        <div>
+          <label className="text-xs font-medium text-gray-600 mb-1.5 block">Tipos de envío</label>
+          <input type="hidden" name="shippingTypes" value={JSON.stringify(shippingTypes)} />
+          <div className="space-y-2">
+            {SHIPPING_OPTIONS.map(({ value, label, icon: Icon, desc }) => {
+              const checked = shippingTypes.includes(value);
+              return (
+                <label
+                  key={value}
+                  className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-colors ${
+                    checked
+                      ? "border-[#1E3A8A] bg-blue-50"
+                      : "border-gray-200 hover:border-gray-300"
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={() => toggleShipping(value)}
+                    className="accent-[#1E3A8A] w-4 h-4 shrink-0"
+                  />
+                  <Icon className={`w-4 h-4 shrink-0 ${checked ? "text-[#1E3A8A]" : "text-gray-400"}`} />
+                  <div className="min-w-0">
+                    <p className={`text-sm font-semibold ${checked ? "text-[#1E3A8A]" : "text-gray-700"}`}>
+                      {label}
+                    </p>
+                    <p className="text-xs text-gray-400">{desc}</p>
+                  </div>
+                </label>
+              );
+            })}
+          </div>
         </div>
 
         <div>

@@ -11,6 +11,7 @@ interface Product {
   brand?: string;
   stock?: number;
   condition?: "new" | "used";
+  shippingTypes?: string[];
 }
 
 interface Props {
@@ -28,6 +29,8 @@ export default function CategoryProductCard({ product, listView = false }: Props
   const installment = Math.ceil(product.price / 12);
   const outOfStock  = (product.stock ?? 0) === 0;
   const isUsed      = product.condition === "used";
+  const hasFlex     = product.shippingTypes?.includes("flex") ?? true;
+  const hasStandard = !hasFlex && (product.shippingTypes?.includes("standard") ?? true);
 
   /* ── VISTA LISTA ── */
   if (listView) {
@@ -149,6 +152,15 @@ export default function CategoryProductCard({ product, listView = false }: Props
             <p className="text-[10px] text-blue-700 font-medium">
               12x ${installment.toLocaleString("es-AR")}
             </p>
+          )}
+          {!outOfStock && (hasFlex || hasStandard) && (
+            <span className={`mt-1 inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded w-fit ${
+              hasFlex
+                ? "bg-green-50 text-green-700"
+                : "bg-blue-50 text-blue-700"
+            }`}>
+              {hasFlex ? "⚡ Envío flex" : "🚚 Envío estándar"}
+            </span>
           )}
         </div>
       </div>

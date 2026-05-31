@@ -21,6 +21,7 @@ import {
   BarChart2,
   Settings,
   GalleryHorizontal,
+  Truck,
   Wrench,
   ClipboardCheck,
   BookOpen,
@@ -67,6 +68,7 @@ const NAV_SECTIONS: NavSection[] = [
         ],
       },
       { href: "/dashboard/carousel", label: "Carousel", icon: GalleryHorizontal },
+      { href: "/dashboard/shipping", label: "Tarifas de envío", icon: Truck },
     ],
   },
   {
