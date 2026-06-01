@@ -38,7 +38,9 @@ export default function ShippingBadge({
   // ── Fuera del AMBA (IP sin zona) — solo envío nacional ──────────────────
   if (source === "ip" && !zone) {
     return (
-      <span className={`${text} text-gray-400`}>Envío al interior disponible</span>
+      <span className={`${text} text-gray-400`}>
+        Envío al interior disponible
+      </span>
     );
   }
 
@@ -47,7 +49,7 @@ export default function ShippingBadge({
     const today = isBeforeNoon();
     return (
       <span className={`${text} font-semibold text-green-700`}>
-        {today ? "⚡ Llega gratis hoy" : "⚡ Llega gratis mañana"}
+        {today ? "Llega gratis hoy" : "Llega gratis mañana"}
       </span>
     );
   }
