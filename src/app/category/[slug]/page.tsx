@@ -40,7 +40,7 @@ const getCategoryAndProducts = cache(async (slug: string) => {
   if (!category) return null;
 
   const products = await Product.find({ category: category._id, isActive: { $ne: false } })
-    .select("name slug price compareAtPrice images brand stock condition shippingTypes")
+    .select("name slug price compareAtPrice images brand stock condition shippingTypes freeShipping")
     .sort({ createdAt: -1 })
     .lean();
 

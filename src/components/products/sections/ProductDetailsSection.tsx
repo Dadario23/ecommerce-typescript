@@ -14,6 +14,7 @@ interface Product {
   stock?: number;
   condition?: "new" | "used";
   shippingTypes?: string[];
+  freeShipping?: boolean;
 }
 
 const SHIPPING_OPTIONS = [
@@ -107,6 +108,24 @@ export default function ProductDetailsSection({ product }: { product?: Product }
             defaultValue={product?.stock ?? 0}
             className={INPUT}
           />
+        </div>
+
+        {/* Envío gratis */}
+        <div className="flex items-center justify-between p-3 border border-gray-200 rounded-xl">
+          <div>
+            <p className="text-sm font-semibold text-gray-700">Envío gratis</p>
+            <p className="text-xs text-gray-400">El costo se absorbe en el precio del producto</p>
+          </div>
+          <label className="relative inline-flex items-center cursor-pointer">
+            <input
+              type="checkbox"
+              name="freeShipping"
+              value="true"
+              defaultChecked={product?.freeShipping ?? false}
+              className="sr-only peer"
+            />
+            <div className="w-10 h-5 bg-gray-200 peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:bg-[#1E3A8A] after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-5" />
+          </label>
         </div>
 
         {/* Tipos de envío */}

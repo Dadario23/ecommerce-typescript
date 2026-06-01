@@ -1,0 +1,87 @@
+"use client";
+
+import Link from "next/link";
+import { ShippingZone, ZoneSource } from "@/hooks/useShippingZone";
+
+interface Props {
+  freeShipping: boolean;
+  shippingTypes: string[];
+  zone: ShippingZone | null;
+  source: ZoneSource;
+  loading: boolean;
+  size?: "sm" | "md";
+}
+
+function isBeforeNoon() {
+  return new Date().getHours() < 12;
+}
+
+export default function ShippingBadge({
+  freeShipping,
+  shippingTypes,
+  zone,
+  source,
+  loading,
+  size = "sm",
+}: Props) {
+  const text  = size === "sm" ? "text-[11px]" : "text-xs";
+  const hasFlex     = shippingTypes.includes("flex");
+  const hasStandard = shippingTypes.includes("standard");
+
+  if (loading) {
+    return <div className="h-4 w-28 bg-gray-100 rounded animate-pulse" />;
+  }
+
+  // ── Envío gratis (absorbe el costo) ──────────────────────────────────────
+  if (freeShipping) {
+    const today = isBeforeNoon();
+    return (
+      <span className={`${text} font-semibold text-green-700`}>
+        ⚡ {today ? "Llega gratis hoy" : "Llega gratis mañana"}
+      </span>
+    );
+  }
+
+  // ── Zona detectada ────────────────────────────────────────────────────────
+  if (zone) {
+    if (hasFlex) {
+      const today = isBeforeNoon();
+      return (
+        <span className={`${text} font-semibold text-green-700`}>
+          ⚡ {today ? "Llega hoy" : "Llega mañana"} · ${zone.flex.toLocaleString("es-AR")}
+        </span>
+      );
+    }
+    if (hasStandard) {
+      return (
+        <span className={`${text} font-semibold text-blue-700`}>
+          🚚 Envío estándar · ${zone.standard.toLocaleString("es-AR")}
+        </span>
+      );
+    }
+    return null;
+  }
+
+  // ── Sin dirección (logueado sin domicilio) ────────────────────────────────
+  if (source === "no-address") {
+    return (
+      <Link href="/account/addresses" className={`${text} font-medium text-blue-600 hover:underline`}>
+        Agregá tu domicilio para ver envíos
+      </Link>
+    );
+  }
+
+  // ── No logueado ───────────────────────────────────────────────────────────
+  if (source === "unknown" || source === null) {
+    return (
+      <Link href="/login" className={`${text} font-medium text-blue-600 hover:underline`}>
+        Iniciá sesión para ver envíos
+      </Link>
+    );
+  }
+
+  // ── Zona fuera de cobertura ───────────────────────────────────────────────
+  return (
+    <span className={`${text} text-gray-400`}>Consultá opciones de envío</span>
+  );
+}

@@ -6,23 +6,30 @@ import ShippingConfig from "@/models/ShippingConfig";
 
 const DEFAULT_ZONES = [
   {
+    id: "caba",
+    name: "CABA",
+    localities: ["Buenos Aires","Ciudad Autónoma de Buenos Aires","CABA","Palermo","Belgrano","Caballito","Flores","Villa Urquiza","Almagro","Balvanera","San Telmo","La Boca","Recoleta","Barracas","Villa del Parque","Mataderos","Liniers","Parque Patricios"],
+    flex: 3200,
+    standard: 2500,
+  },
+  {
     id: "gba1",
     name: "GBA 1",
-    localities: ["Lomas de Zamora", "Lanús", "Avellaneda"],
+    localities: ["Lomas de Zamora","Lanús","Avellaneda","Morón","Ituzaingó","Hurlingham","Tres de Febrero","San Martín","San Isidro","Vicente López","San Fernando","Haedo","Ramos Mejía","San Justo","Ciudadela","Castelar","El Palomar","Martínez","Olivos","Florida","Munro","Villa Adelina","Boulogne"],
     flex: 4500,
     standard: 3800,
   },
   {
     id: "gba2",
     name: "GBA 2",
-    localities: ["Quilmes", "Almirante Brown", "Florencio Varela", "Berazategui"],
+    localities: ["Quilmes","Almirante Brown","Florencio Varela","Berazategui","Tigre","San Miguel","Malvinas Argentinas","José C. Paz","Moreno","Merlo","La Matanza","Ezeiza","Esteban Echeverría","Don Torcuato","General Pacheco","Temperley","Adrogué","Longchamps","Monte Grande","Villa Domínico","Wilde","Bernal","Quilmes Oeste"],
     flex: 5300,
     standard: 4600,
   },
   {
     id: "gba3",
     name: "GBA 3",
-    localities: ["La Plata"],
+    localities: ["La Plata","Guernica","Cañuelas","Marcos Paz","General Rodríguez","Pilar","Escobar","Berisso","Ensenada","City Bell","Gonnet","Ringuelet","Manuel B. Gonnet","Del Viso","Maquinista Savio","Garín","Campana","Zárate"],
     flex: 5800,
     standard: 5100,
   },

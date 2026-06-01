@@ -63,7 +63,10 @@ export default function ProductPageClient({
               )}
 
               <ProductBuyActions product={product} />
-              <ProductShippingCalculator shippingTypes={product.shippingTypes ?? ["flex", "standard"]} />
+              <ProductShippingCalculator
+                shippingTypes={product.shippingTypes ?? ["flex", "standard"]}
+                freeShipping={product.freeShipping ?? false}
+              />
               <ProductShipping />
             </div>
           </div>

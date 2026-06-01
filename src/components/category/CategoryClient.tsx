@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Home, ChevronRight, SlidersHorizontal, X, ChevronDown, LayoutGrid, List } from "lucide-react";
+import { Home, ChevronRight, SlidersHorizontal, X, ChevronDown } from "lucide-react";
 import FiltersSidebar, { ActiveFilters } from "@/components/category/FiltersSidebar";
 import CategoryProductCard from "@/components/category/CategoryProductCard";
 import {
@@ -13,6 +13,7 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import { useMemo, useState } from "react";
+import { useShippingZone } from "@/hooks/useShippingZone";
 
 interface Product {
   _id: string;
@@ -25,6 +26,7 @@ interface Product {
   stock?: number;
   condition?: "new" | "used";
   shippingTypes?: string[];
+  freeShipping?: boolean;
 }
 
 interface CategoryClientProps {
@@ -33,37 +35,30 @@ interface CategoryClientProps {
 }
 
 type SortOption = "newest" | "price-asc" | "price-desc" | "discount";
-type ViewMode  = "grid" | "list";
 
 const SORT_LABELS: Record<SortOption, string> = {
-  newest: "Más nuevos",
-  "price-asc": "Menor precio",
+  newest:       "Más nuevos",
+  "price-asc":  "Menor precio",
   "price-desc": "Mayor precio",
-  discount: "Mayor descuento",
+  discount:     "Mayor descuento",
 };
 
 const ITEMS_PER_PAGE = 12;
 
-export default function CategoryClient({
-  categoryName,
-  initialProducts,
-}: CategoryClientProps) {
-  const [page, setPage] = useState(1);
-  const [sort, setSort] = useState<SortOption>("newest");
-  const [sortOpen, setSortOpen] = useState(false);
+export default function CategoryClient({ categoryName, initialProducts }: CategoryClientProps) {
+  const [page, setPage]                   = useState(1);
+  const [sort, setSort]                   = useState<SortOption>("newest");
+  const [sortOpen, setSortOpen]           = useState(false);
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<ViewMode>("grid");
+  const shippingZone = useShippingZone();
 
   const availableBrands = useMemo(
-    () =>
-      Array.from(
-        new Set(initialProducts.map((p) => p.brand).filter(Boolean) as string[])
-      ).sort(),
-    [initialProducts]
+    () => Array.from(new Set(initialProducts.map((p) => p.brand).filter(Boolean) as string[])).sort(),
+    [initialProducts],
   );
 
   const priceRange = useMemo(() => {
-    if (initialProducts.length === 0) return { min: 0, max: 0 };
+    if (!initialProducts.length) return { min: 0, max: 0 };
     const prices = initialProducts.map((p) => p.price);
     return { min: Math.min(...prices), max: Math.max(...prices) };
   }, [initialProducts]);
@@ -77,39 +72,29 @@ export default function CategoryClient({
     shipping: "all",
   });
 
-  const handleFilterChange = (next: ActiveFilters) => {
-    setFilters(next);
-    setPage(1);
-  };
+  const handleFilterChange = (next: ActiveFilters) => { setFilters(next); setPage(1); };
 
   const filteredProducts = useMemo(() => {
     let list = initialProducts.filter((p) => {
       if (filters.inStockOnly && (p.stock ?? 0) <= 0) return false;
       if (p.price < filters.minPrice || p.price > filters.maxPrice) return false;
-      if (filters.brands.length > 0 && (!p.brand || !filters.brands.includes(p.brand)))
-        return false;
-      if (filters.condition !== "all" && (p.condition ?? "new") !== filters.condition)
-        return false;
-      if (filters.shipping !== "all" && !(p.shippingTypes ?? ["flex","standard"]).includes(filters.shipping))
-        return false;
+      if (filters.brands.length > 0 && (!p.brand || !filters.brands.includes(p.brand))) return false;
+      if (filters.condition !== "all" && (p.condition ?? "new") !== filters.condition) return false;
+      if (filters.shipping !== "all" && !(p.shippingTypes ?? ["flex","standard"]).includes(filters.shipping)) return false;
       return true;
     });
-
-    if (sort === "price-asc") list = [...list].sort((a, b) => a.price - b.price);
+    if (sort === "price-asc")  list = [...list].sort((a, b) => a.price - b.price);
     else if (sort === "price-desc") list = [...list].sort((a, b) => b.price - a.price);
-    else if (sort === "discount")
-      list = [...list].sort((a, b) => {
-        const da = a.compareAtPrice ? a.compareAtPrice - a.price : 0;
-        const db = b.compareAtPrice ? b.compareAtPrice - b.price : 0;
-        return db - da;
-      });
-
+    else if (sort === "discount") list = [...list].sort((a, b) => {
+      const da = a.compareAtPrice ? a.compareAtPrice - a.price : 0;
+      const db = b.compareAtPrice ? b.compareAtPrice - b.price : 0;
+      return db - da;
+    });
     return list;
   }, [initialProducts, filters, sort]);
 
   const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE);
-  const start = (page - 1) * ITEMS_PER_PAGE;
-  const paginatedProducts = filteredProducts.slice(start, start + ITEMS_PER_PAGE);
+  const paginatedProducts = filteredProducts.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
 
   const activeFilterCount =
     filters.brands.length +
@@ -124,14 +109,13 @@ export default function CategoryClient({
         {/* Breadcrumb */}
         <nav className="flex items-center gap-1.5 text-xs text-gray-500 py-3">
           <Link href="/" className="hover:text-[#1E3A8A] flex items-center gap-1 transition-colors">
-            <Home className="w-3.5 h-3.5" />
-            Inicio
+            <Home className="w-3.5 h-3.5" /> Inicio
           </Link>
           <ChevronRight className="w-3.5 h-3.5 text-gray-300" />
           <span className="text-gray-800 font-medium">{categoryName}</span>
         </nav>
 
-        {/* Page header */}
+        {/* Header */}
         <div className="flex items-center justify-between mb-5 gap-3 flex-wrap">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">{categoryName}</h1>
@@ -141,25 +125,7 @@ export default function CategoryClient({
           </div>
 
           <div className="flex items-center gap-2">
-            {/* Mobile: view toggle */}
-            <div className="md:hidden flex items-center border border-gray-200 rounded-lg bg-white shadow-sm overflow-hidden">
-              <button
-                onClick={() => setViewMode("grid")}
-                className={`p-2 transition-colors ${viewMode === "grid" ? "bg-[#1E3A8A] text-white" : "text-gray-500 hover:bg-gray-50"}`}
-                aria-label="Vista cuadrícula"
-              >
-                <LayoutGrid className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() => setViewMode("list")}
-                className={`p-2 transition-colors ${viewMode === "list" ? "bg-[#1E3A8A] text-white" : "text-gray-500 hover:bg-gray-50"}`}
-                aria-label="Vista lista"
-              >
-                <List className="w-4 h-4" />
-              </button>
-            </div>
-
-            {/* Mobile: filter button */}
+            {/* Mobile filter */}
             <button
               onClick={() => setMobileFiltersOpen(true)}
               className="md:hidden flex items-center gap-1.5 px-3 py-2 text-sm font-medium border border-gray-200 rounded-lg bg-white shadow-sm hover:border-blue-300 transition-colors"
@@ -173,7 +139,7 @@ export default function CategoryClient({
               )}
             </button>
 
-            {/* Sort dropdown */}
+            {/* Sort */}
             <div className="relative">
               <button
                 onClick={() => setSortOpen((p) => !p)}
@@ -182,23 +148,11 @@ export default function CategoryClient({
                 <span className="text-gray-700">{SORT_LABELS[sort]}</span>
                 <ChevronDown className="w-4 h-4 text-gray-400" />
               </button>
-
               {sortOpen && (
                 <div className="absolute right-0 top-full mt-1 w-48 bg-white border border-gray-100 rounded-xl shadow-lg z-20 overflow-hidden">
                   {(Object.keys(SORT_LABELS) as SortOption[]).map((key) => (
-                    <button
-                      key={key}
-                      onClick={() => {
-                        setSort(key);
-                        setSortOpen(false);
-                        setPage(1);
-                      }}
-                      className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${
-                        sort === key
-                          ? "bg-blue-50 text-[#1E3A8A] font-semibold"
-                          : "text-gray-700 hover:bg-gray-50"
-                      }`}
-                    >
+                    <button key={key} onClick={() => { setSort(key); setSortOpen(false); setPage(1); }}
+                      className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${sort === key ? "bg-blue-50 text-[#1E3A8A] font-semibold" : "text-gray-700 hover:bg-gray-50"}`}>
                       {SORT_LABELS[key]}
                     </button>
                   ))}
@@ -211,24 +165,20 @@ export default function CategoryClient({
         <div className="flex gap-6 items-start">
           {/* Sidebar desktop */}
           <aside className="w-60 hidden md:block shrink-0">
-            <FiltersSidebar
-              availableBrands={availableBrands}
-              priceRange={priceRange}
-              filters={filters}
-              onChange={handleFilterChange}
-            />
+            <FiltersSidebar availableBrands={availableBrands} priceRange={priceRange} filters={filters} onChange={handleFilterChange} />
           </aside>
 
-          {/* Products */}
+          {/* Products — siempre lista, 1 por fila */}
           <section className="flex-1 min-w-0">
             {paginatedProducts.length > 0 ? (
-              <div className={`grid gap-3 md:gap-4 ${
-                viewMode === "list"
-                  ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
-                  : "grid-cols-2 sm:grid-cols-3 lg:grid-cols-3"
-              }`}>
+              <div className="flex flex-col gap-3">
                 {paginatedProducts.map((product) => (
-                  <CategoryProductCard key={product._id} product={product} listView={viewMode === "list"} />
+                  <CategoryProductCard
+                    key={product._id}
+                    product={product}
+                    listView
+                    shippingZone={shippingZone}
+                  />
                 ))}
               </div>
             ) : (
@@ -236,23 +186,10 @@ export default function CategoryClient({
                 <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
                   <SlidersHorizontal className="w-7 h-7 text-gray-300" />
                 </div>
-                <p className="text-gray-600 font-medium mb-1">
-                  No hay productos con esos filtros
-                </p>
-                <p className="text-gray-400 text-sm mb-4">
-                  Probá cambiando los criterios de búsqueda
-                </p>
+                <p className="text-gray-600 font-medium mb-1">No hay productos con esos filtros</p>
+                <p className="text-gray-400 text-sm mb-4">Probá cambiando los criterios de búsqueda</p>
                 <button
-                  onClick={() =>
-                    handleFilterChange({
-                      brands: [],
-                      minPrice: priceRange.min,
-                      maxPrice: priceRange.max,
-                      inStockOnly: false,
-                      condition: "all",
-    shipping: "all",
-                    })
-                  }
+                  onClick={() => handleFilterChange({ brands: [], minPrice: priceRange.min, maxPrice: priceRange.max, inStockOnly: false, condition: "all", shipping: "all" })}
                   className="text-sm text-[#1E3A8A] font-medium hover:underline"
                 >
                   Limpiar filtros
@@ -265,38 +202,17 @@ export default function CategoryClient({
                 <Pagination>
                   <PaginationContent>
                     <PaginationItem>
-                      <PaginationPrevious
-                        href="#"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          setPage((p) => Math.max(1, p - 1));
-                        }}
-                      />
+                      <PaginationPrevious href="#" onClick={(e) => { e.preventDefault(); setPage((p) => Math.max(1, p - 1)); }} />
                     </PaginationItem>
-
                     {Array.from({ length: totalPages }, (_, i) => (
                       <PaginationItem key={i}>
-                        <PaginationLink
-                          href="#"
-                          isActive={page === i + 1}
-                          onClick={(e) => {
-                            e.preventDefault();
-                            setPage(i + 1);
-                          }}
-                        >
+                        <PaginationLink href="#" isActive={page === i + 1} onClick={(e) => { e.preventDefault(); setPage(i + 1); }}>
                           {i + 1}
                         </PaginationLink>
                       </PaginationItem>
                     ))}
-
                     <PaginationItem>
-                      <PaginationNext
-                        href="#"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          setPage((p) => Math.min(totalPages, p + 1));
-                        }}
-                      />
+                      <PaginationNext href="#" onClick={(e) => { e.preventDefault(); setPage((p) => Math.min(totalPages, p + 1)); }} />
                     </PaginationItem>
                   </PaginationContent>
                 </Pagination>
@@ -306,41 +222,23 @@ export default function CategoryClient({
         </div>
       </div>
 
-      {/* Mobile filter drawer */}
+      {/* Mobile drawer */}
       {mobileFiltersOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-end md:hidden"
-          onClick={() => setMobileFiltersOpen(false)}
-        >
+        <div className="fixed inset-0 z-50 flex items-end md:hidden" onClick={() => setMobileFiltersOpen(false)}>
           <div className="absolute inset-0 bg-black/50" />
-          <div
-            className="relative w-full bg-white rounded-t-2xl max-h-[85vh] overflow-y-auto"
-            onClick={(e) => e.stopPropagation()}
-          >
+          <div className="relative w-full bg-white rounded-t-2xl max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between px-4 py-4 border-b sticky top-0 bg-white z-10">
               <span className="font-semibold text-gray-900">Filtros</span>
-              <button
-                onClick={() => setMobileFiltersOpen(false)}
-                className="text-gray-500 hover:text-gray-700"
-              >
+              <button onClick={() => setMobileFiltersOpen(false)} className="text-gray-500 hover:text-gray-700">
                 <X className="w-5 h-5" />
               </button>
             </div>
             <div className="p-4">
-              <FiltersSidebar
-                availableBrands={availableBrands}
-                priceRange={priceRange}
-                filters={filters}
-                onChange={(next) => {
-                  handleFilterChange(next);
-                }}
-              />
+              <FiltersSidebar availableBrands={availableBrands} priceRange={priceRange} filters={filters} onChange={handleFilterChange} />
             </div>
             <div className="sticky bottom-0 bg-white border-t px-4 py-4">
-              <button
-                onClick={() => setMobileFiltersOpen(false)}
-                className="w-full bg-[#1E3A8A] text-white font-semibold py-3 rounded-xl hover:bg-blue-800 transition-colors"
-              >
+              <button onClick={() => setMobileFiltersOpen(false)}
+                className="w-full bg-[#1E3A8A] text-white font-semibold py-3 rounded-xl hover:bg-blue-800 transition-colors">
                 Ver {filteredProducts.length} resultado{filteredProducts.length !== 1 ? "s" : ""}
               </button>
             </div>

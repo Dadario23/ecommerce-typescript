@@ -14,6 +14,7 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import { useEffect, useMemo, useState } from "react";
+import { useShippingZone } from "@/hooks/useShippingZone";
 
 interface Product {
   _id: string;
@@ -26,6 +27,7 @@ interface Product {
   stock?: number;
   condition?: "new" | "used";
   shippingTypes?: string[];
+  freeShipping?: boolean;
   category: string;
 }
 
@@ -57,6 +59,7 @@ function ProductSkeleton() {
 export default function SearchClient() {
   const searchParams = useSearchParams();
   const query = searchParams.get("q") ?? "";
+  const shippingZone = useShippingZone();
 
   const [products, setProducts] = useState<Product[]>([]);
   const [page, setPage] = useState(1);
@@ -244,15 +247,15 @@ export default function SearchClient() {
           {/* Results */}
           <section className="flex-1 min-w-0">
             {loading ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 md:gap-4">
-                {Array.from({ length: 8 }).map((_, i) => (
+              <div className="flex flex-col gap-3">
+                {Array.from({ length: 6 }).map((_, i) => (
                   <ProductSkeleton key={i} />
                 ))}
               </div>
             ) : paginatedProducts.length > 0 ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 md:gap-4">
+              <div className="flex flex-col gap-3">
                 {paginatedProducts.map((product) => (
-                  <CategoryProductCard key={product._id} product={product} />
+                  <CategoryProductCard key={product._id} product={product} listView shippingZone={shippingZone} />
                 ))}
               </div>
             ) : (

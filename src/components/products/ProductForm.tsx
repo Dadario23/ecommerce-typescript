@@ -99,6 +99,7 @@ export default function ProductForm({ product, loading, onSubmit, actionLabel }:
       isActive:          isActiveRaw === "true",
       featured:          formData.get("featured") === "true",
       condition:         formData.get("condition") || "new",
+      freeShipping:      formData.get("freeShipping") === "true",
       shippingTypes:     (() => {
         try { return JSON.parse(formData.get("shippingTypes") as string); } catch { return ["flex", "standard"]; }
       })(),
