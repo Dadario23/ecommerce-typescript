@@ -20,9 +20,7 @@ export default function ProductShippingCalculator({ shippingTypes, freeShipping 
 
   const hasFlex     = shippingTypes.includes("flex");
   const hasStandard = shippingTypes.includes("standard");
-  const today       = isBeforeNoon();
-  // Todos los productos pueden enviarse al interior
-  const inAmba      = !!zone;
+  const today = isBeforeNoon();
 
   return (
     <div className="border border-gray-100 rounded-2xl overflow-hidden">
@@ -180,26 +178,6 @@ export default function ProductShippingCalculator({ shippingTypes, freeShipping 
           </div>
         )}
 
-        {/* ── Envío al interior (opción adicional para usuarios en AMBA) ── */}
-        {!loading && inAmba && (
-          <div className="flex items-center justify-between p-3 bg-purple-50 border border-purple-200 rounded-xl">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center shrink-0">
-                <Globe className="w-4 h-4 text-purple-600" />
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-gray-800">Envío al interior del país</p>
-                <p className="text-xs text-gray-500 flex items-center gap-1">
-                  <Clock className="w-3 h-3" /> Por Correo Arg / Andreani / OCA · 5-10 días hábiles
-                </p>
-              </div>
-            </div>
-            <a href={`https://wa.me/${WHATSAPP}`} target="_blank" rel="noopener noreferrer"
-              className="flex items-center gap-1.5 text-xs font-semibold text-green-700 bg-green-100 hover:bg-green-200 px-3 py-1.5 rounded-lg transition-colors">
-              <MessageCircle className="w-3.5 h-3.5" /> Consultar
-            </a>
-          </div>
-        )}
 
       </div>
     </div>
