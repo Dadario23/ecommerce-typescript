@@ -121,9 +121,9 @@ export default function OrderDetailPage() {
   const [actionError, setActionError] = useState("");
 
   const today = new Date();
-  const minDate = addBusinessDays(today, 3);
-  const maxDate = addBusinessDays(today, 7);
-  const selectableDates = getSelectableDates(today);
+  // Fechas disponibles para reprogramar: a partir del próximo día hábil, 10 opciones
+  const firstRescheduleDate = addBusinessDays(today, 1);
+  const rescheduleableDates = getSelectableDates(today).slice(0, 10);
 
   useEffect(() => {
     if (!id) return;
@@ -446,17 +446,18 @@ export default function OrderDetailPage() {
               <div className="rounded-xl border border-[#1E3A8A]/20 bg-blue-50/50 p-4 space-y-3">
                 <p className="text-sm font-semibold text-gray-800 flex items-center gap-2">
                   <CalendarDays className="w-4 h-4 text-[#1E3A8A]" />
-                  Elegí el día que preferís recibir tu pedido
+                  Elegí el nuevo día de entrega
                 </p>
                 <p className="text-xs text-gray-500">
-                  Entrega estimada: {formatDateLong(minDate)} – {formatDateLong(maxDate)}
+                  Primer día disponible: <span className="font-semibold text-gray-700">{formatDateLong(firstRescheduleDate)}</span>.
+                  Podés elegir hasta 10 días hábiles.
                 </p>
 
                 <div className="flex gap-2 overflow-x-auto pb-1">
-                  {selectableDates.map((date) => {
+                  {rescheduleableDates.map((date) => {
                     const str = toDateStr(date);
                     const isSelected = selectedDate === str;
-                    const isInRange = date >= minDate && date <= maxDate;
+                    const isFirst = toDateStr(date) === toDateStr(firstRescheduleDate);
                     return (
                       <button
                         key={str}
@@ -465,9 +466,7 @@ export default function OrderDetailPage() {
                         className={`flex flex-col items-center shrink-0 w-14 py-2.5 rounded-xl border-2 transition-all ${
                           isSelected
                             ? "border-[#1E3A8A] bg-[#1E3A8A]"
-                            : isInRange
-                            ? "border-green-200 bg-green-50 hover:border-green-400"
-                            : "border-gray-200 bg-white hover:border-gray-300"
+                            : "border-gray-200 bg-white hover:border-[#1E3A8A]/50 hover:bg-blue-50"
                         }`}
                       >
                         <span className={`text-[10px] font-medium ${isSelected ? "text-blue-200" : "text-gray-500"}`}>
@@ -479,8 +478,8 @@ export default function OrderDetailPage() {
                         <span className={`text-[10px] ${isSelected ? "text-blue-200" : "text-gray-400"}`}>
                           {MONTHS_ES[date.getMonth()]}
                         </span>
-                        {isInRange && !isSelected && (
-                          <div className="w-1 h-1 bg-green-500 rounded-full mt-1" />
+                        {isFirst && !isSelected && (
+                          <span className="text-[9px] text-[#1E3A8A] font-bold mt-0.5">antes</span>
                         )}
                       </button>
                     );
@@ -488,8 +487,8 @@ export default function OrderDetailPage() {
                 </div>
 
                 {selectedDate !== "any" && (
-                  <p className="text-xs text-[#1E3A8A] font-medium">
-                    Seleccionaste el {formatDateLong(new Date(selectedDate + "T00:00:00"))}
+                  <p className="text-xs text-[#1E3A8A] font-semibold">
+                    ✓ Tu envío llegará el {formatDateLong(new Date(selectedDate + "T00:00:00"))}
                   </p>
                 )}
 
@@ -500,7 +499,7 @@ export default function OrderDetailPage() {
                     disabled={actionLoading || selectedDate === "any"}
                     className="flex-1 bg-[#1E3A8A] hover:bg-blue-800 text-white text-sm font-semibold py-2.5 rounded-xl transition-colors disabled:opacity-60"
                   >
-                    {actionLoading ? "Guardando..." : "Confirmar fecha"}
+                    {actionLoading ? "Guardando..." : "Confirmar nueva fecha"}
                   </button>
                   <button
                     type="button"

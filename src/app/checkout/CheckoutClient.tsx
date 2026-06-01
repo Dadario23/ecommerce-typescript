@@ -1031,63 +1031,26 @@ export default function CheckoutClient() {
             {/* ── FLEX ── */}
             {shippingType === "flex" && (() => {
               const isBeforeNoon = new Date().getHours() < 12;
-              const nextBusinessDay = addBusinessDays(today, 1);
-              const rescheduled = deliveryDateOption !== "any";
               return (
-                <div className="space-y-3">
-                  {/* Info principal */}
-                  <div className="bg-green-50 border border-green-200 rounded-2xl p-5">
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="w-10 h-10 rounded-xl bg-green-100 flex items-center justify-center shrink-0">
-                        <Zap className="w-5 h-5 text-green-600" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-bold text-gray-800">
-                          {isBeforeNoon ? "Llega hoy" : "Llega mañana"}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          {isBeforeNoon
-                            ? "Pedidos antes de las 12hs tienen entrega en el día"
-                            : "Tu pedido saldrá mañana temprano"}
-                        </p>
-                      </div>
+                <div className="bg-green-50 border border-green-200 rounded-2xl p-5">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-10 h-10 rounded-xl bg-green-100 flex items-center justify-center shrink-0">
+                      <Zap className="w-5 h-5 text-green-600" />
                     </div>
-                    <p className="text-xs text-green-700 font-medium">
-                      Fecha estimada: {isBeforeNoon ? "hoy" : formatDateLong(addBusinessDays(today, 1))}
-                    </p>
-                  </div>
-
-                  {/* Opción reprogramar */}
-                  <div className="bg-white border border-gray-100 rounded-2xl p-5 space-y-3">
-                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                      ¿No vas a estar en casa?
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => setDeliveryDateOption(rescheduled ? "any" : toDateStr(nextBusinessDay))}
-                      className={`w-full text-left flex items-center gap-4 p-4 rounded-xl border-2 transition-all ${
-                        rescheduled ? "border-[#1E3A8A] bg-blue-50" : "border-gray-100 hover:border-gray-200"
-                      }`}
-                    >
-                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${rescheduled ? "bg-[#1E3A8A]" : "bg-gray-100"}`}>
-                        <Calendar className={`w-5 h-5 ${rescheduled ? "text-white" : "text-gray-400"}`} />
-                      </div>
-                      <div className="flex-1">
-                        <p className="text-sm font-semibold text-gray-800">
-                          Reprogramar para el día siguiente
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          El envío se realizará el {formatDateLong(nextBusinessDay)}
-                        </p>
-                      </div>
-                      {rescheduled && <Check className="w-5 h-5 text-[#1E3A8A] shrink-0" />}
-                    </button>
-                    {rescheduled && (
-                      <p className="text-xs text-[#1E3A8A] font-medium text-center">
-                        Tu pedido llegará el {formatDateLong(nextBusinessDay)}
+                    <div>
+                      <p className="text-sm font-bold text-gray-800">
+                        {isBeforeNoon ? "Llega hoy" : "Llega mañana"}
                       </p>
-                    )}
+                      <p className="text-xs text-gray-500">
+                        {isBeforeNoon
+                          ? "Pedidos antes de las 12hs tienen entrega en el día"
+                          : "Tu pedido saldrá mañana temprano"}
+                      </p>
+                    </div>
                   </div>
+                  <p className="text-xs text-green-700 font-medium">
+                    Si no vas a estar en casa podés reprogramarlo desde <span className="underline">Mis compras</span> una vez confirmado el pedido.
+                  </p>
                 </div>
               );
             })()}
@@ -1364,9 +1327,7 @@ export default function CheckoutClient() {
                   </p>
                   <p className="text-xs text-gray-400 mt-0.5">
                     {shippingType === "flex"
-                      ? deliveryDateOption !== "any"
-                        ? `Reprogramado para el ${formatDateLong(parseLocalDate(deliveryDateOption))}`
-                        : new Date().getHours() < 12 ? "Llega hoy" : "Llega mañana"
+                      ? new Date().getHours() < 12 ? "Llega hoy" : "Llega mañana"
                       : shippingType === "standard"
                       ? `Estimado: ${formatDateLong(addBusinessDays(today, 3))} – ${formatDateLong(addBusinessDays(today, 5))}`
                       : "5-10 días hábiles · coordinamos con el correo"}
