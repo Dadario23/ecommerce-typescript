@@ -41,12 +41,12 @@ export async function GET(req: Request) {
     // Sort
     type MongoSort = Record<string, 1 | -1>;
     const sortMap: Record<string, MongoSort> = {
-      price_asc: { price: 1 },
-      price_desc: { price: -1 },
-      newest: { createdAt: -1 },
-      rating: { avgRating: -1, reviewCount: -1 },
+      price_asc:  { freeShipping: -1, price: 1 },
+      price_desc: { freeShipping: -1, price: -1 },
+      newest:     { freeShipping: -1, createdAt: -1 },
+      rating:     { freeShipping: -1, avgRating: -1, reviewCount: -1 },
     };
-    const mongoSort: MongoSort = sortMap[sort] ?? {};
+    const mongoSort: MongoSort = sortMap[sort] ?? { freeShipping: -1 };
 
     const limit = mode === "suggest" ? 6 : 0;
 
