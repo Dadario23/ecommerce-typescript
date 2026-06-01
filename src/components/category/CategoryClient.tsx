@@ -90,7 +90,12 @@ export default function CategoryClient({ categoryName, initialProducts }: Catego
       const db = b.compareAtPrice ? b.compareAtPrice - b.price : 0;
       return db - da;
     });
-    return list;
+
+    // Envío gratis siempre primero
+    return [
+      ...list.filter((p) => p.freeShipping),
+      ...list.filter((p) => !p.freeShipping),
+    ];
   }, [initialProducts, filters, sort]);
 
   const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE);

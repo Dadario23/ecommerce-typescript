@@ -138,7 +138,11 @@ export default function SearchClient() {
         return db - da;
       });
 
-    return list;
+    // Envío gratis siempre primero
+    return [
+      ...list.filter((p) => p.freeShipping),
+      ...list.filter((p) => !p.freeShipping),
+    ];
   }, [products, filters, sort]);
 
   const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE);
