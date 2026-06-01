@@ -40,10 +40,16 @@ export default async function LabelPage({
 
   if (!order) notFound();
 
-  const addr = order.shippingAddress;
-  const isCash = order.payment.method === "cash";
-  const qrData = encodeURIComponent(order.orderNumber);
-  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${qrData}&bgcolor=ffffff&color=000000&margin=6`;
+  const addr        = order.shippingAddress;
+  const isCash      = order.payment.method === "cash";
+  const isTransfer  = order.payment.method === "transfer";
+  const STORE_URL   = process.env.NEXT_PUBLIC_URL ?? "http://localhost:3000";
+
+  // QR: para transferencia apunta a la página de pago; para el resto, al número de orden
+  const qrContent = isTransfer
+    ? `${STORE_URL}/pay/${id}`
+    : order.orderNumber;
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrContent)}&bgcolor=ffffff&color=000000&margin=6`;
 
   return (
     <>
@@ -207,54 +213,48 @@ export default async function LabelPage({
           <hr style={{ border: "none", borderTop: "1px solid #cccccc", margin: "3mm 0" }} />
 
           {/* Pago */}
-          {isCash ? (
-            <div
-              style={{
-                border: "2px solid #000000",
-                borderRadius: "4px",
-                padding: "3mm 4mm",
-                textAlign: "center",
-              }}
-            >
-              <p
-                style={{
-                  fontSize: "6.5pt",
-                  fontWeight: "700",
-                  color: "#555555",
-                  letterSpacing: "0.12em",
-                  textTransform: "uppercase",
-                  marginBottom: "1.5mm",
-                }}
-              >
-                Cobrar al destinatario
+          {isCash && (
+            <div style={{ border: "2px solid #000000", borderRadius: "4px", padding: "3mm 4mm", textAlign: "center" }}>
+              <p style={{ fontSize: "6.5pt", fontWeight: "700", color: "#555555", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: "1.5mm" }}>
+                Cobrar al destinatario — Efectivo
               </p>
               <p style={{ fontWeight: "700", fontSize: "18pt", color: "#000000", lineHeight: 1.2 }}>
-                $ {order.total.toLocaleString("es-AR")}
+                ${order.total.toLocaleString("es-AR")}
               </p>
             </div>
-          ) : (
-            <div
-              style={{
-                border: "1px solid #cccccc",
-                borderRadius: "4px",
-                padding: "2.5mm 4mm",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-              }}
-            >
-              <p style={{ fontWeight: "700", fontSize: "11pt", color: "#000000" }}>
-                $ {order.total.toLocaleString("es-AR")}
+          )}
+
+          {isTransfer && (
+            <div style={{ border: "2px solid #000000", borderRadius: "4px", padding: "3mm 4mm" }}>
+              <p style={{ fontSize: "6.5pt", fontWeight: "700", color: "#555555", letterSpacing: "0.12em", textTransform: "uppercase", marginBottom: "2mm", textAlign: "center" }}>
+                Cobrar por transferencia
               </p>
-              <span
-                style={{
-                  color: "#555555",
-                  fontWeight: "700",
-                  fontSize: "7pt",
-                  letterSpacing: "0.08em",
-                  textTransform: "uppercase",
-                }}
-              >
+              <div style={{ display: "flex", alignItems: "center", gap: "3mm" }}>
+                {/* QR de pago grande */}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(qrContent)}&bgcolor=ffffff&color=000000&margin=4`}
+                  alt="QR Pago"
+                  style={{ width: "28mm", height: "28mm", flexShrink: 0 }}
+                />
+                <div>
+                  <p style={{ fontWeight: "700", fontSize: "14pt", color: "#000000", lineHeight: 1.2, marginBottom: "2mm" }}>
+                    ${order.total.toLocaleString("es-AR")}
+                  </p>
+                  <p style={{ fontSize: "6pt", color: "#555555", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "1mm" }}>Alias</p>
+                  <p style={{ fontFamily: "monospace", fontWeight: "700", fontSize: "8pt", color: "#000000", marginBottom: "2mm" }}>tiendita.compu</p>
+                  <p style={{ fontSize: "5.5pt", color: "#777777" }}>Escaneá el QR para ver<br/>todos los datos de pago</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {!isCash && !isTransfer && (
+            <div style={{ border: "1px solid #cccccc", borderRadius: "4px", padding: "2.5mm 4mm", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <p style={{ fontWeight: "700", fontSize: "11pt", color: "#000000" }}>
+                ${order.total.toLocaleString("es-AR")}
+              </p>
+              <span style={{ color: "#555555", fontWeight: "700", fontSize: "7pt", letterSpacing: "0.08em", textTransform: "uppercase" }}>
                 Pago acreditado
               </span>
             </div>
