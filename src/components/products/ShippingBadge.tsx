@@ -10,6 +10,8 @@ interface Props {
   source: ZoneSource;
   loading: boolean;
   size?: "sm" | "md";
+  /** true cuando el badge está dentro de un <a> (card) — evita anidar <a> dentro de <a> */
+  inCard?: boolean;
 }
 
 function isBeforeNoon() {
@@ -23,6 +25,7 @@ export default function ShippingBadge({
   source,
   loading,
   size = "sm",
+  inCard = false,
 }: Props) {
   const text  = size === "sm" ? "text-[11px]" : "text-xs";
   const hasFlex     = shippingTypes.includes("flex");
@@ -64,6 +67,9 @@ export default function ShippingBadge({
 
   // ── Sin dirección (logueado sin domicilio) ────────────────────────────────
   if (source === "no-address") {
+    if (inCard) {
+      return <span className={`${text} text-gray-400`}>Agregá tu domicilio para ver envíos</span>;
+    }
     return (
       <Link href="/account/addresses" className={`${text} font-medium text-blue-600 hover:underline`}>
         Agregá tu domicilio para ver envíos
@@ -73,6 +79,9 @@ export default function ShippingBadge({
 
   // ── No logueado ───────────────────────────────────────────────────────────
   if (source === "unknown" || source === null) {
+    if (inCard) {
+      return <span className={`${text} text-gray-400`}>Iniciá sesión para ver envíos</span>;
+    }
     return (
       <Link href="/login" className={`${text} font-medium text-blue-600 hover:underline`}>
         Iniciá sesión para ver envíos

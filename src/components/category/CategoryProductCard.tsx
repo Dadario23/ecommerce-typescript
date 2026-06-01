@@ -104,6 +104,7 @@ export default function CategoryProductCard({ product, listView = false, shippin
               source={shippingZone.source}
               loading={shippingZone.loading}
               size="sm"
+              inCard
             />
           )}
         </div>
