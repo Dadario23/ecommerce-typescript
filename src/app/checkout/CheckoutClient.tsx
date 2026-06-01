@@ -736,11 +736,6 @@ export default function CheckoutClient() {
                   <p className="text-xs text-gray-500 mt-0.5">
                     Recibís en tu casa o donde quieras
                   </p>
-                  <p className="text-xs text-blue-600 font-medium mt-1">
-                    {detectedZone
-                      ? `Flex $${detectedZone.flex.toLocaleString("es-AR")} · Estándar $${detectedZone.standard.toLocaleString("es-AR")}`
-                      : "Calculamos el costo según tu zona"}
-                  </p>
                 </div>
                 {deliveryMethod === "domicilio" && (
                   <Check className="w-5 h-5 text-[#1E3A8A] shrink-0 mt-0.5" />
@@ -794,11 +789,6 @@ export default function CheckoutClient() {
                   <p className="text-xs text-gray-500 mt-0.5">
                     Pagás cuando recibís en tu casa
                   </p>
-                  <p className="text-xs text-blue-600 font-medium mt-1">
-                    {detectedZone
-                      ? `Flex $${detectedZone.flex.toLocaleString("es-AR")} · Estándar $${detectedZone.standard.toLocaleString("es-AR")}`
-                      : "Calculamos el costo según tu zona"}
-                  </p>
                 </div>
                 {deliveryMethod === "contraentrega" && (
                   <Check className="w-5 h-5 text-[#1E3A8A] shrink-0 mt-0.5" />
@@ -842,7 +832,7 @@ export default function CheckoutClient() {
                         className="flex items-center gap-1.5 text-xs font-semibold text-[#1E3A8A] hover:text-blue-800 border border-[#1E3A8A]/30 hover:border-[#1E3A8A] px-3 py-2 rounded-lg transition-colors"
                       >
                         <Pencil className="w-3.5 h-3.5" />
-                        Modificar domicilio
+                        Modificar o agregar dirección
                       </button>
                       {savedAddresses.length > 1 && (
                         <button
