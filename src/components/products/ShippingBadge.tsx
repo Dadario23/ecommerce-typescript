@@ -35,17 +35,24 @@ export default function ShippingBadge({
     return <div className="h-4 w-28 bg-gray-100 rounded animate-pulse" />;
   }
 
-  // ── Envío gratis (absorbe el costo) ──────────────────────────────────────
-  if (freeShipping) {
+  // ── Fuera del AMBA (IP sin zona) — solo envío nacional ──────────────────
+  if (source === "ip" && !zone) {
+    return (
+      <span className={`${text} text-gray-400`}>Envío al interior disponible</span>
+    );
+  }
+
+  // ── Envío gratis — solo dentro del AMBA ──────────────────────────────────
+  if (freeShipping && zone) {
     const today = isBeforeNoon();
     return (
       <span className={`${text} font-semibold text-green-700`}>
-        {today ? "Llega gratis hoy" : "Llega gratis mañana"}
+        {today ? "⚡ Llega gratis hoy" : "⚡ Llega gratis mañana"}
       </span>
     );
   }
 
-  // ── Zona detectada ────────────────────────────────────────────────────────
+  // ── Zona detectada (AMBA) ─────────────────────────────────────────────────
   if (zone) {
     if (hasFlex) {
       const today = isBeforeNoon();
