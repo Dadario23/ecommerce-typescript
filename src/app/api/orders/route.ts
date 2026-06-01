@@ -131,6 +131,7 @@ export async function POST(request: NextRequest) {
     // Email de confirmación (no bloquea la respuesta si falla)
     sendOrderConfirmation({
       orderNumber: order.orderNumber,
+      orderId: String(order._id),
       customerEmail: session.user.email ?? "",
       customerName: session.user.name ?? undefined,
       items: items.map((i) => ({ name: i.name, quantity: i.quantity, price: i.price })),

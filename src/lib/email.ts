@@ -11,8 +11,12 @@ interface OrderItem {
   image?: string;
 }
 
+const TRANSFER_ALIAS = "tiendita.compu";
+const TRANSFER_CVU   = "0000003100006137240775";
+
 interface OrderEmailData {
   orderNumber: string;
+  orderId?: string;
   customerEmail: string;
   customerName?: string;
   items: OrderItem[];
@@ -29,8 +33,52 @@ interface OrderEmailData {
 }
 
 function buildOrderConfirmationHtml(data: OrderEmailData): string {
+  const isTransfer = data.paymentMethod === "transfer";
   const paymentLabel =
-    data.paymentMethod === "mercadopago" ? "Mercado Pago" : "Pago contra entrega";
+    data.paymentMethod === "mercadopago"
+      ? "Mercado Pago"
+      : isTransfer
+      ? "Transferencia bancaria (contraentrega)"
+      : "Efectivo (contraentrega)";
+
+  const payPageUrl = data.orderId
+    ? `${STORE_URL}/pay/${data.orderId}`
+    : null;
+
+  const transferBlock = isTransfer ? `
+    <div style="margin-top:20px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:20px;">
+      <h3 style="font-size:13px;color:#166534;margin:0 0 12px;text-transform:uppercase;letter-spacing:.5px;">
+        Datos para transferir al repartidor
+      </h3>
+      <p style="margin:0 0 6px;font-size:13px;color:#555;">
+        Cuando llegue tu pedido podés pagar por transferencia bancaria.
+      </p>
+      <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:12px;">
+        <tr>
+          <td style="padding:8px 12px;background:#fff;border-radius:6px 6px 0 0;border:1px solid #d1fae5;border-bottom:none;">
+            <p style="margin:0;font-size:11px;color:#888;text-transform:uppercase;">Alias</p>
+            <p style="margin:4px 0 0;font-size:16px;font-weight:bold;color:#166534;font-family:monospace;">${TRANSFER_ALIAS}</p>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:8px 12px;background:#fff;border-radius:0 0 6px 6px;border:1px solid #d1fae5;">
+            <p style="margin:0;font-size:11px;color:#888;text-transform:uppercase;">CVU</p>
+            <p style="margin:4px 0 0;font-size:13px;color:#374151;font-family:monospace;">${TRANSFER_CVU}</p>
+          </td>
+        </tr>
+      </table>
+      ${payPageUrl ? `
+      <div style="text-align:center;margin-top:16px;">
+        <a href="${payPageUrl}"
+          style="display:inline-block;background:#166534;color:#fff;text-decoration:none;padding:10px 20px;border-radius:6px;font-size:13px;font-weight:bold;">
+          Ver página de pago con QR
+        </a>
+      </div>` : ""}
+      <p style="margin:12px 0 0;font-size:11px;color:#888;text-align:center;">
+        Mostrá el comprobante al repartidor al recibir el producto.
+      </p>
+    </div>` : "";
+
 
   const itemsHtml = data.items
     .map(
@@ -109,6 +157,8 @@ function buildOrderConfirmationHtml(data: OrderEmailData): string {
                   Método de pago: <strong style="color:#555;">${paymentLabel}</strong>
                 </p>
               </div>
+
+              ${transferBlock}
 
               <!-- CTA -->
               <div style="text-align:center;margin-top:32px;">
