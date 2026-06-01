@@ -20,8 +20,9 @@ export default function ProductShippingCalculator({ shippingTypes, freeShipping 
 
   const hasFlex     = shippingTypes.includes("flex");
   const hasStandard = shippingTypes.includes("standard");
-  const hasNational = shippingTypes.includes("national");
   const today       = isBeforeNoon();
+  // Todos los productos pueden enviarse al interior
+  const inAmba      = !!zone;
 
   return (
     <div className="border border-gray-100 rounded-2xl overflow-hidden">
@@ -122,51 +123,20 @@ export default function ProductShippingCalculator({ shippingTypes, freeShipping 
           </>
         )}
 
-        {/* ── No logueado en AMBA con freeShipping ── */}
-        {!loading && freeShipping && source === "ip" && !zone && (
-          <div className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-xl">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center shrink-0">
-                <Zap className="w-4 h-4 text-green-600" />
-              </div>
-              <div>
-                <p className="text-sm font-bold text-green-800">Envío gratis disponible</p>
-                <p className="text-xs text-green-600">Para zonas del AMBA</p>
-              </div>
-            </div>
-            <Link href="/login" className="text-xs font-semibold text-white bg-[#1E3A8A] px-3 py-1.5 rounded-lg hover:bg-blue-800 transition-colors">
-              Ver precio
-            </Link>
-          </div>
-        )}
-
-        {/* ── No logueado (sin zona o fuera de AMBA) ── */}
-        {!loading && !zone && (source === "unknown" || source === null || (source === "ip" && !freeShipping)) && (
+        {/* ── No logueado (sin zona detectada) ── */}
+        {!loading && !zone && (source === "unknown" || source === null) && (
           <div className="flex items-center gap-3 p-3 bg-blue-50 border border-blue-100 rounded-xl">
             <div className="w-8 h-8 bg-[#1E3A8A] rounded-lg flex items-center justify-center shrink-0">
               <LogIn className="w-4 h-4 text-white" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-gray-800">
-                {source === "ip" ? "Tu zona está fuera del AMBA" : "Iniciá sesión para ver el envío"}
-              </p>
-              <p className="text-xs text-gray-500">
-                {source === "ip"
-                  ? "Consultanos por envíos al interior"
-                  : "Calculamos el costo según tu domicilio registrado"}
-              </p>
+              <p className="text-sm font-semibold text-gray-800">Iniciá sesión para ver el costo de envío</p>
+              <p className="text-xs text-gray-500">Calculamos el precio según tu domicilio</p>
             </div>
-            {source === "ip" ? (
-              <a href={`https://wa.me/${WHATSAPP}`} target="_blank" rel="noopener noreferrer"
-                className="flex items-center gap-1.5 text-xs font-semibold text-white bg-green-500 hover:bg-green-600 px-3 py-1.5 rounded-lg transition-colors shrink-0">
-                <MessageCircle className="w-3.5 h-3.5" /> WhatsApp
-              </a>
-            ) : (
-              <Link href="/login"
-                className="text-xs font-semibold text-white bg-[#1E3A8A] px-3 py-1.5 rounded-lg hover:bg-blue-800 transition-colors shrink-0">
-                Ingresar
-              </Link>
-            )}
+            <Link href="/login"
+              className="text-xs font-semibold text-white bg-[#1E3A8A] px-3 py-1.5 rounded-lg hover:bg-blue-800 transition-colors shrink-0">
+              Ingresar
+            </Link>
           </div>
         )}
 
@@ -177,12 +147,8 @@ export default function ProductShippingCalculator({ shippingTypes, freeShipping 
               <MapPin className="w-4 h-4 text-yellow-600" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-gray-800">
-                Agregá tu domicilio para ver el costo de envío
-              </p>
-              <p className="text-xs text-gray-500">
-                Calculamos el precio según tu zona
-              </p>
+              <p className="text-sm font-semibold text-gray-800">Agregá tu domicilio para ver el costo de envío</p>
+              <p className="text-xs text-gray-500">Calculamos el precio según tu zona</p>
             </div>
             <Link href="/account/addresses"
               className="text-xs font-semibold text-yellow-800 bg-yellow-200 hover:bg-yellow-300 px-3 py-1.5 rounded-lg transition-colors shrink-0">
@@ -191,17 +157,53 @@ export default function ProductShippingCalculator({ shippingTypes, freeShipping 
           </div>
         )}
 
-        {/* ── Interior del país ── */}
-        {!loading && hasNational && (
+        {/* ── Fuera del AMBA (IP detectada fuera de cobertura propia) ── */}
+        {!loading && source === "ip" && !zone && (
+          <div className="space-y-2">
+            {freeShipping && (
+              <div className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-xl">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center shrink-0">
+                    <Zap className="w-4 h-4 text-green-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-green-800">Este producto tiene envío gratis</p>
+                    <p className="text-xs text-green-600">Aplicable en zonas del AMBA</p>
+                  </div>
+                </div>
+              </div>
+            )}
+            <div className="flex items-center justify-between p-3 bg-purple-50 border border-purple-200 rounded-xl">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center shrink-0">
+                  <Globe className="w-4 h-4 text-purple-600" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-gray-800">Envío al interior del país</p>
+                  <p className="text-xs text-gray-500 flex items-center gap-1">
+                    <Clock className="w-3 h-3" /> Por Correo Arg / Andreani / OCA · 5-10 días hábiles
+                  </p>
+                </div>
+              </div>
+              <a href={`https://wa.me/${WHATSAPP}`} target="_blank" rel="noopener noreferrer"
+                className="flex items-center gap-1.5 text-xs font-semibold text-white bg-green-500 hover:bg-green-600 px-3 py-1.5 rounded-lg transition-colors shrink-0">
+                <MessageCircle className="w-3.5 h-3.5" /> Consultar
+              </a>
+            </div>
+          </div>
+        )}
+
+        {/* ── Envío al interior (opción adicional para usuarios en AMBA) ── */}
+        {!loading && inAmba && (
           <div className="flex items-center justify-between p-3 bg-purple-50 border border-purple-200 rounded-xl">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center shrink-0">
                 <Globe className="w-4 h-4 text-purple-600" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-gray-800">Correo Arg / Andreani / OCA</p>
+                <p className="text-sm font-semibold text-gray-800">Envío al interior del país</p>
                 <p className="text-xs text-gray-500 flex items-center gap-1">
-                  <Clock className="w-3 h-3" /> 5-10 días hábiles
+                  <Clock className="w-3 h-3" /> Por Correo Arg / Andreani / OCA · 5-10 días hábiles
                 </p>
               </div>
             </div>
