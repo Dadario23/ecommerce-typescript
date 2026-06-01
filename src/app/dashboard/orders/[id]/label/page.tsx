@@ -88,6 +88,7 @@ export default async function LabelPage({
   const addr        = order.shippingAddress;
   const isCash      = order.payment.method === "cash";
   const isTransfer  = order.payment.method === "transfer";
+  const mpAlias     = process.env.MP_ALIAS ?? "";
 
   // Para transferencia: usar link de MP (se genera automáticamente la primera vez)
   const mpLink = isTransfer
@@ -294,7 +295,7 @@ export default async function LabelPage({
                     ${order.total.toLocaleString("es-AR")}
                   </p>
                   <p style={{ fontSize: "6pt", color: "#555555", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "1mm" }}>Alias</p>
-                  <p style={{ fontFamily: "monospace", fontWeight: "700", fontSize: "8pt", color: "#000000", marginBottom: "2mm" }}>{process.env.MP_ALIAS}</p>
+                  <p style={{ fontFamily: "monospace", fontWeight: "700", fontSize: "8pt", color: "#000000", marginBottom: "2mm" }}>{mpAlias}</p>
                   <p style={{ fontSize: "5.5pt", color: "#777777" }}>Escaneá el QR con la app<br/>de Mercado Pago</p>
                 </div>
               </div>
