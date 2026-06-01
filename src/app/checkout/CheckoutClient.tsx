@@ -25,6 +25,8 @@ import {
   Banknote,
   Pencil,
   ListChecks,
+  Zap,
+  MessageCircle,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -39,8 +41,17 @@ type WizardStep =
   | "review";
 
 type DeliveryMethod = "domicilio" | "contraentrega";
-type PaymentMethod = "mercadopago" | "cash" | "transfer";
-type AddressUIMode = "default" | "list" | "edit";
+type PaymentMethod  = "mercadopago" | "cash" | "transfer";
+type AddressUIMode  = "default" | "list" | "edit";
+type ShippingType   = "flex" | "standard";
+
+interface ShippingZone {
+  id: string;
+  name: string;
+  localities: string[];
+  flex: number;
+  standard: number;
+}
 
 interface CartItem {
   id: string;
@@ -113,6 +124,16 @@ function toDateStr(d: Date): string {
 
 function parseLocalDate(str: string): Date {
   return new Date(str + "T00:00:00");
+}
+
+function normalizeLocality(s: string) {
+  return s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").trim();
+}
+
+function findZone(city: string, zones: ShippingZone[]): ShippingZone | null {
+  if (!city.trim()) return null;
+  const n = normalizeLocality(city);
+  return zones.find((z) => z.localities.some((l) => normalizeLocality(l) === n)) ?? null;
 }
 
 function fromSaved(addr: SavedAddress, fallback: AddressData): AddressData {
@@ -357,6 +378,10 @@ export default function CheckoutClient() {
   const [addressErrors, setAddressErrors] = useState<AddressErrors>({});
   const [addressUIMode, setAddressUIMode] = useState<AddressUIMode>("default");
 
+  // Shipping zones
+  const [zonesData, setZonesData]     = useState<ShippingZone[]>([]);
+  const [shippingType, setShippingType] = useState<ShippingType>("flex");
+
   // Date
   const [deliveryDateOption, setDeliveryDateOption] = useState<string>("any");
 
@@ -377,7 +402,12 @@ export default function CheckoutClient() {
       (sum: number, item: CartItem) => sum + item.price * item.quantity,
       0
     ) ?? 0;
-  const total = Math.max(0, subtotal - couponDiscount);
+
+  const detectedZone  = findZone(address.city, zonesData);
+  const shippingCost  = detectedZone
+    ? (shippingType === "flex" ? detectedZone.flex : detectedZone.standard)
+    : 0;
+  const total = Math.max(0, subtotal + shippingCost - couponDiscount);
 
   const today = new Date();
   const minDate = addBusinessDays(today, 3);
@@ -400,6 +430,12 @@ export default function CheckoutClient() {
     };
 
     setAddress((prev) => ({ ...prev, ...baseName }));
+
+    // Cargar zonas de envío
+    fetch("/api/shipping/zones")
+      .then((r) => r.json())
+      .then((data) => { if (Array.isArray(data)) setZonesData(data); })
+      .catch(() => {});
 
     fetch("/api/user/addresses")
       .then((r) => r.json())
@@ -498,20 +534,21 @@ export default function CheckoutClient() {
   }
 
   function buildPayload() {
-    const notes =
-      deliveryDateOption !== "any"
-        ? `Preferencia de entrega: ${deliveryDateOption}`
-        : undefined;
+    const notesParts: string[] = [];
+    if (deliveryDateOption !== "any") notesParts.push(`Preferencia de entrega: ${deliveryDateOption}`);
+    if (detectedZone) notesParts.push(`Zona: ${detectedZone.name}`);
+    notesParts.push(`Tipo de envío: ${shippingType === "flex" ? "Flex" : "Estándar"}`);
+
     return {
       items,
       subtotal,
-      shipping: 0,
+      shipping: shippingCost,
       discount: couponDiscount,
       couponCode: appliedCoupon || undefined,
       total,
       paymentMethod,
       shippingMethod: deliveryMethod,
-      notes,
+      notes: notesParts.join(" | "),
       shippingAddress: {
         firstName: address.firstName,
         lastName: address.lastName,
@@ -709,8 +746,10 @@ export default function CheckoutClient() {
                   <p className="text-xs text-gray-500 mt-0.5">
                     Recibís en tu casa o donde quieras
                   </p>
-                  <p className="text-xs text-green-600 font-medium mt-1">
-                    Envío gratis
+                  <p className="text-xs text-blue-600 font-medium mt-1">
+                    {detectedZone
+                      ? `Flex $${detectedZone.flex.toLocaleString("es-AR")} · Estándar $${detectedZone.standard.toLocaleString("es-AR")}`
+                      : "Calculamos el costo según tu zona"}
                   </p>
                 </div>
                 {deliveryMethod === "domicilio" && (
@@ -765,8 +804,10 @@ export default function CheckoutClient() {
                   <p className="text-xs text-gray-500 mt-0.5">
                     Pagás cuando recibís en tu casa
                   </p>
-                  <p className="text-xs text-green-600 font-medium mt-1">
-                    Envío gratis
+                  <p className="text-xs text-blue-600 font-medium mt-1">
+                    {detectedZone
+                      ? `Flex $${detectedZone.flex.toLocaleString("es-AR")} · Estándar $${detectedZone.standard.toLocaleString("es-AR")}`
+                      : "Calculamos el costo según tu zona"}
                   </p>
                 </div>
                 {deliveryMethod === "contraentrega" && (
@@ -903,10 +944,86 @@ export default function CheckoutClient() {
               </div>
             </div>
 
+            {/* ── Selector de tipo de envío ── */}
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+              <div className="px-5 py-4 border-b border-gray-50 flex items-center gap-2">
+                <Truck className="w-4 h-4 text-[#1E3A8A]" />
+                <p className="text-sm font-semibold text-gray-700">Tipo de envío</p>
+              </div>
+              <div className="p-5 space-y-3">
+                {!address.city.trim() ? (
+                  <p className="text-sm text-gray-400 text-center py-2">
+                    Completá tu dirección para ver las opciones de envío
+                  </p>
+                ) : !detectedZone ? (
+                  <div className="space-y-3">
+                    <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+                      Tu zona (<span className="font-semibold">{address.city}</span>) no está cubierta por nuestro servicio de envío propio.
+                    </p>
+                    <a
+                      href={`https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? "5491150610043"}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-center gap-2 w-full py-3 text-sm font-semibold text-white bg-green-500 hover:bg-green-600 rounded-xl transition-colors"
+                    >
+                      <MessageCircle className="w-4 h-4" />
+                      Consultar envío por WhatsApp
+                    </a>
+                  </div>
+                ) : (
+                  <>
+                    <p className="text-xs text-gray-500">
+                      Zona detectada: <span className="font-semibold text-gray-700">{detectedZone.name} — {address.city}</span>
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setShippingType("flex")}
+                      className={`w-full text-left flex items-center gap-4 p-4 rounded-xl border-2 transition-all ${
+                        shippingType === "flex" ? "border-[#1E3A8A] bg-blue-50" : "border-gray-100 hover:border-gray-200"
+                      }`}
+                    >
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${shippingType === "flex" ? "bg-[#1E3A8A]" : "bg-gray-100"}`}>
+                        <Zap className={`w-5 h-5 ${shippingType === "flex" ? "text-white" : "text-gray-400"}`} />
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-semibold text-sm text-gray-800">Envío flex</p>
+                        <p className="text-xs text-gray-500">Mismo día / día siguiente</p>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="text-sm font-bold text-gray-900">${detectedZone.flex.toLocaleString("es-AR")}</p>
+                        {shippingType === "flex" && <Check className="w-4 h-4 text-[#1E3A8A] ml-auto mt-1" />}
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setShippingType("standard")}
+                      className={`w-full text-left flex items-center gap-4 p-4 rounded-xl border-2 transition-all ${
+                        shippingType === "standard" ? "border-[#1E3A8A] bg-blue-50" : "border-gray-100 hover:border-gray-200"
+                      }`}
+                    >
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${shippingType === "standard" ? "bg-[#1E3A8A]" : "bg-gray-100"}`}>
+                        <Truck className={`w-5 h-5 ${shippingType === "standard" ? "text-white" : "text-gray-400"}`} />
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-semibold text-sm text-gray-800">Envío estándar</p>
+                        <p className="text-xs text-gray-500">2-3 días hábiles</p>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="text-sm font-bold text-gray-900">${detectedZone.standard.toLocaleString("es-AR")}</p>
+                        {shippingType === "standard" && <Check className="w-4 h-4 text-[#1E3A8A] ml-auto mt-1" />}
+                      </div>
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+
             <button
               type="button"
               onClick={goToDate}
-              className="w-full bg-[#1E3A8A] hover:bg-blue-800 text-white font-semibold py-4 rounded-xl transition-colors mt-2"
+              disabled={!!address.city.trim() && !detectedZone}
+              className="w-full bg-[#1E3A8A] hover:bg-blue-800 text-white font-semibold py-4 rounded-xl transition-colors mt-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Continuar
             </button>
@@ -1270,8 +1387,15 @@ export default function CheckoutClient() {
                   <span>${subtotal.toLocaleString("es-AR")}</span>
                 </div>
                 <div className="flex justify-between text-sm text-gray-500">
-                  <span>Envío</span>
-                  <span className="text-green-600 font-medium">Gratis</span>
+                  <span>
+                    Envío {shippingType === "flex" ? "flex" : "estándar"}
+                    {detectedZone && <span className="text-gray-400"> · {detectedZone.name}</span>}
+                  </span>
+                  {shippingCost === 0 ? (
+                    <span className="text-green-600 font-medium">Gratis</span>
+                  ) : (
+                    <span className="font-medium">${shippingCost.toLocaleString("es-AR")}</span>
+                  )}
                 </div>
                 {couponDiscount > 0 && (
                   <div className="flex justify-between text-sm text-green-600 font-medium">
