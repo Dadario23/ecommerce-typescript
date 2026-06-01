@@ -51,8 +51,8 @@ export default function ProductShippingCalculator({ shippingTypes, freeShipping 
           </div>
         )}
 
-        {/* ── Envío gratis (cualquier zona AMBA o perfil) ── */}
-        {!loading && freeShipping && (zone || source === "ip") && (
+        {/* ── Envío gratis — solo dentro del AMBA ── */}
+        {!loading && freeShipping && zone && (
           <div className="flex items-center justify-between p-3 bg-green-50 border border-green-300 rounded-xl">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center shrink-0">
@@ -157,22 +157,9 @@ export default function ProductShippingCalculator({ shippingTypes, freeShipping 
           </div>
         )}
 
-        {/* ── Fuera del AMBA (IP detectada fuera de cobertura propia) ── */}
+        {/* ── Fuera del AMBA — solo envío nacional ── */}
         {!loading && source === "ip" && !zone && (
           <div className="space-y-2">
-            {freeShipping && (
-              <div className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-xl">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center shrink-0">
-                    <Zap className="w-4 h-4 text-green-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-bold text-green-800">Este producto tiene envío gratis</p>
-                    <p className="text-xs text-green-600">Aplicable en zonas del AMBA</p>
-                  </div>
-                </div>
-              </div>
-            )}
             <div className="flex items-center justify-between p-3 bg-purple-50 border border-purple-200 rounded-xl">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center shrink-0">
