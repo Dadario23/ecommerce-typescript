@@ -481,16 +481,9 @@ export default function AddressesClient() {
             <MapPin className="w-7 h-7 text-gray-300" />
           </div>
           <p className="font-semibold text-gray-700 mb-1">Sin direcciones guardadas</p>
-          <p className="text-sm text-gray-400 mb-5">
+          <p className="text-sm text-gray-400">
             Guardá tus direcciones para agilizar el checkout
           </p>
-          <button
-            onClick={openNew}
-            className="flex items-center gap-2 bg-[#1E3A8A] text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-blue-800 transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            Agregar dirección
-          </button>
         </div>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">
