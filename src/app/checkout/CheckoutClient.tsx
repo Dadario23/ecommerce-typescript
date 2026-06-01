@@ -110,13 +110,6 @@ function formatDateLong(date: Date): string {
   return `${date.getDate()} de ${MONTHS_ES[date.getMonth()]}`;
 }
 
-function getSelectableDates(from: Date): Date[] {
-  return Array.from({ length: 14 }, (_, i) => {
-    const d = new Date(from);
-    d.setDate(d.getDate() + i + 1);
-    return d;
-  }).filter((d) => d.getDay() !== 0 && d.getDay() !== 6);
-}
 
 function toDateStr(d: Date): string {
   return d.toISOString().split("T")[0];
@@ -410,9 +403,6 @@ export default function CheckoutClient() {
   const total = Math.max(0, subtotal + shippingCost - couponDiscount);
 
   const today = new Date();
-  const minDate = addBusinessDays(today, 3);
-  const maxDate = addBusinessDays(today, 7);
-  const selectableDates = getSelectableDates(today);
 
   // ── Init ──────────────────────────────────────────────────────────────────────
 
@@ -1030,7 +1020,7 @@ export default function CheckoutClient() {
           </div>
         )}
 
-        {/* ── STEP 2: Fecha de entrega ── */}
+        {/* ── STEP 2: Cuándo llega tu compra ── */}
         {step === "date" && (
           <div className="space-y-4">
             <BackBtn onClick={() => setStep("delivery")} />
@@ -1038,107 +1028,118 @@ export default function CheckoutClient() {
               ¿Cuándo llega tu compra?
             </h1>
 
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center shrink-0">
-                  <Truck className="w-5 h-5 text-green-600" />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-gray-800">
-                    Entrega estimada
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    Entre el {formatDateLong(minDate)} y el{" "}
-                    {formatDateLong(maxDate)}
-                  </p>
-                </div>
-              </div>
+            {/* ── FLEX ── */}
+            {shippingType === "flex" && (() => {
+              const isBeforeNoon = new Date().getHours() < 12;
+              const nextBusinessDay = addBusinessDays(today, 1);
+              const rescheduled = deliveryDateOption !== "any";
+              return (
+                <div className="space-y-3">
+                  {/* Info principal */}
+                  <div className="bg-green-50 border border-green-200 rounded-2xl p-5">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-10 h-10 rounded-xl bg-green-100 flex items-center justify-center shrink-0">
+                        <Zap className="w-5 h-5 text-green-600" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-gray-800">
+                          {isBeforeNoon ? "Llega hoy" : "Llega mañana"}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {isBeforeNoon
+                            ? "Pedidos antes de las 12hs tienen entrega en el día"
+                            : "Tu pedido saldrá mañana temprano"}
+                        </p>
+                      </div>
+                    </div>
+                    <p className="text-xs text-green-700 font-medium">
+                      Fecha estimada: {isBeforeNoon ? "hoy" : formatDateLong(addBusinessDays(today, 1))}
+                    </p>
+                  </div>
 
-              <p className="text-xs font-medium text-gray-500">
-                Elegí un día específico (opcional)
-              </p>
-
-              <button
-                type="button"
-                onClick={() => setDeliveryDateOption("any")}
-                className={`w-full flex items-center gap-3 p-3 rounded-xl border-2 transition-all text-left ${
-                  deliveryDateOption === "any"
-                    ? "border-[#1E3A8A] bg-blue-50"
-                    : "border-gray-100 hover:border-gray-200"
-                }`}
-              >
-                <Calendar
-                  className={`w-4 h-4 shrink-0 ${
-                    deliveryDateOption === "any" ? "text-[#1E3A8A]" : "text-gray-400"
-                  }`}
-                />
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-gray-800">
-                    Sin preferencia
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    Lo antes posible dentro del rango estimado
-                  </p>
-                </div>
-                {deliveryDateOption === "any" && (
-                  <Check className="w-4 h-4 text-[#1E3A8A] shrink-0" />
-                )}
-              </button>
-
-              <div className="flex gap-2 overflow-x-auto pb-2">
-                {selectableDates.map((date) => {
-                  const str = toDateStr(date);
-                  const isSelected = deliveryDateOption === str;
-                  const isInRange = date >= minDate && date <= maxDate;
-                  return (
+                  {/* Opción reprogramar */}
+                  <div className="bg-white border border-gray-100 rounded-2xl p-5 space-y-3">
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                      ¿No vas a estar en casa?
+                    </p>
                     <button
-                      key={str}
                       type="button"
-                      onClick={() => setDeliveryDateOption(str)}
-                      className={`flex flex-col items-center shrink-0 w-14 py-2.5 rounded-xl border-2 transition-all ${
-                        isSelected
-                          ? "border-[#1E3A8A] bg-[#1E3A8A]"
-                          : isInRange
-                          ? "border-green-200 bg-green-50 hover:border-green-400"
-                          : "border-gray-100 bg-white hover:border-gray-200"
+                      onClick={() => setDeliveryDateOption(rescheduled ? "any" : toDateStr(nextBusinessDay))}
+                      className={`w-full text-left flex items-center gap-4 p-4 rounded-xl border-2 transition-all ${
+                        rescheduled ? "border-[#1E3A8A] bg-blue-50" : "border-gray-100 hover:border-gray-200"
                       }`}
                     >
-                      <span
-                        className={`text-[10px] font-medium ${
-                          isSelected ? "text-blue-200" : "text-gray-500"
-                        }`}
-                      >
-                        {DAYS_ES[date.getDay()]}
-                      </span>
-                      <span
-                        className={`text-base font-bold ${
-                          isSelected ? "text-white" : "text-gray-800"
-                        }`}
-                      >
-                        {date.getDate()}
-                      </span>
-                      <span
-                        className={`text-[10px] ${
-                          isSelected ? "text-blue-200" : "text-gray-400"
-                        }`}
-                      >
-                        {MONTHS_ES[date.getMonth()]}
-                      </span>
-                      {isInRange && !isSelected && (
-                        <div className="w-1 h-1 bg-green-500 rounded-full mt-1" />
-                      )}
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${rescheduled ? "bg-[#1E3A8A]" : "bg-gray-100"}`}>
+                        <Calendar className={`w-5 h-5 ${rescheduled ? "text-white" : "text-gray-400"}`} />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm font-semibold text-gray-800">
+                          Reprogramar para el día siguiente
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          El envío se realizará el {formatDateLong(nextBusinessDay)}
+                        </p>
+                      </div>
+                      {rescheduled && <Check className="w-5 h-5 text-[#1E3A8A] shrink-0" />}
                     </button>
-                  );
-                })}
-              </div>
+                    {rescheduled && (
+                      <p className="text-xs text-[#1E3A8A] font-medium text-center">
+                        Tu pedido llegará el {formatDateLong(nextBusinessDay)}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
 
-              {deliveryDateOption !== "any" && (
-                <p className="text-xs text-[#1E3A8A] font-medium text-center">
-                  Preferís recibirlo el{" "}
-                  {formatDateLong(parseLocalDate(deliveryDateOption))}
-                </p>
-              )}
-            </div>
+            {/* ── ESTÁNDAR ── */}
+            {shippingType === "standard" && (() => {
+              const estimatedFrom = addBusinessDays(today, 3);
+              const estimatedTo   = addBusinessDays(today, 5);
+              return (
+                <div className="bg-white border border-gray-100 rounded-2xl p-5 space-y-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
+                      <Truck className="w-5 h-5 text-blue-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-gray-800">
+                        Llega entre el {formatDateLong(estimatedFrom)} y el {formatDateLong(estimatedTo)}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        3 a 5 días hábiles desde la confirmación
+                      </p>
+                    </div>
+                  </div>
+                  <div className="bg-blue-50 border border-blue-100 rounded-xl px-4 py-3">
+                    <p className="text-xs text-blue-700 font-medium">
+                      Con el envío estándar, la logística programa la entrega según la ruta del día.
+                      No es posible elegir un horario o día exacto.
+                    </p>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* ── NACIONAL ── */}
+            {shippingType !== "flex" && shippingType !== "standard" && (
+              <div className="bg-white border border-gray-100 rounded-2xl p-5 space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center shrink-0">
+                    <Package className="w-5 h-5 text-purple-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-gray-800">Envío al interior del país</p>
+                    <p className="text-xs text-gray-500 mt-0.5">5 a 10 días hábiles estimados</p>
+                  </div>
+                </div>
+                <div className="bg-purple-50 border border-purple-100 rounded-xl px-4 py-3">
+                  <p className="text-xs text-purple-700 font-medium">
+                    Coordinaremos el envío con el correo. Te avisaremos por email cuando el paquete sea despachado.
+                  </p>
+                </div>
+              </div>
+            )}
 
             <button
               type="button"
@@ -1362,9 +1363,13 @@ export default function CheckoutClient() {
                     {address.street}, {address.city}, {address.state}
                   </p>
                   <p className="text-xs text-gray-400 mt-0.5">
-                    {deliveryDateOption === "any"
-                      ? `Estimado: ${formatDateLong(minDate)} – ${formatDateLong(maxDate)}`
-                      : `Preferís el ${formatDateLong(parseLocalDate(deliveryDateOption))}`}
+                    {shippingType === "flex"
+                      ? deliveryDateOption !== "any"
+                        ? `Reprogramado para el ${formatDateLong(parseLocalDate(deliveryDateOption))}`
+                        : new Date().getHours() < 12 ? "Llega hoy" : "Llega mañana"
+                      : shippingType === "standard"
+                      ? `Estimado: ${formatDateLong(addBusinessDays(today, 3))} – ${formatDateLong(addBusinessDays(today, 5))}`
+                      : "5-10 días hábiles · coordinamos con el correo"}
                   </p>
                 </div>
               </div>
