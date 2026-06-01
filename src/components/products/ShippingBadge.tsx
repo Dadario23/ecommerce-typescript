@@ -27,8 +27,8 @@ export default function ShippingBadge({
   size = "sm",
   inCard = false,
 }: Props) {
-  const text  = size === "sm" ? "text-[11px]" : "text-xs";
-  const hasFlex     = shippingTypes.includes("flex");
+  const text = size === "sm" ? "text-[11px]" : "text-xs";
+  const hasFlex = shippingTypes.includes("flex");
   const hasStandard = shippingTypes.includes("standard");
 
   if (loading) {
@@ -40,7 +40,7 @@ export default function ShippingBadge({
     const today = isBeforeNoon();
     return (
       <span className={`${text} font-semibold text-green-700`}>
-        ⚡ {today ? "Llega gratis hoy" : "Llega gratis mañana"}
+        {today ? "Llega gratis hoy" : "Llega gratis mañana"}
       </span>
     );
   }
@@ -51,7 +51,8 @@ export default function ShippingBadge({
       const today = isBeforeNoon();
       return (
         <span className={`${text} font-semibold text-green-700`}>
-          ⚡ {today ? "Llega hoy" : "Llega mañana"} · ${zone.flex.toLocaleString("es-AR")}
+          ⚡ {today ? "Llega hoy" : "Llega mañana"} · $
+          {zone.flex.toLocaleString("es-AR")}
         </span>
       );
     }
@@ -68,10 +69,17 @@ export default function ShippingBadge({
   // ── Sin dirección (logueado sin domicilio) ────────────────────────────────
   if (source === "no-address") {
     if (inCard) {
-      return <span className={`${text} text-gray-400`}>Agregá tu domicilio para ver envíos</span>;
+      return (
+        <span className={`${text} text-gray-400`}>
+          Agregá tu domicilio para ver envíos
+        </span>
+      );
     }
     return (
-      <Link href="/account/addresses" className={`${text} font-medium text-blue-600 hover:underline`}>
+      <Link
+        href="/account/addresses"
+        className={`${text} font-medium text-blue-600 hover:underline`}
+      >
         Agregá tu domicilio para ver envíos
       </Link>
     );
@@ -80,10 +88,17 @@ export default function ShippingBadge({
   // ── No logueado ───────────────────────────────────────────────────────────
   if (source === "unknown" || source === null) {
     if (inCard) {
-      return <span className={`${text} text-gray-400`}>Iniciá sesión para ver envíos</span>;
+      return (
+        <span className={`${text} text-gray-400`}>
+          Iniciá sesión para ver envíos
+        </span>
+      );
     }
     return (
-      <Link href="/login" className={`${text} font-medium text-blue-600 hover:underline`}>
+      <Link
+        href="/login"
+        className={`${text} font-medium text-blue-600 hover:underline`}
+      >
         Iniciá sesión para ver envíos
       </Link>
     );
