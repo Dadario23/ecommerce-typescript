@@ -94,8 +94,12 @@ export default async function LabelPage({
     ? await getOrCreateMpLink(id, order)
     : null;
 
-  const qrContent = mpLink ?? order.orderNumber;
-  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrContent)}&bgcolor=ffffff&color=000000&margin=6`;
+  // QR del header: siempre el número de orden (identificación del paquete)
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(order.orderNumber)}&bgcolor=ffffff&color=000000&margin=6`;
+  // QR de pago: link de MP con el monto exacto (solo para transferencia)
+  const payQrUrl = mpLink
+    ? `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(mpLink)}&bgcolor=ffffff&color=000000&margin=4`
+    : null;
 
   return (
     <>
@@ -277,19 +281,21 @@ export default async function LabelPage({
               </p>
               <div style={{ display: "flex", alignItems: "center", gap: "3mm" }}>
                 {/* QR de pago grande */}
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(qrContent)}&bgcolor=ffffff&color=000000&margin=4`}
-                  alt="QR Pago"
-                  style={{ width: "28mm", height: "28mm", flexShrink: 0 }}
-                />
+                {payQrUrl && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={payQrUrl}
+                    alt="QR Pago"
+                    style={{ width: "28mm", height: "28mm", flexShrink: 0 }}
+                  />
+                )}
                 <div>
                   <p style={{ fontWeight: "700", fontSize: "14pt", color: "#000000", lineHeight: 1.2, marginBottom: "2mm" }}>
                     ${order.total.toLocaleString("es-AR")}
                   </p>
                   <p style={{ fontSize: "6pt", color: "#555555", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: "1mm" }}>Alias</p>
-                  <p style={{ fontFamily: "monospace", fontWeight: "700", fontSize: "8pt", color: "#000000", marginBottom: "2mm" }}>tiendita.compu</p>
-                  <p style={{ fontSize: "5.5pt", color: "#777777" }}>Escaneá el QR para ver<br/>todos los datos de pago</p>
+                  <p style={{ fontFamily: "monospace", fontWeight: "700", fontSize: "8pt", color: "#000000", marginBottom: "2mm" }}>{process.env.MP_ALIAS}</p>
+                  <p style={{ fontSize: "5.5pt", color: "#777777" }}>Escaneá el QR con la app<br/>de Mercado Pago</p>
                 </div>
               </div>
             </div>
