@@ -34,12 +34,41 @@ interface CacheEntry {
   ts: number;
 }
 
+/**
+ * Solo en desarrollo: simular zona desde la consola del navegador.
+ * Ejemplos:
+ *   localStorage.setItem('shipping_zone_test', 'outside-amba')  → fuera del AMBA
+ *   localStorage.setItem('shipping_zone_test', 'no-address')    → logueado sin dirección
+ *   localStorage.setItem('shipping_zone_test', 'unknown')       → no logueado
+ *   localStorage.removeItem('shipping_zone_test')               → comportamiento real
+ */
+const TEST_KEY = "shipping_zone_test";
+
 export function useShippingZone(): ShippingZoneResult {
   const { data: session, status } = useSession();
   const [result, setResult] = useState<ShippingZoneResult>({ zone: null, source: null, loading: true });
 
   useEffect(() => {
     if (status === "loading") return;
+
+    // Override de testing (solo en desarrollo)
+    if (process.env.NODE_ENV === "development") {
+      try {
+        const testMode = localStorage.getItem(TEST_KEY);
+        if (testMode === "outside-amba") {
+          setResult({ zone: null, source: "ip", loading: false });
+          return;
+        }
+        if (testMode === "no-address") {
+          setResult({ zone: null, source: "no-address", loading: false });
+          return;
+        }
+        if (testMode === "unknown") {
+          setResult({ zone: null, source: "unknown", loading: false });
+          return;
+        }
+      } catch { /* ignore */ }
+    }
 
     const email = session?.user?.email ?? null;
 
