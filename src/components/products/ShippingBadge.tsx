@@ -51,7 +51,7 @@ export default function ShippingBadge({
       const today = isBeforeNoon();
       return (
         <span className={`${text} font-semibold text-green-700`}>
-          ⚡ {today ? "Llega hoy" : "Llega mañana"} · $
+          {today ? "Llega hoy" : "Llega mañana"} · $
           {zone.flex.toLocaleString("es-AR")}
         </span>
       );
