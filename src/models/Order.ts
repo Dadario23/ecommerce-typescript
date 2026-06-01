@@ -59,6 +59,7 @@ export interface IOrder extends Document {
   shippingMethod?: string;
   trackingNumber?: string;
   notes?: string;
+  mpPaymentLink?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -143,9 +144,10 @@ const OrderSchema = new Schema(
       ],
       default: "pending",
     },
-    shippingMethod: { type: String },
-    trackingNumber: { type: String },
-    notes: { type: String },
+    shippingMethod:  { type: String },
+    trackingNumber:  { type: String },
+    notes:           { type: String },
+    mpPaymentLink:   { type: String },
   },
   { timestamps: true }
 );

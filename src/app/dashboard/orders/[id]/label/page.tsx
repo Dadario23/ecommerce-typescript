@@ -6,6 +6,50 @@ import Order from "@/models/Order";
 import Link from "next/link";
 import PrintButton from "./PrintButton";
 
+async function getOrCreateMpLink(
+  orderId: string,
+  order: {
+    orderNumber: string;
+    total: number;
+    mpPaymentLink?: string;
+  }
+): Promise<string | null> {
+  if (order.mpPaymentLink) return order.mpPaymentLink;
+
+  const token = process.env.MP_ACCESS_TOKEN;
+  if (!token) return null;
+
+  try {
+    const res = await fetch("https://api.mercadopago.com/checkout/preferences", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        items: [{
+          title: `Pedido #${order.orderNumber}`,
+          quantity: 1,
+          unit_price: Math.round(order.total * 100) / 100,
+          currency_id: "ARS",
+        }],
+        external_reference: orderId,
+        statement_descriptor: "Compumobile",
+        binary_mode: true,
+      }),
+    });
+
+    if (!res.ok) return null;
+    const data = await res.json();
+    const link: string = data.init_point;
+
+    await Order.findByIdAndUpdate(orderId, { mpPaymentLink: link });
+    return link;
+  } catch {
+    return null;
+  }
+}
+
 export const dynamic = "force-dynamic";
 
 export default async function LabelPage({
@@ -36,6 +80,7 @@ export default async function LabelPage({
     payment: { method: string; status: string };
     status: string;
     createdAt: Date;
+    mpPaymentLink?: string;
   }>();
 
   if (!order) notFound();
@@ -43,12 +88,13 @@ export default async function LabelPage({
   const addr        = order.shippingAddress;
   const isCash      = order.payment.method === "cash";
   const isTransfer  = order.payment.method === "transfer";
-  const STORE_URL   = process.env.NEXT_PUBLIC_URL ?? "http://localhost:3000";
 
-  // QR: para transferencia apunta a la página de pago; para el resto, al número de orden
-  const qrContent = isTransfer
-    ? `${STORE_URL}/pay/${id}`
-    : order.orderNumber;
+  // Para transferencia: usar link de MP (se genera automáticamente la primera vez)
+  const mpLink = isTransfer
+    ? await getOrCreateMpLink(id, order)
+    : null;
+
+  const qrContent = mpLink ?? order.orderNumber;
   const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrContent)}&bgcolor=ffffff&color=000000&margin=6`;
 
   return (

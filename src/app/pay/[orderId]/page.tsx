@@ -4,8 +4,8 @@ import { initModels } from "@/lib/initModels";
 import Order from "@/models/Order";
 import Image from "next/image";
 
-const ALIAS = "tiendita.compu";
-const CVU   = "0000003100006137240775";
+const ALIAS = process.env.MP_ALIAS ?? "";
+const CVU   = process.env.MP_CVU   ?? "";
 const STORE_URL = process.env.NEXT_PUBLIC_URL ?? "http://localhost:3000";
 
 interface Props {
