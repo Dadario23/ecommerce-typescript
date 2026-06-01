@@ -22,6 +22,11 @@ export interface ShippingZoneResult {
 const CACHE_KEY = "shipping_zone_cache";
 const CACHE_TTL = 30 * 60 * 1000; // 30 minutos
 
+/** Llamar después de guardar/eliminar una dirección para forzar re-detección */
+export function clearShippingZoneCache() {
+  try { localStorage.removeItem(CACHE_KEY); } catch { /* ignore */ }
+}
+
 interface CacheEntry {
   zone: ShippingZone | null;
   source: ZoneSource;

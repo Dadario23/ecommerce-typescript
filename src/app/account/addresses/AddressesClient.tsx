@@ -24,6 +24,7 @@ import {
   Home, Briefcase, User, Users,
 } from "lucide-react";
 import AddressAutocomplete from "@/components/ui/AddressAutocomplete";
+import { clearShippingZoneCache } from "@/hooks/useShippingZone";
 import LocationMap from "@/components/ui/LocationMap";
 import { ConfirmModal } from "@/components/dashboard/shared/ConfirmModal";
 import { cn } from "@/lib/utils";
@@ -161,6 +162,7 @@ export default function AddressesClient() {
         body: JSON.stringify(submitData),
       });
       if (res.ok) {
+        clearShippingZoneCache();
         await loadAddresses();
         setIsDialogOpen(false);
       }
@@ -171,6 +173,7 @@ export default function AddressesClient() {
 
   const handleDelete = async (id: string) => {
     await fetch(`/api/user/addresses/${id}`, { method: "DELETE" });
+    clearShippingZoneCache();
     loadAddresses();
   };
 

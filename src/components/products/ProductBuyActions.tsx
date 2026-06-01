@@ -5,12 +5,10 @@ import { ShoppingCart, Zap, MessageCircle } from "lucide-react";
 import { useRouter, usePathname } from "next/navigation";
 import { IProduct } from "@/models/Product";
 import { useCartStore } from "@/store/useCartStore";
-import { useCartUI } from "@/store/useCartUI";
 import { cn } from "@/lib/utils";
 
 export default function ProductBuyActions({ product }: { product: IProduct }) {
   const addToCart = useCartStore((s) => s.addToCart);
-  const openCart = useCartUI((s) => s.open);
   const router = useRouter();
   const pathname = usePathname();
 
@@ -29,7 +27,6 @@ export default function ProductBuyActions({ product }: { product: IProduct }) {
     if (isOutOfStock) return;
     addToCart(cartPayload);
     setAdded(true);
-    openCart();
     setTimeout(() => setAdded(false), 2000);
   };
 
