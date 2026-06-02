@@ -19,6 +19,7 @@ import {
   ChevronRight,
   Wrench,
   UserCircle,
+  Heart,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -33,6 +34,7 @@ import { useSession, signOut } from "next-auth/react";
 import { useCartWithSession } from "@/hooks/useCartWithSession";
 import { useCartUI } from "@/store/useCartUI";
 import { useCartStore } from "@/store/useCartStore";
+import { useFavoritesSync } from "@/hooks/useFavoritesSync";
 import Image from "next/image";
 
 interface Category {
@@ -63,6 +65,7 @@ export default function Navbar({ initialCategories = [] }: { initialCategories?:
     state.items.reduce((acc, item) => acc + item.quantity, 0)
   );
   const { toggle } = useCartUI();
+  useFavoritesSync();
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
@@ -161,6 +164,13 @@ export default function Navbar({ initialCategories = [] }: { initialCategories?:
                     </DropdownMenuItem>
 
                     <DropdownMenuItem asChild>
+                      <Link href="/account/favorites" className="flex items-center gap-2">
+                        <Heart className="w-4 h-4 text-gray-400" />
+                        Mis favoritos
+                      </Link>
+                    </DropdownMenuItem>
+
+                    <DropdownMenuItem asChild>
                       <Link href="/account/addresses" className="flex items-center gap-2">
                         <MapPin className="w-4 h-4 text-gray-400" />
                         Mis direcciones
@@ -196,6 +206,17 @@ export default function Navbar({ initialCategories = [] }: { initialCategories?:
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
+              )}
+
+              {/* Favorites */}
+              {session && (
+                <Link
+                  href="/account/favorites"
+                  className="relative p-2 text-white/90 hover:text-white rounded-full hover:bg-white/10 transition-colors"
+                  aria-label="Mis favoritos"
+                >
+                  <Heart className="w-5 h-5" />
+                </Link>
               )}
 
               {/* Cart */}
@@ -352,6 +373,16 @@ export default function Navbar({ initialCategories = [] }: { initialCategories?:
                       >
                         <ClipboardList className="w-4 h-4 text-gray-400" />
                         Mis compras
+                      </Link>
+                    </li>
+                    <li>
+                      <Link
+                        href="/account/favorites"
+                        onClick={() => setMobileMenuOpen(false)}
+                        className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-blue-50"
+                      >
+                        <Heart className="w-4 h-4 text-gray-400" />
+                        Mis favoritos
                       </Link>
                     </li>
                     <li>

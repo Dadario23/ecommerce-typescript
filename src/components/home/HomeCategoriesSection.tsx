@@ -13,7 +13,7 @@ interface CatDoc {
 }
 
 interface ProductDoc {
-  _id: unknown;
+  _id: string;
   slug: string;
   name: string;
   price: number;

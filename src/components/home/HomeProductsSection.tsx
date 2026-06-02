@@ -46,6 +46,7 @@ export default async function HomeProductsSection() {
         {products.map((p) => (
           <HomeProductCard
             key={String(p._id)}
+            id={String(p._id)}
             slug={p.slug}
             image={p.images?.[0] ?? ""}
             name={p.name}

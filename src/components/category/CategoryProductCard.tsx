@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import ShippingBadge from "@/components/products/ShippingBadge";
 import { ShippingZoneResult } from "@/hooks/useShippingZone";
+import FavoriteButton from "@/components/ui/FavoriteButton";
 
 interface Product {
   _id: string;
@@ -52,6 +53,7 @@ export default function CategoryProductCard({ product, listView = false, shippin
               Usado
             </span>
           )}
+          <FavoriteButton productId={product._id} className="absolute bottom-1.5 right-1.5 z-10 shadow-sm" />
           <Image
             src={image || "/placeholder-category.jpg"}
             alt={product.name}
@@ -134,6 +136,7 @@ export default function CategoryProductCard({ product, listView = false, shippin
             Usado
           </span>
         )}
+        <FavoriteButton productId={product._id} className="absolute bottom-2 right-2 z-10 shadow-sm" />
         <Image
           src={image || "/placeholder-category.jpg"}
           alt={product.name}

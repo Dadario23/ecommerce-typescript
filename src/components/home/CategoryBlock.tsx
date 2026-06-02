@@ -3,6 +3,7 @@ import Link from "next/link";
 import HomeProductCard from "./HomeProductCard";
 
 interface Product {
+  _id: string;
   slug: string;
   name: string;
   price: number;
@@ -64,6 +65,7 @@ export default function CategoryBlock({
         {products.slice(0, 3).map((p) => (
           <HomeProductCard
             key={p.slug}
+            id={String(p._id)}
             slug={p.slug}
             image={p.images?.[0] ?? ""}
             name={p.name}

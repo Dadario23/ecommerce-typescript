@@ -14,6 +14,7 @@ export interface IUser extends Document {
   lastResetRequest?: Date; // ← Nuevo campo
   phone?: string;
   addresses: IAddress[];
+  favorites: string[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -66,6 +67,7 @@ const UserSchema = new Schema(
     lastResetRequest: { type: Date }, // ← NUEVO: Último intento
     phone: { type: String },
     addresses: [AddressSchema],
+    favorites: { type: [String], default: [] },
   },
   { timestamps: true }
 );

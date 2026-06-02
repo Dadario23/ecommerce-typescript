@@ -1,7 +1,9 @@
 import Image from "next/image";
 import Link from "next/link";
+import FavoriteButton from "@/components/ui/FavoriteButton";
 
 interface HomeProductCardProps {
+  id: string;
   slug: string;
   image: string;
   name: string;
@@ -11,6 +13,7 @@ interface HomeProductCardProps {
 }
 
 export default function HomeProductCard({
+  id,
   slug,
   image,
   name,
@@ -36,6 +39,7 @@ export default function HomeProductCard({
             -{discountPct}%
           </span>
         )}
+        <FavoriteButton productId={id} className="absolute bottom-2 right-2 z-10 shadow-sm" />
         <Image
           src={image || "/placeholder-category.jpg"}
           alt={name}
