@@ -66,26 +66,23 @@ export async function GET(req: NextRequest) {
         .lean<{ addresses: { city: string; zipCode: string; isDefault: boolean }[] }>();
 
       const addresses = user?.addresses ?? [];
-      // Prioridad: default explícito → resto de direcciones
-      const orderedAddrs = [
-        addresses.find((a) => a.isDefault),
-        ...addresses.filter((a) => !a.isDefault),
-      ].filter(Boolean) as { city: string; zipCode: string; isDefault: boolean }[];
+      // Usar solo el domicilio principal (o el primero si ninguno es default)
+      const selected = addresses.find((a) => a.isDefault) ?? addresses[0];
 
-      for (const addr of orderedAddrs) {
+      if (selected) {
         // 1. Intentar por CP (más confiable)
-        if (addr.zipCode) {
-          const zone = matchZoneByZip(addr.zipCode, zones);
+        if (selected.zipCode) {
+          const zone = matchZoneByZip(selected.zipCode, zones);
           if (zone) return NextResponse.json({ zone, source: "profile" });
         }
         // 2. Fallback por nombre de ciudad
-        if (addr.city) {
-          const zone = matchZoneByCity(addr.city, zones);
+        if (selected.city) {
+          const zone = matchZoneByCity(selected.city, zones);
           if (zone) return NextResponse.json({ zone, source: "profile" });
         }
       }
 
-      // Tiene sesión pero ninguna dirección matchea zona → pedir que confirme
+      // Tiene sesión pero el domicilio principal no matchea zona → pedir que confirme
       return NextResponse.json({ zone: null, source: "no-address" });
     }
 

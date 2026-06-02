@@ -210,6 +210,7 @@ export default function AddressesClient() {
 
   const setAsDefault = async (id: string) => {
     await fetch(`/api/user/addresses/${id}/default`, { method: "PUT" });
+    clearShippingZoneCache();
     loadAddresses();
   };
 
