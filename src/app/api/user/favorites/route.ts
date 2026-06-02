@@ -13,6 +13,7 @@ export async function GET() {
     .select("favorites")
     .lean<{ favorites?: string[] }>();
 
+  console.log("[FAVORITES GET] email:", session.user.email, "→ favorites:", user?.favorites);
   return NextResponse.json(user?.favorites ?? []);
 }
 
