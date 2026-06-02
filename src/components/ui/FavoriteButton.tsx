@@ -1,6 +1,7 @@
 "use client";
 
 import { Heart } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useFavoritesStore } from "@/store/useFavoritesStore";
@@ -17,7 +18,13 @@ export default function FavoriteButton({ productId, variant = "icon", className 
   const { data: session } = useSession();
   const router = useRouter();
   const { isFavorited, toggle } = useFavoritesStore();
-  const favorited = isFavorited(productId);
+
+  // Evita mismatch de hidratación: el servidor siempre renderiza "no favorito"
+  // y el cliente sincroniza con localStorage después del mount.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
+
+  const favorited = mounted && isFavorited(productId);
 
   const handleClick = async (e: React.MouseEvent) => {
     e.preventDefault();
