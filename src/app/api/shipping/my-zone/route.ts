@@ -11,6 +11,8 @@ interface IpApiResponse {
   regionName?: string;
 }
 
+type Zone = { id: string; name: string; localities: string[]; zipRanges?: { min: number; max: number }[]; flex: number; standard: number };
+
 function normalizeLocality(s: string) {
   return s
     .toLowerCase()
@@ -19,14 +21,20 @@ function normalizeLocality(s: string) {
     .trim();
 }
 
-function matchZone(city: string, zones: { id: string; name: string; localities: string[]; flex: number; standard: number }[]) {
+function matchZoneByZip(zipCode: string, zones: Zone[]) {
+  const cp = parseInt(zipCode.replace(/\D/g, ""), 10);
+  if (isNaN(cp)) return null;
+  return zones.find((z) => z.zipRanges?.some((r) => cp >= r.min && cp <= r.max)) ?? null;
+}
+
+function matchZoneByCity(city: string, zones: Zone[]) {
   const normalized = normalizeLocality(city);
   return zones.find((z) =>
     z.localities.some((l) => normalizeLocality(l) === normalized),
   ) ?? null;
 }
 
-async function detectZoneByIp(ip: string, zones: { id: string; name: string; localities: string[]; flex: number; standard: number }[]) {
+async function detectZoneByIp(ip: string, zones: Zone[]) {
   if (!ip || ip === "127.0.0.1" || ip === "::1" || ip.startsWith("192.168") || ip.startsWith("10.")) {
     return null; // localhost / LAN — no detectar
   }
@@ -36,7 +44,7 @@ async function detectZoneByIp(ip: string, zones: { id: string; name: string; loc
     });
     const data: IpApiResponse = await res.json();
     if (data.status !== "success" || !data.city) return null;
-    return matchZone(data.city, zones);
+    return matchZoneByCity(data.city, zones);
   } catch {
     return null;
   }
@@ -55,19 +63,29 @@ export async function GET(req: NextRequest) {
     if (session?.user?.email) {
       const user = await User.findOne({ email: session.user.email })
         .select("addresses")
-        .lean<{ addresses: { city: string; isDefault: boolean }[] }>();
+        .lean<{ addresses: { city: string; zipCode: string; isDefault: boolean }[] }>();
 
       const addresses = user?.addresses ?? [];
-      const defaultAddr = addresses.find((a) => a.isDefault) ?? addresses[0];
+      // Prioridad: default explícito → resto de direcciones
+      const orderedAddrs = [
+        addresses.find((a) => a.isDefault),
+        ...addresses.filter((a) => !a.isDefault),
+      ].filter(Boolean) as { city: string; zipCode: string; isDefault: boolean }[];
 
-      if (defaultAddr?.city) {
-        const zone = matchZone(defaultAddr.city, zones);
-        if (zone) {
-          return NextResponse.json({ zone, source: "profile" });
+      for (const addr of orderedAddrs) {
+        // 1. Intentar por CP (más confiable)
+        if (addr.zipCode) {
+          const zone = matchZoneByZip(addr.zipCode, zones);
+          if (zone) return NextResponse.json({ zone, source: "profile" });
+        }
+        // 2. Fallback por nombre de ciudad
+        if (addr.city) {
+          const zone = matchZoneByCity(addr.city, zones);
+          if (zone) return NextResponse.json({ zone, source: "profile" });
         }
       }
 
-      // Tiene sesión pero no dirección válida → pedir que confirme
+      // Tiene sesión pero ninguna dirección matchea zona → pedir que confirme
       return NextResponse.json({ zone: null, source: "no-address" });
     }
 

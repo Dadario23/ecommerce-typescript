@@ -81,6 +81,10 @@ export async function DELETE(
 
     const { id } = await context.params;
 
+    // Verificar si el domicilio a borrar es el default
+    const existing = await User.findOne({ email: session.user.email }).select("addresses").lean<{ addresses: { _id: { toString(): string }; isDefault: boolean }[] }>();
+    const deletingDefault = existing?.addresses?.find((a) => a._id.toString() === id)?.isDefault ?? false;
+
     const user = await User.findOneAndUpdate(
       { email: session.user.email },
       { $pull: { addresses: { _id: id } } },
@@ -92,6 +96,15 @@ export async function DELETE(
         { error: "Usuario no encontrado" },
         { status: 404 }
       );
+    }
+
+    // Si se borró el default y quedan direcciones, asignar el primero como default
+    if (deletingDefault && user.addresses.length > 0) {
+      await User.updateOne(
+        { email: session.user.email, "addresses._id": user.addresses[0]._id },
+        { $set: { "addresses.$.isDefault": true } }
+      );
+      user.addresses[0].isDefault = true;
     }
 
     return NextResponse.json(user.addresses);

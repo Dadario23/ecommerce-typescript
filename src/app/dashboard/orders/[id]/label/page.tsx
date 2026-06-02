@@ -3,8 +3,10 @@ import { authOptions } from "@/lib/auth";
 import { redirect, notFound } from "next/navigation";
 import { connectDB } from "@/lib/mongodb";
 import Order from "@/models/Order";
+import ShippingConfig from "@/models/ShippingConfig";
 import Link from "next/link";
 import PrintButton from "./PrintButton";
+import { resolveShippingLocation } from "@/lib/cp-lookup";
 
 async function getOrCreateMpLink(
   orderId: string,
@@ -89,6 +91,11 @@ export default async function LabelPage({
   const isCash      = order.payment.method === "cash";
   const isTransfer  = order.payment.method === "transfer";
   const mpAlias     = process.env.MP_ALIAS ?? "";
+
+  const shippingConfig = await ShippingConfig.findOne().lean<{ zones: { id: string; name: string; zipRanges?: { min: number; max: number }[] }[] }>();
+  const shippingLocation = addr.zipCode
+    ? resolveShippingLocation(addr.zipCode, addr.city, shippingConfig?.zones ?? [])
+    : null;
 
   // Para transferencia: usar link de MP (se genera automáticamente la primera vez)
   const mpLink = isTransfer
@@ -193,15 +200,36 @@ export default async function LabelPage({
             >
               Para
             </p>
-            <p style={{ fontWeight: "700", fontSize: "13pt", color: "#000000", marginBottom: "1mm" }}>
+            <p style={{ fontWeight: "700", fontSize: "13pt", color: "#000000", marginBottom: "1.5mm" }}>
               {addr.firstName} {addr.lastName}
             </p>
-            <p style={{ color: "#333333", fontSize: "9pt" }}>{addr.street}</p>
-            <p style={{ color: "#333333", fontSize: "9pt" }}>
-              {addr.city}, {addr.state}
-              {addr.zipCode ? ` (CP ${addr.zipCode})` : ""}
+            <p style={{ color: "#333333", fontSize: "9pt", marginBottom: "1.5mm" }}>{addr.street}</p>
+
+            {/* Zona + barrio/municipio */}
+            {shippingLocation ? (
+              <div style={{ display: "flex", alignItems: "center", gap: "2mm", marginBottom: "1mm" }}>
+                <span style={{
+                  background: "#111111", color: "#ffffff",
+                  fontSize: "6pt", fontWeight: "700",
+                  padding: "0.8mm 2.5mm", borderRadius: "3px",
+                  letterSpacing: "0.1em", textTransform: "uppercase",
+                  flexShrink: 0,
+                }}>
+                  {shippingLocation.zoneName}
+                </span>
+                <span style={{ color: "#222222", fontSize: "8.5pt", fontWeight: "600" }}>
+                  {shippingLocation.neighborhood}
+                </span>
+              </div>
+            ) : (
+              <p style={{ color: "#333333", fontSize: "9pt", marginBottom: "1mm" }}>
+                {addr.city}, {addr.state}
+              </p>
+            )}
+
+            <p style={{ color: "#777777", fontSize: "7.5pt" }}>
+              {addr.zipCode ? `CP ${addr.zipCode} · ` : ""}{addr.state}
             </p>
-            <p style={{ color: "#333333", fontSize: "9pt" }}>{addr.country}</p>
             {addr.phone && (
               <p style={{ color: "#555555", fontSize: "8.5pt", marginTop: "1mm" }}>
                 Tel: {addr.phone}

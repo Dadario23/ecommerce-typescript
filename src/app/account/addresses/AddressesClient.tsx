@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSession } from "next-auth/react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,7 +18,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   Plus, Edit, Trash2, MapPin, Star,
   Home, Briefcase, User, Users,
@@ -80,10 +79,42 @@ export default function AddressesClient() {
   const [saving, setSaving] = useState(false);
   const [streetNumberError, setStreetNumberError] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const geocodeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (session) loadAddresses();
   }, [session]);
+
+  // Re-geocodifica cuando el usuario escribe el número de calle,
+  // combinando calle + número + ciudad para obtener coordenadas precisas.
+  useEffect(() => {
+    const street = formData.street.trim();
+    const city   = formData.city.trim();
+    const number = streetNumber.trim();
+
+    if (!street || !number || !city) return;
+
+    if (geocodeTimerRef.current) clearTimeout(geocodeTimerRef.current);
+    geocodeTimerRef.current = setTimeout(async () => {
+      try {
+        const q = encodeURIComponent(`${street} ${number}, ${city}, ${formData.state || "Buenos Aires"}, Argentina`);
+        const url = `https://nominatim.openstreetmap.org/search?q=${q}&format=json&addressdetails=1&limit=1&countrycodes=ar`;
+        const res  = await fetch(url);
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          const lat = parseFloat(data[0].lat);
+          const lng = parseFloat(data[0].lon);
+          if (!isNaN(lat) && !isNaN(lng)) {
+            setMapCenter([lat, lng]);
+          }
+        }
+      } catch { /* silencioso — el pin queda donde estaba */ }
+    }, 600);
+
+    return () => {
+      if (geocodeTimerRef.current) clearTimeout(geocodeTimerRef.current);
+    };
+  }, [streetNumber, formData.street, formData.city, formData.state]);
 
   const loadAddresses = async () => {
     setIsLoading(true);
@@ -424,30 +455,22 @@ export default function AddressesClient() {
               {/* ── Mapa ── */}
               {mapCenter && (
                 <div>
-                  <p className="text-xs font-medium text-gray-600 mb-1.5 flex items-center gap-1.5">
+                  <p className="text-xs font-semibold text-gray-700 mb-1 flex items-center gap-1.5">
                     <MapPin className="w-3.5 h-3.5 text-[#1E3A8A]" />
-                    Confirmá la ubicación · podés mover el pin para ajustar
+                    Confirmá tu ubicación en el mapa
+                  </p>
+                  <p className="text-xs text-gray-500 mb-2">
+                    El pin puede no estar exactamente en tu domicilio — arrastralo hasta la puerta de tu casa para que el repartidor llegue sin problemas.
                   </p>
                   <LocationMap
                     center={mapCenter}
                     onPositionChange={(lat, lng) => setMapCenter([lat, lng])}
                   />
+                  <p className="text-[11px] text-gray-400 mt-1.5 flex items-center gap-1">
+                    <span>Mantené presionado el pin y arrastralo para ajustar la posición exacta.</span>
+                  </p>
                 </div>
               )}
-
-              {/* ── Principal ── */}
-              <div className="flex items-center gap-2.5 pt-1">
-                <Checkbox
-                  id="isDefault"
-                  checked={formData.isDefault}
-                  onCheckedChange={(c) =>
-                    setFormData((p) => ({ ...p, isDefault: c === true }))
-                  }
-                />
-                <Label htmlFor="isDefault" className="text-sm text-gray-700 cursor-pointer select-none">
-                  Usar como dirección principal
-                </Label>
-              </div>
 
               {/* ── Botones ── */}
               <div className="flex gap-2 pt-1">

@@ -43,8 +43,14 @@ export async function POST(request: NextRequest) {
 
     const addressData = await request.json();
 
-    // Si se marca como default, quitar el default de las demás
-    if (addressData.isDefault) {
+    const existingUser = await User.findOne({ email: session.user.email }).select("addresses").lean<{ addresses: { isDefault: boolean }[] }>();
+    const hasAddresses = (existingUser?.addresses?.length ?? 0) > 0;
+
+    // Si es la primera dirección, siempre queda como default
+    if (!hasAddresses) {
+      addressData.isDefault = true;
+    } else if (addressData.isDefault) {
+      // Si se marca como default, quitar el default de las demás
       await User.updateOne(
         { email: session.user.email, "addresses.isDefault": true },
         { $set: { "addresses.$.isDefault": false } }
