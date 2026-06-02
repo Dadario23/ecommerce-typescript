@@ -45,10 +45,8 @@ export default function FavoriteButton({ productId, variant = "icon", className 
         body: JSON.stringify({ productId }),
       });
 
-      const data = await res.json().catch(() => ({}));
-      console.log("[FavoriteButton] respuesta del servidor:", res.status, data);
-
       if (!res.ok) {
+        await res.json().catch(() => {});
         toggle(productId); // revertir
         toast({
           title: "Error",
