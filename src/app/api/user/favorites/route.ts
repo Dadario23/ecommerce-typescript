@@ -17,30 +17,47 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.email)
-    return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+    }
 
-  const { productId } = await req.json();
-  if (!productId)
-    return NextResponse.json({ error: "productId requerido" }, { status: 400 });
+    const body = await req.json();
+    const { productId } = body;
 
-  await connectDB();
+    if (!productId) {
+      return NextResponse.json({ error: "productId requerido" }, { status: 400 });
+    }
 
-  // Verificar si ya está en favoritos
-  const existing = await User.findOne({
-    email: session.user.email,
-    favorites: productId,
-  }).select("_id").lean();
+    await connectDB();
 
-  const already = !!existing;
+    // Verificar si ya está en favoritos
+    const user = await User.findOne({ email: session.user.email }).select("favorites");
 
-  await User.updateOne(
-    { email: session.user.email },
-    already
-      ? { $pull: { favorites: productId } }
-      : { $addToSet: { favorites: productId } }
-  );
+    if (!user) {
+      console.error("[FAVORITES] Usuario no encontrado:", session.user.email);
+      return NextResponse.json({ error: "Usuario no encontrado" }, { status: 404 });
+    }
 
-  return NextResponse.json({ added: !already });
+    const favorites: string[] = user.favorites ?? [];
+    const already = favorites.includes(productId);
+
+    if (already) {
+      await User.updateOne(
+        { email: session.user.email },
+        { $pull: { favorites: productId } }
+      );
+    } else {
+      await User.updateOne(
+        { email: session.user.email },
+        { $addToSet: { favorites: productId } }
+      );
+    }
+
+    return NextResponse.json({ added: !already, productId });
+  } catch (err) {
+    console.error("[FAVORITES POST]", err);
+    return NextResponse.json({ error: "Error interno" }, { status: 500 });
+  }
 }

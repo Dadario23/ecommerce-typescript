@@ -5,11 +5,10 @@ import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useFavoritesStore } from "@/store/useFavoritesStore";
+import { useToast } from "@/hooks/use-toast";
 
 interface Props {
   productId: string;
-  // "icon" → solo corazón pequeño (en cards)
-  // "full" → botón completo con texto (en página de producto)
   variant?: "icon" | "full";
   className?: string;
 }
@@ -18,9 +17,8 @@ export default function FavoriteButton({ productId, variant = "icon", className 
   const { data: session } = useSession();
   const router = useRouter();
   const { isFavorited, toggle } = useFavoritesStore();
+  const { toast } = useToast();
 
-  // Evita mismatch de hidratación: el servidor siempre renderiza "no favorito"
-  // y el cliente sincroniza con localStorage después del mount.
   const [mounted, setMounted] = useState(false);
   useEffect(() => { setMounted(true); }, []);
 
@@ -35,6 +33,9 @@ export default function FavoriteButton({ productId, variant = "icon", className 
       return;
     }
 
+    const wasAdding = !favorited;
+
+    // Optimistic update
     toggle(productId);
 
     try {
@@ -43,9 +44,32 @@ export default function FavoriteButton({ productId, variant = "icon", className 
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ productId }),
       });
-      if (!res.ok) toggle(productId);
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        console.error("[FavoriteButton] error del servidor:", res.status, data);
+        toggle(productId); // revertir
+        toast({
+          title: "Error",
+          description: "No se pudo guardar el favorito. Intentá de nuevo.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      toast({
+        title: wasAdding ? "Agregado a favoritos" : "Quitado de favoritos",
+        description: wasAdding
+          ? "Podés verlo en Mi cuenta → Mis favoritos."
+          : "El producto fue removido de tus favoritos.",
+      });
     } catch {
-      toggle(productId);
+      toggle(productId); // revertir si hay error de red
+      toast({
+        title: "Error de conexión",
+        description: "Verificá tu conexión e intentá de nuevo.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -60,11 +84,7 @@ export default function FavoriteButton({ productId, variant = "icon", className 
             : "border-gray-200 bg-white text-gray-600 hover:border-red-200 hover:text-red-400 hover:bg-red-50"
         } ${className}`}
       >
-        <Heart
-          className="w-4 h-4"
-          fill={favorited ? "currentColor" : "none"}
-          strokeWidth={2}
-        />
+        <Heart className="w-4 h-4" fill={favorited ? "currentColor" : "none"} strokeWidth={2} />
         {favorited ? "Guardado en favoritos" : "Agregar a favoritos"}
       </button>
     );
@@ -80,11 +100,7 @@ export default function FavoriteButton({ productId, variant = "icon", className 
           : "bg-white/80 text-gray-400 hover:text-red-400 hover:bg-red-50"
       } ${className}`}
     >
-      <Heart
-        className="w-4 h-4"
-        fill={favorited ? "currentColor" : "none"}
-        strokeWidth={2}
-      />
+      <Heart className="w-4 h-4" fill={favorited ? "currentColor" : "none"} strokeWidth={2} />
     </button>
   );
 }
