@@ -21,10 +21,14 @@ export interface ShippingZoneResult {
 
 const CACHE_KEY = "shipping_zone_cache";
 const CACHE_TTL = 30 * 60 * 1000; // 30 minutos
+const INVALIDATE_EVENT = "shipping-zone-invalidated";
 
 /** Llamar después de guardar/eliminar una dirección para forzar re-detección */
 export function clearShippingZoneCache() {
   try { localStorage.removeItem(CACHE_KEY); } catch { /* ignore */ }
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event(INVALIDATE_EVENT));
+  }
 }
 
 interface CacheEntry {
@@ -47,6 +51,14 @@ const TEST_KEY = "shipping_zone_test";
 export function useShippingZone(): ShippingZoneResult {
   const { data: session, status } = useSession();
   const [result, setResult] = useState<ShippingZoneResult>({ zone: null, source: null, loading: true });
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  // Re-fetcha cuando se invalida el cache desde cualquier componente
+  useEffect(() => {
+    const invalidate = () => setRefreshKey((k) => k + 1);
+    window.addEventListener(INVALIDATE_EVENT, invalidate);
+    return () => window.removeEventListener(INVALIDATE_EVENT, invalidate);
+  }, []);
 
   useEffect(() => {
     if (status === "loading") return;
@@ -97,7 +109,7 @@ export function useShippingZone(): ShippingZoneResult {
         } catch { /* ignore */ }
       })
       .catch(() => setResult({ zone: null, source: "error", loading: false }));
-  }, [status, session?.user?.email]);
+  }, [status, session?.user?.email, refreshKey]);
 
   return result;
 }
