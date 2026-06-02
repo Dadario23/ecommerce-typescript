@@ -9,6 +9,7 @@ import ProductBuyActions from "@/components/products/ProductBuyActions";
 import ProductShippingCalculator from "@/components/products/ProductShippingCalculator";
 import ProductTabs from "@/components/products/ProductTabs";
 import SimilarProducts from "@/components/products/SimilarProducts";
+import FavoriteButton from "@/components/ui/FavoriteButton";
 import type { SimilarProduct } from "@/components/products/SimilarProducts";
 import type { SerializedReview } from "@/components/products/ReviewsSection";
 
@@ -45,6 +46,12 @@ export default function ProductPageClient({
           <div className="w-full lg:w-[420px] xl:w-[460px] shrink-0">
             <div className="lg:sticky lg:top-44 space-y-5">
               <ProductInfo product={product} />
+
+              {/* Favorito */}
+              <FavoriteButton
+                productId={String(product._id)}
+                variant="full"
+              />
 
               {/* Advertencia: solo retiro en sucursal */}
               {!homeDelivery && (
