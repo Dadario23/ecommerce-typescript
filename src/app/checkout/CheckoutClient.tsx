@@ -41,14 +41,15 @@ type WizardStep =
   | "review";
 
 type DeliveryMethod = "domicilio" | "contraentrega";
-type PaymentMethod  = "mercadopago" | "cash" | "transfer";
-type AddressUIMode  = "default" | "list" | "edit";
-type ShippingType   = "flex" | "standard";
+type PaymentMethod = "mercadopago" | "cash" | "transfer";
+type AddressUIMode = "default" | "list" | "edit";
+type ShippingType = "flex" | "standard";
 
 interface ShippingZone {
   id: string;
   name: string;
   localities: string[];
+  zipRanges?: { min: number; max: number }[];
   flex: number;
   standard: number;
 }
@@ -92,8 +93,18 @@ type AddressErrors = Partial<Record<keyof AddressData, string>>;
 
 const DAYS_ES = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 const MONTHS_ES = [
-  "ene","feb","mar","abr","may","jun",
-  "jul","ago","sep","oct","nov","dic",
+  "ene",
+  "feb",
+  "mar",
+  "abr",
+  "may",
+  "jun",
+  "jul",
+  "ago",
+  "sep",
+  "oct",
+  "nov",
+  "dic",
 ];
 
 function addBusinessDays(date: Date, n: number): Date {
@@ -109,7 +120,6 @@ function addBusinessDays(date: Date, n: number): Date {
 function formatDateLong(date: Date): string {
   return `${date.getDate()} de ${MONTHS_ES[date.getMonth()]}`;
 }
-
 
 function toDateStr(d: Date): string {
   return d.toISOString().split("T")[0];
@@ -127,6 +137,12 @@ function findZone(city: string, zones: ShippingZone[]): ShippingZone | null {
   if (!city.trim()) return null;
   const n = normalizeLocality(city);
   return zones.find((z) => z.localities.some((l) => normalizeLocality(l) === n)) ?? null;
+}
+
+function findZoneByZip(zipCode: string, zones: ShippingZone[]): ShippingZone | null {
+  const cp = parseInt(zipCode.replace(/\D/g, ""), 10);
+  if (isNaN(cp)) return null;
+  return zones.find((z) => z.zipRanges?.some((r) => cp >= r.min && cp <= r.max)) ?? null;
 }
 
 function fromSaved(addr: SavedAddress, fallback: AddressData): AddressData {
@@ -199,8 +215,8 @@ function StepBar({ step }: { step: WizardStep }) {
                 i < active
                   ? "bg-green-500 text-white"
                   : i === active
-                  ? "bg-[#1E3A8A] text-white"
-                  : "bg-gray-100 text-gray-400"
+                    ? "bg-[#1E3A8A] text-white"
+                    : "bg-gray-100 text-gray-400"
               }`}
             >
               {i < active ? <Check className="w-4 h-4" /> : i + 1}
@@ -210,8 +226,8 @@ function StepBar({ step }: { step: WizardStep }) {
                 i === active
                   ? "text-[#1E3A8A]"
                   : i < active
-                  ? "text-green-600"
-                  : "text-gray-400"
+                    ? "text-green-600"
+                    : "text-gray-400"
               }`}
             >
               {label}
@@ -251,11 +267,19 @@ interface AddressFormProps {
   onPlaceSelect: (data: Partial<AddressData>) => void;
 }
 
-function AddressForm({ address, errors, onChange, onPlaceSelect }: AddressFormProps) {
+function AddressForm({
+  address,
+  errors,
+  onChange,
+  onPlaceSelect,
+}: AddressFormProps) {
   return (
     <div className="space-y-3">
       <div>
-        <Label htmlFor="street" className="text-xs font-medium text-gray-600 mb-1 block">
+        <Label
+          htmlFor="street"
+          className="text-xs font-medium text-gray-600 mb-1 block"
+        >
           Dirección
         </Label>
         <AddressAutocomplete
@@ -280,7 +304,10 @@ function AddressForm({ address, errors, onChange, onPlaceSelect }: AddressFormPr
 
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <Label htmlFor="city" className="text-xs font-medium text-gray-600 mb-1 block">
+          <Label
+            htmlFor="city"
+            className="text-xs font-medium text-gray-600 mb-1 block"
+          >
             Ciudad
           </Label>
           <Input
@@ -295,7 +322,10 @@ function AddressForm({ address, errors, onChange, onPlaceSelect }: AddressFormPr
           )}
         </div>
         <div>
-          <Label htmlFor="state" className="text-xs font-medium text-gray-600 mb-1 block">
+          <Label
+            htmlFor="state"
+            className="text-xs font-medium text-gray-600 mb-1 block"
+          >
             Provincia
           </Label>
           <Input
@@ -313,7 +343,10 @@ function AddressForm({ address, errors, onChange, onPlaceSelect }: AddressFormPr
 
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <Label htmlFor="postalCode" className="text-xs font-medium text-gray-600 mb-1 block">
+          <Label
+            htmlFor="postalCode"
+            className="text-xs font-medium text-gray-600 mb-1 block"
+          >
             Cód. Postal
           </Label>
           <Input
@@ -328,7 +361,10 @@ function AddressForm({ address, errors, onChange, onPlaceSelect }: AddressFormPr
           )}
         </div>
         <div>
-          <Label htmlFor="phone" className="text-xs font-medium text-gray-600 mb-1 block">
+          <Label
+            htmlFor="phone"
+            className="text-xs font-medium text-gray-600 mb-1 block"
+          >
             Teléfono
           </Label>
           <Input
@@ -355,9 +391,12 @@ export default function CheckoutClient() {
   const [step, setStep] = useState<WizardStep>("init-loading");
 
   // Delivery
-  const [deliveryMethod, setDeliveryMethod] = useState<DeliveryMethod>("domicilio");
+  const [deliveryMethod, setDeliveryMethod] =
+    useState<DeliveryMethod>("domicilio");
   const [savedAddresses, setSavedAddresses] = useState<SavedAddress[]>([]);
-  const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
+  const [selectedAddressId, setSelectedAddressId] = useState<string | null>(
+    null,
+  );
   const [address, setAddress] = useState<AddressData>({
     firstName: "",
     lastName: "",
@@ -372,14 +411,15 @@ export default function CheckoutClient() {
   const [addressUIMode, setAddressUIMode] = useState<AddressUIMode>("default");
 
   // Shipping zones
-  const [zonesData, setZonesData]     = useState<ShippingZone[]>([]);
+  const [zonesData, setZonesData] = useState<ShippingZone[]>([]);
   const [shippingType, setShippingType] = useState<ShippingType>("flex");
 
   // Date
   const [deliveryDateOption, setDeliveryDateOption] = useState<string>("any");
 
   // Payment
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("mercadopago");
+  const [paymentMethod, setPaymentMethod] =
+    useState<PaymentMethod>("mercadopago");
   const [couponCode, setCouponCode] = useState("");
   const [couponError, setCouponError] = useState("");
   const [couponDiscount, setCouponDiscount] = useState(0);
@@ -393,12 +433,18 @@ export default function CheckoutClient() {
   const subtotal =
     items?.reduce(
       (sum: number, item: CartItem) => sum + item.price * item.quantity,
-      0
+      0,
     ) ?? 0;
 
-  const detectedZone  = findZone(address.city, zonesData);
-  const shippingCost  = detectedZone
-    ? (shippingType === "flex" ? detectedZone.flex : detectedZone.standard)
+  // Try city name first; fall back to ZIP so addresses like "Villa Vatteone / B1888EIC"
+  // (neighborhood stored as city) still resolve to the correct zone (GBA 2).
+  const detectedZone =
+    findZone(address.city, zonesData) ??
+    findZoneByZip(address.postalCode, zonesData);
+  const shippingCost = detectedZone
+    ? shippingType === "flex"
+      ? detectedZone.flex
+      : detectedZone.standard
     : 0;
   const total = Math.max(0, subtotal + shippingCost - couponDiscount);
 
@@ -424,7 +470,9 @@ export default function CheckoutClient() {
     // Cargar zonas de envío
     fetch("/api/shipping/zones")
       .then((r) => r.json())
-      .then((data) => { if (Array.isArray(data)) setZonesData(data); })
+      .then((data) => {
+        if (Array.isArray(data)) setZonesData(data);
+      })
       .catch(() => {});
 
     fetch("/api/user/addresses")
@@ -452,7 +500,9 @@ export default function CheckoutClient() {
 
   // Reset payment method when delivery changes
   useEffect(() => {
-    setPaymentMethod(deliveryMethod === "contraentrega" ? "cash" : "mercadopago");
+    setPaymentMethod(
+      deliveryMethod === "contraentrega" ? "cash" : "mercadopago",
+    );
   }, [deliveryMethod]);
 
   // ── Handlers ─────────────────────────────────────────────────────────────────
@@ -472,7 +522,8 @@ export default function CheckoutClient() {
     if (!address.street?.trim()) errs.street = "La dirección es obligatoria";
     if (!address.city?.trim()) errs.city = "La ciudad es obligatoria";
     if (!address.state?.trim()) errs.state = "La provincia es obligatoria";
-    if (!address.postalCode?.trim()) errs.postalCode = "El código postal es obligatorio";
+    if (!address.postalCode?.trim())
+      errs.postalCode = "El código postal es obligatorio";
     setAddressErrors(errs);
     return Object.keys(errs).length === 0;
   }
@@ -525,9 +576,12 @@ export default function CheckoutClient() {
 
   function buildPayload() {
     const notesParts: string[] = [];
-    if (deliveryDateOption !== "any") notesParts.push(`Preferencia de entrega: ${deliveryDateOption}`);
+    if (deliveryDateOption !== "any")
+      notesParts.push(`Preferencia de entrega: ${deliveryDateOption}`);
     if (detectedZone) notesParts.push(`Zona: ${detectedZone.name}`);
-    notesParts.push(`Tipo de envío: ${shippingType === "flex" ? "Flex" : "Estándar"}`);
+    notesParts.push(
+      `Tipo de envío: ${shippingType === "flex" ? "Flex" : "Estándar"}`,
+    );
 
     return {
       items,
@@ -569,7 +623,7 @@ export default function CheckoutClient() {
           setErrorMsg(
             res.status === 409 && Array.isArray(body.details)
               ? body.details.join("\n")
-              : "Error al crear preferencia de pago"
+              : "Error al crear preferencia de pago",
           );
           setIsProcessing(false);
           return;
@@ -589,7 +643,7 @@ export default function CheckoutClient() {
           setErrorMsg(
             res.status === 409 && Array.isArray(body.details)
               ? body.details.join("\n")
-              : "Error al crear la orden"
+              : "Error al crear la orden",
           );
           setIsProcessing(false);
           return;
@@ -720,12 +774,16 @@ export default function CheckoutClient() {
               >
                 <div
                   className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 mt-0.5 ${
-                    deliveryMethod === "domicilio" ? "bg-[#1E3A8A]" : "bg-gray-100"
+                    deliveryMethod === "domicilio"
+                      ? "bg-[#1E3A8A]"
+                      : "bg-gray-100"
                   }`}
                 >
                   <Home
                     className={`w-5 h-5 ${
-                      deliveryMethod === "domicilio" ? "text-white" : "text-gray-400"
+                      deliveryMethod === "domicilio"
+                        ? "text-white"
+                        : "text-gray-400"
                     }`}
                   />
                 </div>
@@ -773,12 +831,16 @@ export default function CheckoutClient() {
               >
                 <div
                   className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 mt-0.5 ${
-                    deliveryMethod === "contraentrega" ? "bg-[#1E3A8A]" : "bg-gray-100"
+                    deliveryMethod === "contraentrega"
+                      ? "bg-[#1E3A8A]"
+                      : "bg-gray-100"
                   }`}
                 >
                   <Package
                     className={`w-5 h-5 ${
-                      deliveryMethod === "contraentrega" ? "text-white" : "text-gray-400"
+                      deliveryMethod === "contraentrega"
+                        ? "text-white"
+                        : "text-gray-400"
                     }`}
                   />
                 </div>
@@ -813,8 +875,9 @@ export default function CheckoutClient() {
                       <Check className="w-4 h-4 text-[#1E3A8A] mt-0.5 shrink-0" />
                       <div>
                         <p className="text-sm font-semibold text-gray-800">
-                          {savedAddresses.find((a) => a._id === selectedAddressId)
-                            ?.title ?? "Mi dirección"}
+                          {savedAddresses.find(
+                            (a) => a._id === selectedAddressId,
+                          )?.title ?? "Mi dirección"}
                         </p>
                         <p className="text-xs text-gray-600 mt-0.5">
                           {address.street}, {address.city}
@@ -832,7 +895,7 @@ export default function CheckoutClient() {
                         className="flex items-center gap-1.5 text-xs font-semibold text-[#1E3A8A] hover:text-blue-800 border border-[#1E3A8A]/30 hover:border-[#1E3A8A] px-3 py-2 rounded-lg transition-colors"
                       >
                         <Pencil className="w-3.5 h-3.5" />
-                        Modificar o agregar dirección
+                        Modificar dirección
                       </button>
                       {savedAddresses.length > 1 && (
                         <button
@@ -841,7 +904,7 @@ export default function CheckoutClient() {
                           className="flex items-center gap-1.5 text-xs font-semibold text-gray-600 hover:text-gray-800 border border-gray-200 hover:border-gray-400 px-3 py-2 rounded-lg transition-colors"
                         >
                           <ListChecks className="w-3.5 h-3.5" />
-                          Elegir otro
+                          Elegir otra
                         </button>
                       )}
                     </div>
@@ -928,7 +991,9 @@ export default function CheckoutClient() {
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
               <div className="px-5 py-4 border-b border-gray-50 flex items-center gap-2">
                 <Truck className="w-4 h-4 text-[#1E3A8A]" />
-                <p className="text-sm font-semibold text-gray-700">Tipo de envío</p>
+                <p className="text-sm font-semibold text-gray-700">
+                  Tipo de envío
+                </p>
               </div>
               <div className="p-5 space-y-3">
                 {!address.city.trim() ? (
@@ -938,7 +1003,9 @@ export default function CheckoutClient() {
                 ) : !detectedZone ? (
                   <div className="space-y-3">
                     <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
-                      Tu zona (<span className="font-semibold">{address.city}</span>) no está cubierta por nuestro servicio de envío propio.
+                      Tu zona (
+                      <span className="font-semibold">{address.city}</span>) no
+                      está cubierta por nuestro servicio de envío propio.
                     </p>
                     <a
                       href={`https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? "5491150610043"}`}
@@ -953,25 +1020,42 @@ export default function CheckoutClient() {
                 ) : (
                   <>
                     <p className="text-xs text-gray-500">
-                      Zona detectada: <span className="font-semibold text-gray-700">{detectedZone.name} — {address.city}</span>
+                      Zona detectada:{" "}
+                      <span className="font-semibold text-gray-700">
+                        {detectedZone.name} — {address.city}
+                      </span>
                     </p>
                     <button
                       type="button"
                       onClick={() => setShippingType("flex")}
                       className={`w-full text-left flex items-center gap-4 p-4 rounded-xl border-2 transition-all ${
-                        shippingType === "flex" ? "border-[#1E3A8A] bg-blue-50" : "border-gray-100 hover:border-gray-200"
+                        shippingType === "flex"
+                          ? "border-[#1E3A8A] bg-blue-50"
+                          : "border-gray-100 hover:border-gray-200"
                       }`}
                     >
-                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${shippingType === "flex" ? "bg-[#1E3A8A]" : "bg-gray-100"}`}>
-                        <Zap className={`w-5 h-5 ${shippingType === "flex" ? "text-white" : "text-gray-400"}`} />
+                      <div
+                        className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${shippingType === "flex" ? "bg-[#1E3A8A]" : "bg-gray-100"}`}
+                      >
+                        <Zap
+                          className={`w-5 h-5 ${shippingType === "flex" ? "text-white" : "text-gray-400"}`}
+                        />
                       </div>
                       <div className="flex-1">
-                        <p className="font-semibold text-sm text-gray-800">Envío flex</p>
-                        <p className="text-xs text-gray-500">Mismo día / día siguiente</p>
+                        <p className="font-semibold text-sm text-gray-800">
+                          Envío flex
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          Mismo día / día siguiente
+                        </p>
                       </div>
                       <div className="text-right shrink-0">
-                        <p className="text-sm font-bold text-gray-900">${detectedZone.flex.toLocaleString("es-AR")}</p>
-                        {shippingType === "flex" && <Check className="w-4 h-4 text-[#1E3A8A] ml-auto mt-1" />}
+                        <p className="text-sm font-bold text-gray-900">
+                          ${detectedZone.flex.toLocaleString("es-AR")}
+                        </p>
+                        {shippingType === "flex" && (
+                          <Check className="w-4 h-4 text-[#1E3A8A] ml-auto mt-1" />
+                        )}
                       </div>
                     </button>
 
@@ -979,19 +1063,33 @@ export default function CheckoutClient() {
                       type="button"
                       onClick={() => setShippingType("standard")}
                       className={`w-full text-left flex items-center gap-4 p-4 rounded-xl border-2 transition-all ${
-                        shippingType === "standard" ? "border-[#1E3A8A] bg-blue-50" : "border-gray-100 hover:border-gray-200"
+                        shippingType === "standard"
+                          ? "border-[#1E3A8A] bg-blue-50"
+                          : "border-gray-100 hover:border-gray-200"
                       }`}
                     >
-                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${shippingType === "standard" ? "bg-[#1E3A8A]" : "bg-gray-100"}`}>
-                        <Truck className={`w-5 h-5 ${shippingType === "standard" ? "text-white" : "text-gray-400"}`} />
+                      <div
+                        className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${shippingType === "standard" ? "bg-[#1E3A8A]" : "bg-gray-100"}`}
+                      >
+                        <Truck
+                          className={`w-5 h-5 ${shippingType === "standard" ? "text-white" : "text-gray-400"}`}
+                        />
                       </div>
                       <div className="flex-1">
-                        <p className="font-semibold text-sm text-gray-800">Envío estándar</p>
-                        <p className="text-xs text-gray-500">2-3 días hábiles</p>
+                        <p className="font-semibold text-sm text-gray-800">
+                          Envío estándar
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          2-3 días hábiles
+                        </p>
                       </div>
                       <div className="text-right shrink-0">
-                        <p className="text-sm font-bold text-gray-900">${detectedZone.standard.toLocaleString("es-AR")}</p>
-                        {shippingType === "standard" && <Check className="w-4 h-4 text-[#1E3A8A] ml-auto mt-1" />}
+                        <p className="text-sm font-bold text-gray-900">
+                          ${detectedZone.standard.toLocaleString("es-AR")}
+                        </p>
+                        {shippingType === "standard" && (
+                          <Check className="w-4 h-4 text-[#1E3A8A] ml-auto mt-1" />
+                        )}
                       </div>
                     </button>
                   </>
@@ -1019,60 +1117,66 @@ export default function CheckoutClient() {
             </h1>
 
             {/* ── FLEX ── */}
-            {shippingType === "flex" && (() => {
-              const isBeforeNoon = new Date().getHours() < 12;
-              return (
-                <div className="bg-green-50 border border-green-200 rounded-2xl p-5">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-10 h-10 rounded-xl bg-green-100 flex items-center justify-center shrink-0">
-                      <Zap className="w-5 h-5 text-green-600" />
+            {shippingType === "flex" &&
+              (() => {
+                const isBeforeNoon = new Date().getHours() < 12;
+                return (
+                  <div className="bg-green-50 border border-green-200 rounded-2xl p-5">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-10 h-10 rounded-xl bg-green-100 flex items-center justify-center shrink-0">
+                        <Zap className="w-5 h-5 text-green-600" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-gray-800">
+                          {isBeforeNoon ? "Llega hoy" : "Llega mañana"}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {isBeforeNoon
+                            ? "Pedidos antes de las 12hs tienen entrega en el día"
+                            : "Tu pedido saldrá mañana temprano"}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-sm font-bold text-gray-800">
-                        {isBeforeNoon ? "Llega hoy" : "Llega mañana"}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        {isBeforeNoon
-                          ? "Pedidos antes de las 12hs tienen entrega en el día"
-                          : "Tu pedido saldrá mañana temprano"}
-                      </p>
-                    </div>
-                  </div>
-                  <p className="text-xs text-green-700 font-medium">
-                    Si no vas a estar en casa podés reprogramarlo desde <span className="underline">Mis compras</span> una vez confirmado el pedido.
-                  </p>
-                </div>
-              );
-            })()}
-
-            {/* ── ESTÁNDAR ── */}
-            {shippingType === "standard" && (() => {
-              const estimatedFrom = addBusinessDays(today, 3);
-              const estimatedTo   = addBusinessDays(today, 5);
-              return (
-                <div className="bg-white border border-gray-100 rounded-2xl p-5 space-y-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
-                      <Truck className="w-5 h-5 text-blue-600" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-bold text-gray-800">
-                        Llega entre el {formatDateLong(estimatedFrom)} y el {formatDateLong(estimatedTo)}
-                      </p>
-                      <p className="text-xs text-gray-500 mt-0.5">
-                        3 a 5 días hábiles desde la confirmación
-                      </p>
-                    </div>
-                  </div>
-                  <div className="bg-blue-50 border border-blue-100 rounded-xl px-4 py-3">
-                    <p className="text-xs text-blue-700 font-medium">
-                      Con el envío estándar, la logística programa la entrega según la ruta del día.
-                      No es posible elegir un horario o día exacto.
+                    <p className="text-xs text-green-700 font-medium">
+                      Si no vas a estar en casa podés reprogramarlo desde{" "}
+                      <span className="underline">Mis compras</span> una vez
+                      confirmado el pedido.
                     </p>
                   </div>
-                </div>
-              );
-            })()}
+                );
+              })()}
+
+            {/* ── ESTÁNDAR ── */}
+            {shippingType === "standard" &&
+              (() => {
+                const estimatedFrom = addBusinessDays(today, 3);
+                const estimatedTo = addBusinessDays(today, 5);
+                return (
+                  <div className="bg-white border border-gray-100 rounded-2xl p-5 space-y-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
+                        <Truck className="w-5 h-5 text-blue-600" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-gray-800">
+                          Llega entre el {formatDateLong(estimatedFrom)} y el{" "}
+                          {formatDateLong(estimatedTo)}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          3 a 5 días hábiles desde la confirmación
+                        </p>
+                      </div>
+                    </div>
+                    <div className="bg-blue-50 border border-blue-100 rounded-xl px-4 py-3">
+                      <p className="text-xs text-blue-700 font-medium">
+                        Con el envío estándar, la logística programa la entrega
+                        según la ruta del día. No es posible elegir un horario o
+                        día exacto.
+                      </p>
+                    </div>
+                  </div>
+                );
+              })()}
 
             {/* ── NACIONAL ── */}
             {shippingType !== "flex" && shippingType !== "standard" && (
@@ -1082,13 +1186,18 @@ export default function CheckoutClient() {
                     <Package className="w-5 h-5 text-purple-600" />
                   </div>
                   <div>
-                    <p className="text-sm font-bold text-gray-800">Envío al interior del país</p>
-                    <p className="text-xs text-gray-500 mt-0.5">5 a 10 días hábiles estimados</p>
+                    <p className="text-sm font-bold text-gray-800">
+                      Envío al interior del país
+                    </p>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      5 a 10 días hábiles estimados
+                    </p>
                   </div>
                 </div>
                 <div className="bg-purple-50 border border-purple-100 rounded-xl px-4 py-3">
                   <p className="text-xs text-purple-700 font-medium">
-                    Coordinaremos el envío con el correo. Te avisaremos por email cuando el paquete sea despachado.
+                    Coordinaremos el envío con el correo. Te avisaremos por
+                    email cuando el paquete sea despachado.
                   </p>
                 </div>
               </div>
@@ -1143,12 +1252,16 @@ export default function CheckoutClient() {
                   >
                     <div
                       className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
-                        paymentMethod === "cash" ? "bg-[#1E3A8A]" : "bg-gray-100"
+                        paymentMethod === "cash"
+                          ? "bg-[#1E3A8A]"
+                          : "bg-gray-100"
                       }`}
                     >
                       <Package
                         className={`w-5 h-5 ${
-                          paymentMethod === "cash" ? "text-white" : "text-gray-400"
+                          paymentMethod === "cash"
+                            ? "text-white"
+                            : "text-gray-400"
                         }`}
                       />
                     </div>
@@ -1176,12 +1289,16 @@ export default function CheckoutClient() {
                   >
                     <div
                       className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
-                        paymentMethod === "transfer" ? "bg-[#1E3A8A]" : "bg-gray-100"
+                        paymentMethod === "transfer"
+                          ? "bg-[#1E3A8A]"
+                          : "bg-gray-100"
                       }`}
                     >
                       <Banknote
                         className={`w-5 h-5 ${
-                          paymentMethod === "transfer" ? "text-white" : "text-gray-400"
+                          paymentMethod === "transfer"
+                            ? "text-white"
+                            : "text-gray-400"
                         }`}
                       />
                     </div>
@@ -1224,7 +1341,9 @@ export default function CheckoutClient() {
                 <div className="flex gap-2">
                   <Input
                     value={couponCode}
-                    onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                    onChange={(e) =>
+                      setCouponCode(e.target.value.toUpperCase())
+                    }
                     placeholder="INGRESÁ TU CÓDIGO"
                     className="uppercase tracking-widest font-mono rounded-lg"
                     onKeyDown={(e) =>
@@ -1317,10 +1436,12 @@ export default function CheckoutClient() {
                   </p>
                   <p className="text-xs text-gray-400 mt-0.5">
                     {shippingType === "flex"
-                      ? new Date().getHours() < 12 ? "Llega hoy" : "Llega mañana"
+                      ? new Date().getHours() < 12
+                        ? "Llega hoy"
+                        : "Llega mañana"
                       : shippingType === "standard"
-                      ? `Estimado: ${formatDateLong(addBusinessDays(today, 3))} – ${formatDateLong(addBusinessDays(today, 5))}`
-                      : "5-10 días hábiles · coordinamos con el correo"}
+                        ? `Estimado: ${formatDateLong(addBusinessDays(today, 3))} – ${formatDateLong(addBusinessDays(today, 5))}`
+                        : "5-10 días hábiles · coordinamos con el correo"}
                   </p>
                 </div>
               </div>
@@ -1345,12 +1466,19 @@ export default function CheckoutClient() {
                 <div className="flex justify-between text-sm text-gray-500">
                   <span>
                     Envío {shippingType === "flex" ? "flex" : "estándar"}
-                    {detectedZone && <span className="text-gray-400"> · {detectedZone.name}</span>}
+                    {detectedZone && (
+                      <span className="text-gray-400">
+                        {" "}
+                        · {detectedZone.name}
+                      </span>
+                    )}
                   </span>
                   {shippingCost === 0 ? (
                     <span className="text-green-600 font-medium">Gratis</span>
                   ) : (
-                    <span className="font-medium">${shippingCost.toLocaleString("es-AR")}</span>
+                    <span className="font-medium">
+                      ${shippingCost.toLocaleString("es-AR")}
+                    </span>
                   )}
                 </div>
                 {couponDiscount > 0 && (

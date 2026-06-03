@@ -1,5 +1,6 @@
 import { Star, ShoppingBag } from "lucide-react";
 import { IProduct } from "@/models/Product";
+import InstallmentsInfo from "@/components/products/InstallmentsInfo";
 
 const TRANSFER_DISCOUNT = 0.20;
 
@@ -16,8 +17,6 @@ export default function ProductInfo({ product }: { product: IProduct }) {
 
   const transferPrice = Math.round(product.price * (1 - TRANSFER_DISCOUNT));
   const transferSavings = product.price - transferPrice;
-
-  const installment = Math.ceil(product.price / 12);
   const avg = product.avgRating ?? 0;
   const reviewCount = product.reviewCount ?? 0;
   const unitsSold = product.unitsSold ?? 0;
@@ -117,9 +116,7 @@ export default function ProductInfo({ product }: { product: IProduct }) {
           )}
         </div>
 
-        <p className="text-sm text-blue-700 font-medium">
-          12 cuotas sin interés de ${installment.toLocaleString("es-AR")}
-        </p>
+        <InstallmentsInfo price={product.price} />
 
         {/* Transfer price */}
         <div className="mt-2 p-3 bg-green-50 rounded-xl border border-green-200">

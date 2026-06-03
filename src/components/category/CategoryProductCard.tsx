@@ -3,6 +3,7 @@ import Link from "next/link";
 import ShippingBadge from "@/components/products/ShippingBadge";
 import { ShippingZoneResult } from "@/hooks/useShippingZone";
 import FavoriteButton from "@/components/ui/FavoriteButton";
+import { INSTALLMENTS } from "@/config/installments";
 
 interface Product {
   _id: string;
@@ -29,7 +30,7 @@ export default function CategoryProductCard({ product, listView = false, shippin
   const priceDiff   = product.compareAtPrice ? product.compareAtPrice - product.price : 0;
   const hasDiscount = !!(product.compareAtPrice && product.compareAtPrice > product.price && priceDiff >= 500);
   const discountPct = hasDiscount ? Math.round((priceDiff / product.compareAtPrice!) * 100) : 0;
-  const installment = Math.ceil(product.price / 12);
+  const installment = Math.ceil(product.price / INSTALLMENTS.max);
   const outOfStock  = (product.stock ?? 0) === 0;
   const isUsed      = product.condition === "used";
   const shippingTypes = product.shippingTypes ?? ["flex", "standard"];
@@ -87,7 +88,8 @@ export default function CategoryProductCard({ product, listView = false, shippin
             </p>
             {!outOfStock && (
               <p className="text-xs text-blue-700 font-medium">
-                12x ${installment.toLocaleString("es-AR")}
+                {INSTALLMENTS.max}x ${installment.toLocaleString("es-AR")}
+                {INSTALLMENTS.sinInteres && " sin interés"}
               </p>
             )}
             {outOfStock && (

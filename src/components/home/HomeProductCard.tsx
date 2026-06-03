@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import FavoriteButton from "@/components/ui/FavoriteButton";
+import { INSTALLMENTS } from "@/config/installments";
 
 interface HomeProductCardProps {
   id: string;
@@ -25,7 +26,7 @@ export default function HomeProductCard({
   const discountPct = hasDiscount
     ? Math.round(((compareAtPrice - price) / compareAtPrice) * 100)
     : 0;
-  const installment = Math.ceil(price / 12);
+  const installment = Math.ceil(price / INSTALLMENTS.max);
 
   return (
     <Link
@@ -70,7 +71,8 @@ export default function HomeProductCard({
             ${price.toLocaleString("es-AR")}
           </p>
           <p className="text-[10px] text-blue-700 font-medium">
-            12x ${installment.toLocaleString("es-AR")}
+            {INSTALLMENTS.max}x ${installment.toLocaleString("es-AR")}
+            {INSTALLMENTS.sinInteres && " sin interés"}
           </p>
         </div>
       </div>

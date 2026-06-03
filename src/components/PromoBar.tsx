@@ -1,10 +1,14 @@
 import { Truck, CreditCard, Banknote, Shield } from "lucide-react";
 
 const items = [
-  { icon: Truck, text: "Envío gratis a todo el país", color: "text-emerald-600" },
-  { icon: CreditCard, text: "Hasta 12 cuotas sin interés", color: "text-blue-500" },
-  { icon: Banknote, text: "20% OFF pagando con transferencia", color: "text-green-700" },
-  { icon: Shield, text: "Garantía oficial 12 meses", color: "text-emerald-800" },
+  { icon: Truck, text: "Envíos gratis", color: "text-emerald-600" },
+  { icon: CreditCard, text: "cuotas sin interés", color: "text-blue-500" },
+  {
+    icon: Banknote,
+    text: "20% OFF pagando con transferencia",
+    color: "text-green-700",
+  },
+  { icon: Shield, text: "Garantía oficial ", color: "text-emerald-800" },
 ];
 
 export default function PromoBar() {

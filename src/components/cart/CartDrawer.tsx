@@ -16,6 +16,7 @@ import { Trash2, ShoppingBag, ArrowRight } from "lucide-react";
 import AuthModal from "@/components/auth/AuthModal";
 import Image from "next/image";
 import Link from "next/link";
+import { INSTALLMENTS } from "@/config/installments";
 
 export default function CartDrawer() {
   const router = useRouter();
@@ -30,7 +31,7 @@ export default function CartDrawer() {
 
   const totalItems = items.reduce((acc, item) => acc + item.quantity, 0);
   const subtotal = items.reduce((acc, item) => acc + item.price * item.quantity, 0);
-  const installment = Math.ceil(subtotal / 12);
+  const installment = Math.ceil(subtotal / INSTALLMENTS.max);
 
   const handleCheckout = () => {
     if (status === "authenticated") {
@@ -197,7 +198,8 @@ export default function CartDrawer() {
                   <span className="text-lg">${subtotal.toLocaleString("es-AR")}</span>
                 </div>
                 <p className="text-xs text-blue-600 font-medium text-right">
-                  12x ${installment.toLocaleString("es-AR")} sin interés
+                  {INSTALLMENTS.max}x ${installment.toLocaleString("es-AR")}
+                  {INSTALLMENTS.sinInteres ? " sin interés" : " con tarjeta"}
                 </p>
               </div>
 

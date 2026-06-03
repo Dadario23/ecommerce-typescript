@@ -54,7 +54,9 @@ function parseResult(result: NominatimResult): PlaceComponents {
 
   return {
     street,
-    city: a.city ?? a.town ?? a.municipality ?? a.village ?? a.suburb ?? a.county ?? "",
+    // Prefer municipality/county (partido) over suburb (barrio) so GBA addresses
+    // resolve to "Florencio Varela" rather than "Villa Vatteone".
+    city: a.city ?? a.town ?? a.municipality ?? a.county ?? a.village ?? a.suburb ?? "",
     state: a.state ?? "",
     postalCode: a.postcode ?? "",
     country: a.country ?? "Argentina",
