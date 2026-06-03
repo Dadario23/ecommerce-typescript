@@ -208,11 +208,11 @@ export default function Navbar({ initialCategories = [] }: { initialCategories?:
                 </DropdownMenu>
               )}
 
-              {/* Favorites */}
+              {/* Favorites — desktop only; mobile has it in the drawer */}
               {session && (
                 <Link
                   href="/account/favorites"
-                  className="relative p-2 text-white/90 hover:text-white rounded-full hover:bg-white/10 transition-colors"
+                  className="hidden md:flex relative p-2 text-white/90 hover:text-white rounded-full hover:bg-white/10 transition-colors"
                   aria-label="Mis favoritos"
                 >
                   <Heart className="w-5 h-5" />
