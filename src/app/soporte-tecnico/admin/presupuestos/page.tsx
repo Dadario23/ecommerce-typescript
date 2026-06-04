@@ -1,4 +1,5 @@
 import { getServerSession } from "next-auth";
+import { isReceptionist } from "@/lib/roles";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { connectDB } from "@/lib/mongodb";
@@ -9,7 +10,7 @@ export const revalidate = 0;
 
 export default async function PresupuestosPage() {
   const session = await getServerSession(authOptions);
-  if (!session || session.user?.role !== "admin") redirect("/");
+  if (!session || !isReceptionist(session.user?.role)) redirect("/");
 
   await connectDB();
   const presupuestos = await Presupuesto.find()

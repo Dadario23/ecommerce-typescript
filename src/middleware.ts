@@ -27,8 +27,12 @@ export async function middleware(req: NextRequest) {
 
   const role = token.role as string | undefined;
 
-  // No autorizado
-  if (!role || !["admin", "superadmin"].includes(role)) {
+  const adminOnly = pathname.startsWith("/dashboard") || pathname.startsWith("/admin");
+  const allowedRoles = adminOnly
+    ? ["admin", "superadmin"]
+    : ["admin", "superadmin", "receptionist", "technician"];
+
+  if (!role || !allowedRoles.includes(role)) {
     return NextResponse.redirect(new URL("/", req.url));
   }
 

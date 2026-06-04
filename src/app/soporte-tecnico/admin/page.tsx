@@ -1,4 +1,5 @@
 import { getServerSession } from "next-auth";
+import { isStaff } from "@/lib/roles";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { connectDB } from "@/lib/mongodb";
@@ -21,7 +22,7 @@ function fmtDate(d: Date | string) {
 
 export default async function SoporteAdminPage() {
   const session = await getServerSession(authOptions);
-  if (!session || session.user?.role !== "admin") redirect("/");
+  if (!session || !isStaff(session.user?.role)) redirect("/");
 
   await connectDB();
 

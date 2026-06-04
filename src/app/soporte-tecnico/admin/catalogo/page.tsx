@@ -1,4 +1,5 @@
 import { getServerSession } from "next-auth";
+import { isAdmin } from "@/lib/roles";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
 import { connectDB } from "@/lib/mongodb";
@@ -9,7 +10,7 @@ export const dynamic = "force-dynamic";
 
 export default async function CatalogoPage() {
   const session = await getServerSession(authOptions);
-  if (session?.user?.role !== "admin") redirect("/");
+  if (!isAdmin(session?.user?.role)) redirect("/");
 
   await connectDB();
   const items = await RepairCatalog.find()

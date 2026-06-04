@@ -1,4 +1,5 @@
 import { getServerSession } from "next-auth";
+import { isAdmin } from "@/lib/roles";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { connectDB } from "@/lib/mongodb";
@@ -9,7 +10,7 @@ export const revalidate = 0;
 
 export default async function ReportesPage() {
   const session = await getServerSession(authOptions);
-  if (!session || session.user?.role !== "admin") redirect("/");
+  if (!session || !isAdmin(session.user?.role)) redirect("/");
 
   await connectDB();
 

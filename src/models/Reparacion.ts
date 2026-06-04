@@ -36,6 +36,7 @@ export interface IReparacion extends Document {
   fallas: string[];
   presupuesto?: number;
   pago?: IPago;
+  assignedTo?: mongoose.Types.ObjectId;
   estado: EstadoReparacion;
   historial: IHistorialItem[];
   notaInterna?: string;
@@ -73,6 +74,7 @@ const ReparacionSchema = new Schema(
     },
     fallas: [{ type: String }],
     presupuesto: { type: Number },
+    assignedTo: { type: Schema.Types.ObjectId, ref: "User", default: null },
     pago: {
       estado: { type: String, enum: ["pendiente", "aprobado", "rechazado"] },
       mpId:   { type: String },

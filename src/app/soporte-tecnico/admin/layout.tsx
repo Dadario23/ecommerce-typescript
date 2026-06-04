@@ -19,19 +19,21 @@ import {
   ChevronLeft,
   ChevronRight,
   Plus,
+  ShieldCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const NAV_ITEMS = [
-  { href: "/soporte-tecnico/admin",              label: "Overview",      icon: LayoutDashboard, exact: true  },
-  { href: "/soporte-tecnico/admin/reparaciones", label: "Reparaciones",  icon: Wrench,          exact: false },
-  { href: "/soporte-tecnico/admin/presupuestos", label: "Presupuestos",  icon: ClipboardCheck,  exact: false },
-  { href: "/soporte-tecnico/admin/catalogo",     label: "Catálogo",      icon: BookOpen,        exact: false },
-  { href: "/soporte-tecnico/admin/clientes",     label: "Clientes",      icon: Users,           exact: false },
-  { href: "/soporte-tecnico/admin/reportes",     label: "Reportes",      icon: BarChart2,       exact: false },
+const ALL_NAV_ITEMS = [
+  { href: "/soporte-tecnico/admin",              label: "Overview",      icon: LayoutDashboard, exact: true,  roles: ["admin","superadmin","receptionist","technician"] },
+  { href: "/soporte-tecnico/admin/reparaciones", label: "Reparaciones",  icon: Wrench,          exact: false, roles: ["admin","superadmin","receptionist","technician"] },
+  { href: "/soporte-tecnico/admin/presupuestos", label: "Presupuestos",  icon: ClipboardCheck,  exact: false, roles: ["admin","superadmin","receptionist"] },
+  { href: "/soporte-tecnico/admin/clientes",     label: "Clientes",      icon: Users,           exact: false, roles: ["admin","superadmin","receptionist"] },
+  { href: "/soporte-tecnico/admin/catalogo",     label: "Catálogo",      icon: BookOpen,        exact: false, roles: ["admin","superadmin"] },
+  { href: "/soporte-tecnico/admin/reportes",     label: "Reportes",      icon: BarChart2,       exact: false, roles: ["admin","superadmin"] },
+  { href: "/soporte-tecnico/admin/equipo",       label: "Equipo",        icon: ShieldCheck,     exact: false, roles: ["admin","superadmin"] },
 ];
 
-function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => void }) {
+function Sidebar({ collapsed, onToggle, role }: { collapsed: boolean; onToggle: () => void; role: string }) {
   const pathname = usePathname();
   const { data: session } = useSession();
 
@@ -41,6 +43,9 @@ function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => 
     .slice(0, 2)
     .join("")
     .toUpperCase();
+
+  const navItems = ALL_NAV_ITEMS.filter((item) => item.roles.includes(role));
+  const canCreate = ["admin", "superadmin", "receptionist"].includes(role);
 
   return (
     <aside
@@ -87,7 +92,7 @@ function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => 
         )}
 
         <div className="space-y-0.5">
-          {NAV_ITEMS.map(({ href, label, icon: Icon, exact }) => {
+          {navItems.map(({ href, label, icon: Icon, exact }) => {
             const active = exact ? pathname === href : pathname.startsWith(href);
             return (
               <Link
@@ -108,7 +113,7 @@ function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => 
             );
           })}
 
-          {!collapsed && (
+          {canCreate && !collapsed && (
             <Link
               href="/soporte-tecnico/admin/reparaciones/nueva"
               className="flex items-center gap-2 mt-1 px-3 py-2 rounded-lg text-xs font-semibold text-blue-300 hover:text-white hover:bg-blue-500/20 border border-blue-500/20 hover:border-blue-500/40 transition-colors"
@@ -125,26 +130,26 @@ function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => 
             href="/soporte-tecnico"
             title={collapsed ? "Ver soporte" : undefined}
             className={cn(
-              "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+              "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-slate-400 hover:bg-white/5 hover:text-white transition-colors",
               collapsed && "justify-center px-2",
-              "text-slate-400 hover:bg-white/5 hover:text-white",
             )}
           >
             <Wrench className="w-4 h-4 shrink-0" />
             {!collapsed && <span className="whitespace-nowrap">Ver soporte</span>}
           </Link>
-          <Link
-            href="/dashboard"
-            title={collapsed ? "Dashboard tienda" : undefined}
-            className={cn(
-              "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
-              collapsed && "justify-center px-2",
-              "text-slate-400 hover:bg-white/5 hover:text-white",
-            )}
-          >
-            <Store className="w-4 h-4 shrink-0" />
-            {!collapsed && <span className="whitespace-nowrap">Dashboard tienda</span>}
-          </Link>
+          {["admin", "superadmin"].includes(role) && (
+            <Link
+              href="/dashboard"
+              title={collapsed ? "Dashboard tienda" : undefined}
+              className={cn(
+                "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-slate-400 hover:bg-white/5 hover:text-white transition-colors",
+                collapsed && "justify-center px-2",
+              )}
+            >
+              <Store className="w-4 h-4 shrink-0" />
+              {!collapsed && <span className="whitespace-nowrap">Dashboard tienda</span>}
+            </Link>
+          )}
         </div>
       </nav>
 
@@ -154,7 +159,7 @@ function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => 
           <div className="flex justify-center">
             <div
               className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs font-bold"
-              title={session?.user?.name || "Admin"}
+              title={session?.user?.name || ""}
             >
               {initials}
             </div>
@@ -166,7 +171,7 @@ function Sidebar({ collapsed, onToggle }: { collapsed: boolean; onToggle: () => 
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-white text-xs font-semibold truncate whitespace-nowrap">
-                {session?.user?.name?.split(" ")[0] || "Admin"}
+                {session?.user?.name?.split(" ")[0] || ""}
               </p>
               <p className="text-slate-500 text-[10px] truncate whitespace-nowrap">
                 {session?.user?.email}
@@ -192,6 +197,8 @@ export default function SoporteAdminLayout({ children }: { children: React.React
   const pathname = usePathname();
   const { data: session } = useSession();
 
+  const role = session?.user?.role ?? "technician";
+
   const initials = (session?.user?.name || "A")
     .split(" ")
     .map((w: string) => w[0])
@@ -200,23 +207,21 @@ export default function SoporteAdminLayout({ children }: { children: React.React
     .toUpperCase();
 
   const pageTitle =
-    NAV_ITEMS.find(({ href, exact }) =>
+    ALL_NAV_ITEMS.find(({ href, exact }) =>
       exact ? pathname === href : pathname.startsWith(href),
     )?.label ?? "Admin";
 
   return (
     <div className="min-h-screen bg-slate-50 flex">
-      {/* Sidebar desktop */}
       <div className="hidden lg:flex sticky top-0 h-screen">
-        <Sidebar collapsed={collapsed} onToggle={() => setCollapsed((p) => !p)} />
+        <Sidebar collapsed={collapsed} onToggle={() => setCollapsed((p) => !p)} role={role} />
       </div>
 
-      {/* Mobile drawer */}
       {mobileOpen && (
         <div className="fixed inset-0 z-50 lg:hidden flex">
           <div className="absolute inset-0 bg-black/60" onClick={() => setMobileOpen(false)} />
           <div className="relative flex">
-            <Sidebar collapsed={false} onToggle={() => setMobileOpen(false)} />
+            <Sidebar collapsed={false} onToggle={() => setMobileOpen(false)} role={role} />
             <button
               onClick={() => setMobileOpen(false)}
               className="absolute top-4 right-4 text-slate-400 hover:text-white"
@@ -227,15 +232,10 @@ export default function SoporteAdminLayout({ children }: { children: React.React
         </div>
       )}
 
-      {/* Main */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Top bar — igual al dashboard */}
         <header className="sticky top-0 z-40 h-14 bg-white border-b border-gray-100 flex items-center justify-between px-4 lg:px-6 shadow-sm">
           <div className="flex items-center gap-3">
-            <button
-              onClick={() => setMobileOpen(true)}
-              className="lg:hidden text-gray-500 hover:text-gray-700"
-            >
+            <button onClick={() => setMobileOpen(true)} className="lg:hidden text-gray-500 hover:text-gray-700">
               <Menu className="w-5 h-5" />
             </button>
             <h1 className="text-sm font-semibold text-gray-800">{pageTitle}</h1>
@@ -249,7 +249,6 @@ export default function SoporteAdminLayout({ children }: { children: React.React
               <Wrench className="w-3.5 h-3.5" />
               Ver soporte
             </Link>
-
             <div className="flex items-center gap-2 pl-2 border-l border-gray-100">
               <div className="w-7 h-7 rounded-full bg-[#1E3A8A] flex items-center justify-center text-white text-[10px] font-bold">
                 {initials}

@@ -1,4 +1,5 @@
 import { getServerSession } from "next-auth";
+import { isReceptionist } from "@/lib/roles";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { connectDB } from "@/lib/mongodb";
@@ -14,7 +15,7 @@ function fmtDate(d: Date | string) {
 
 export default async function ClientesPage() {
   const session = await getServerSession(authOptions);
-  if (!session || session.user?.role !== "admin") redirect("/");
+  if (!session || !isReceptionist(session.user?.role)) redirect("/");
 
   await connectDB();
   const reparaciones = await Reparacion.find()

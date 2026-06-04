@@ -1,4 +1,5 @@
 import { getServerSession } from "next-auth";
+import { isStaff } from "@/lib/roles";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { connectDB } from "@/lib/mongodb";
@@ -24,10 +25,12 @@ function fmtDate(d: Date | string) {
 
 export default async function ReparacionesPage() {
   const session = await getServerSession(authOptions);
-  if (!session || session.user?.role !== "admin") redirect("/");
+  if (!session || !isStaff(session.user?.role)) redirect("/");
+  const canCreate = ["admin", "superadmin", "receptionist"].includes(session.user.role ?? "");
 
   await connectDB();
-  const reparaciones = await Reparacion.find()
+  const filter = session.user.role === "technician" ? { assignedTo: session.user.id } : {};
+  const reparaciones = await Reparacion.find(filter)
     .sort({ createdAt: -1 })
     .limit(200)
     .lean<IReparacion[]>();
@@ -41,13 +44,15 @@ export default async function ReparacionesPage() {
             {reparaciones.length} {reparaciones.length === 1 ? "orden" : "órdenes"} registradas
           </p>
         </div>
-        <Link
-          href="/soporte-tecnico/admin/reparaciones/nueva"
-          className="flex items-center gap-2 bg-[#1E3A8A] hover:bg-blue-800 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors"
-        >
-          <Plus className="w-4 h-4" />
-          Nueva reparación
-        </Link>
+        {canCreate && (
+          <Link
+            href="/soporte-tecnico/admin/reparaciones/nueva"
+            className="flex items-center gap-2 bg-[#1E3A8A] hover:bg-blue-800 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            Nueva reparación
+          </Link>
+        )}
       </div>
 
       {reparaciones.length === 0 ? (
