@@ -23,8 +23,6 @@ import {
   GalleryHorizontal,
   Truck,
   Wrench,
-  ClipboardCheck,
-  BookOpen,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
@@ -74,9 +72,7 @@ const NAV_SECTIONS: NavSection[] = [
   {
     label: "Soporte técnico",
     items: [
-      { href: "/dashboard/presupuestos", label: "Presupuestos", icon: ClipboardCheck },
-      { href: "/dashboard/reparaciones", label: "Reparaciones", icon: Wrench },
-      { href: "/dashboard/catalogo", label: "Catálogo precios", icon: BookOpen },
+      { href: "/soporte-tecnico/admin", label: "Panel soporte", icon: Wrench },
     ],
   },
 ];

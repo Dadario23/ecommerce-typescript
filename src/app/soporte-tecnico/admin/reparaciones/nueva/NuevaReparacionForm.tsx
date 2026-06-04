@@ -10,11 +10,7 @@ type DeviceType = "celular" | "laptop" | "pc";
 const inputCls =
   "w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-[#1E3A8A] placeholder:text-gray-400";
 
-export default function NuevaReparacionForm({
-  presupuestoId,
-}: {
-  presupuestoId?: string;
-}) {
+export default function NuevaReparacionForm({ presupuestoId }: { presupuestoId?: string }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -31,7 +27,6 @@ export default function NuevaReparacionForm({
   const [notaCliente, setNotaCliente] = useState("");
   const [notaInterna, setNotaInterna] = useState("");
 
-  // Pre-fill from presupuesto if param provided
   useEffect(() => {
     if (!presupuestoId) return;
     fetch(`/api/presupuestos/${presupuestoId}`)
@@ -43,25 +38,13 @@ export default function NuevaReparacionForm({
         setTipo(data.equipo?.tipo ?? "celular");
         setMarca(data.equipo?.marca ?? "");
         setModelo(data.equipo?.modelo ?? "");
-        const fallasList: string[] = (data.items ?? []).map(
-          (i: { repair: string }) => i.repair,
-        );
+        const fallasList: string[] = (data.items ?? []).map((i: { repair: string }) => i.repair);
         setFallas(fallasList.length > 0 ? fallasList : [""]);
         if (data.totalEstimado) setPresupuesto(String(data.totalEstimado));
         setPrefilled(true);
       })
       .catch(() => {});
   }, [presupuestoId]);
-
-  function addFalla() {
-    setFallas((f) => [...f, ""]);
-  }
-  function removeFalla(i: number) {
-    setFallas((f) => f.filter((_, idx) => idx !== i));
-  }
-  function updateFalla(i: number, val: string) {
-    setFallas((f) => f.map((v, idx) => (idx === i ? val : v)));
-  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -77,11 +60,7 @@ export default function NuevaReparacionForm({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          cliente: {
-            nombre: nombre.trim(),
-            telefono: telefono.trim(),
-            email: email.trim() || undefined,
-          },
+          cliente: { nombre: nombre.trim(), telefono: telefono.trim(), email: email.trim() || undefined },
           equipo: { tipo, marca: marca.trim(), modelo: modelo.trim() },
           fallas: fallasFilled,
           presupuesto: presupuesto ? Number(presupuesto) : undefined,
@@ -95,7 +74,6 @@ export default function NuevaReparacionForm({
       }
       const data = await res.json();
 
-      // Mark presupuesto as converted
       if (presupuestoId) {
         await fetch(`/api/presupuestos/${presupuestoId}`, {
           method: "PATCH",
@@ -104,20 +82,21 @@ export default function NuevaReparacionForm({
         }).catch(() => {});
       }
 
-      router.push(`/dashboard/reparaciones/${data._id}`);
+      router.push(`/soporte-tecnico/admin/reparaciones/${data._id}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error desconocido");
       setLoading(false);
     }
   }
 
+  const backHref = presupuestoId
+    ? "/soporte-tecnico/admin/presupuestos"
+    : "/soporte-tecnico/admin/reparaciones";
+
   return (
     <div className="max-w-2xl mx-auto space-y-5">
       <div className="flex items-center gap-3">
-        <Link
-          href={presupuestoId ? "/dashboard/presupuestos" : "/dashboard/reparaciones"}
-          className="text-gray-400 hover:text-gray-600 transition-colors"
-        >
+        <Link href={backHref} className="text-gray-400 hover:text-gray-600 transition-colors">
           <ArrowLeft className="w-5 h-5" />
         </Link>
         <div>
@@ -126,7 +105,6 @@ export default function NuevaReparacionForm({
         </div>
       </div>
 
-      {/* Pre-filled banner */}
       {prefilled && (
         <div className="flex items-center gap-2.5 bg-green-50 border border-green-200 rounded-2xl px-4 py-3">
           <CheckCircle2 className="w-4 h-4 text-green-600 shrink-0" />
@@ -137,40 +115,20 @@ export default function NuevaReparacionForm({
       )}
 
       <form onSubmit={handleSubmit} className="space-y-5">
-        {/* Cliente */}
         <Section title="Datos del cliente">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Field label="Nombre *">
-              <input
-                value={nombre}
-                onChange={(e) => setNombre(e.target.value)}
-                placeholder="Nombre completo"
-                required
-                className={inputCls}
-              />
+              <input value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Nombre completo" required className={inputCls} />
             </Field>
             <Field label="Teléfono *">
-              <input
-                value={telefono}
-                onChange={(e) => setTelefono(e.target.value)}
-                placeholder="+54 11 1234-5678"
-                required
-                className={inputCls}
-              />
+              <input value={telefono} onChange={(e) => setTelefono(e.target.value)} placeholder="+54 11 1234-5678" required className={inputCls} />
             </Field>
           </div>
           <Field label="Email (vincula al cliente con su cuenta)">
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="cliente@email.com"
-              className={inputCls}
-            />
+            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="cliente@email.com" className={inputCls} />
           </Field>
         </Section>
 
-        {/* Equipo */}
         <Section title="Equipo">
           <Field label="Tipo *">
             <div className="flex gap-2">
@@ -192,114 +150,62 @@ export default function NuevaReparacionForm({
           </Field>
           <div className="grid grid-cols-2 gap-3">
             <Field label="Marca *">
-              <input
-                value={marca}
-                onChange={(e) => setMarca(e.target.value)}
-                placeholder="Samsung, HP, Apple…"
-                required
-                className={inputCls}
-              />
+              <input value={marca} onChange={(e) => setMarca(e.target.value)} placeholder="Samsung, HP, Apple…" required className={inputCls} />
             </Field>
             <Field label="Modelo *">
-              <input
-                value={modelo}
-                onChange={(e) => setModelo(e.target.value)}
-                placeholder="Galaxy A52, Pavilion 15…"
-                required
-                className={inputCls}
-              />
+              <input value={modelo} onChange={(e) => setModelo(e.target.value)} placeholder="Galaxy A52, Pavilion 15…" required className={inputCls} />
             </Field>
           </div>
         </Section>
 
-        {/* Fallas */}
         <Section title="Fallas o servicios">
           <div className="space-y-2">
             {fallas.map((f, i) => (
               <div key={i} className="flex gap-2">
                 <input
                   value={f}
-                  onChange={(e) => updateFalla(i, e.target.value)}
+                  onChange={(e) => setFallas((prev) => prev.map((v, idx) => (idx === i ? e.target.value : v)))}
                   placeholder={`Falla ${i + 1}…`}
                   className={`${inputCls} flex-1`}
                 />
                 {fallas.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={() => removeFalla(i)}
-                    className="text-gray-400 hover:text-red-500 transition-colors p-2"
-                  >
+                  <button type="button" onClick={() => setFallas((prev) => prev.filter((_, idx) => idx !== i))} className="text-gray-400 hover:text-red-500 transition-colors p-2">
                     <X className="w-4 h-4" />
                   </button>
                 )}
               </div>
             ))}
           </div>
-          <button
-            type="button"
-            onClick={addFalla}
-            className="flex items-center gap-1.5 text-sm text-[#1E3A8A] font-medium hover:underline mt-1"
-          >
+          <button type="button" onClick={() => setFallas((f) => [...f, ""])} className="flex items-center gap-1.5 text-sm text-[#1E3A8A] font-medium hover:underline mt-1">
             <Plus className="w-3.5 h-3.5" />
             Agregar falla
           </button>
         </Section>
 
-        {/* Presupuesto y notas */}
         <Section title="Presupuesto y notas">
           <Field label="Presupuesto estimado (opcional)">
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-medium">
-                $
-              </span>
-              <input
-                type="number"
-                value={presupuesto}
-                onChange={(e) => setPresupuesto(e.target.value)}
-                placeholder="0"
-                min={0}
-                className={`${inputCls} pl-7`}
-              />
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-medium">$</span>
+              <input type="number" value={presupuesto} onChange={(e) => setPresupuesto(e.target.value)} placeholder="0" min={0} className={`${inputCls} pl-7`} />
             </div>
           </Field>
           <Field label="Nota para el cliente (visible en el seguimiento)">
-            <textarea
-              value={notaCliente}
-              onChange={(e) => setNotaCliente(e.target.value)}
-              rows={2}
-              placeholder="Ej: El equipo ya fue revisado, esperamos la pieza."
-              className={`${inputCls} resize-none`}
-            />
+            <textarea value={notaCliente} onChange={(e) => setNotaCliente(e.target.value)} rows={2} placeholder="Ej: El equipo ya fue revisado, esperamos la pieza." className={`${inputCls} resize-none`} />
           </Field>
           <Field label="Nota interna (solo admin)">
-            <textarea
-              value={notaInterna}
-              onChange={(e) => setNotaInterna(e.target.value)}
-              rows={2}
-              placeholder="Notas técnicas internas…"
-              className={`${inputCls} resize-none`}
-            />
+            <textarea value={notaInterna} onChange={(e) => setNotaInterna(e.target.value)} rows={2} placeholder="Notas técnicas internas…" className={`${inputCls} resize-none`} />
           </Field>
         </Section>
 
         {error && (
-          <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
-            {error}
-          </p>
+          <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-3">{error}</p>
         )}
 
         <div className="flex gap-3">
-          <Link
-            href={presupuestoId ? "/dashboard/presupuestos" : "/dashboard/reparaciones"}
-            className="flex-1 text-center py-2.5 text-sm font-medium text-gray-600 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
-          >
+          <Link href={backHref} className="flex-1 text-center py-2.5 text-sm font-medium text-gray-600 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors">
             Cancelar
           </Link>
-          <button
-            type="submit"
-            disabled={loading}
-            className="flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-bold text-white bg-[#1E3A8A] hover:bg-blue-800 rounded-xl transition-colors disabled:opacity-60"
-          >
+          <button type="submit" disabled={loading} className="flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-bold text-white bg-[#1E3A8A] hover:bg-blue-800 rounded-xl transition-colors disabled:opacity-60">
             {loading && <Loader2 className="w-4 h-4 animate-spin" />}
             Registrar reparación
           </button>

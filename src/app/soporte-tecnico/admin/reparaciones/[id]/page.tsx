@@ -62,12 +62,10 @@ export default function EditarReparacionPage() {
   const [fetching, setFetching] = useState(true);
   const [copied, setCopied] = useState(false);
 
-  // Status change
   const [nuevoEstado, setNuevoEstado] = useState<EstadoReparacion | "">("");
   const [notaCambio, setNotaCambio] = useState("");
   const [savingStatus, setSavingStatus] = useState(false);
 
-  // Data editing
   const [nombre, setNombre] = useState("");
   const [telefono, setTelefono] = useState("");
   const [email, setEmail] = useState("");
@@ -140,11 +138,7 @@ export default function EditarReparacionPage() {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          cliente: {
-            nombre: nombre.trim(),
-            telefono: telefono.trim(),
-            email: email.trim() || undefined,
-          },
+          cliente: { nombre: nombre.trim(), telefono: telefono.trim(), email: email.trim() || undefined },
           equipo: { marca: marca.trim(), modelo: modelo.trim() },
           fallas: fallas.filter((f) => f.trim()),
           presupuesto: presupuesto || undefined,
@@ -176,7 +170,7 @@ export default function EditarReparacionPage() {
     return (
       <div className="text-center py-20 text-gray-500">
         Reparación no encontrada.{" "}
-        <Link href="/dashboard/reparaciones" className="text-[#1E3A8A] hover:underline">
+        <Link href="/soporte-tecnico/admin/reparaciones" className="text-[#1E3A8A] hover:underline">
           Volver
         </Link>
       </div>
@@ -187,10 +181,9 @@ export default function EditarReparacionPage() {
 
   return (
     <div className="max-w-2xl mx-auto space-y-5">
-      {/* Header */}
       <div className="flex items-start gap-3">
         <button
-          onClick={() => router.push("/dashboard/reparaciones")}
+          onClick={() => router.push("/soporte-tecnico/admin/reparaciones")}
           className="text-gray-400 hover:text-gray-600 transition-colors mt-0.5"
         >
           <ArrowLeft className="w-5 h-5" />
@@ -198,15 +191,12 @@ export default function EditarReparacionPage() {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="font-mono font-bold text-[#1E3A8A] text-lg">{rep.codigo}</span>
-            <span
-              className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${ESTADO_COLOR[rep.estado]}`}
-            >
+            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${ESTADO_COLOR[rep.estado]}`}>
               {ESTADO_LABEL[rep.estado]}
             </span>
           </div>
           <p className="text-sm text-gray-500 mt-0.5">
-            {EQUIPO_ICON[rep.equipo.tipo]} {rep.equipo.marca} {rep.equipo.modelo} ·{" "}
-            {rep.cliente.nombre}
+            {EQUIPO_ICON[rep.equipo.tipo]} {rep.equipo.marca} {rep.equipo.modelo} · {rep.cliente.nombre}
           </p>
         </div>
       </div>
@@ -224,21 +214,14 @@ export default function EditarReparacionPage() {
           {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
           {copied ? "Copiado" : "Copiar"}
         </button>
-        <a
-          href={trackingUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-blue-500 hover:text-blue-700"
-        >
+        <a href={trackingUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-700">
           <ExternalLink className="w-4 h-4" />
         </a>
       </div>
 
-      {/* ── Estado ── */}
+      {/* Estado */}
       <div className="bg-white rounded-2xl border border-gray-200 p-5 space-y-4">
-        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-          Cambiar estado
-        </p>
+        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Cambiar estado</p>
         <div className="grid grid-cols-2 gap-2">
           {(ESTADOS as EstadoReparacion[]).map((e) => (
             <button
@@ -262,9 +245,7 @@ export default function EditarReparacionPage() {
 
         {nuevoEstado && (
           <div className="space-y-2 pt-2 border-t border-gray-100">
-            <label className="text-sm font-medium text-gray-700">
-              Nota para el cliente (opcional)
-            </label>
+            <label className="text-sm font-medium text-gray-700">Nota para el cliente (opcional)</label>
             <textarea
               value={notaCambio}
               onChange={(e) => setNotaCambio(e.target.value)}
@@ -283,7 +264,6 @@ export default function EditarReparacionPage() {
           </div>
         )}
 
-        {/* WhatsApp share */}
         {rep.cliente.telefono ? (
           <a
             href={`https://wa.me/${rep.cliente.telefono.replace(/\D/g, "")}?text=${encodeURIComponent(
@@ -303,7 +283,7 @@ export default function EditarReparacionPage() {
         )}
       </div>
 
-      {/* ── Historial ── */}
+      {/* Historial */}
       <div className="bg-white rounded-2xl border border-gray-200 p-5 space-y-3">
         <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Historial</p>
         <div className="space-y-2">
@@ -311,14 +291,10 @@ export default function EditarReparacionPage() {
             <div key={i} className="flex gap-3 text-sm">
               <div className="flex flex-col items-center">
                 <div className="w-2.5 h-2.5 rounded-full bg-[#1E3A8A] mt-1 shrink-0" />
-                {i < rep.historial.length - 1 && (
-                  <div className="w-px flex-1 bg-gray-200 my-1" />
-                )}
+                {i < rep.historial.length - 1 && <div className="w-px flex-1 bg-gray-200 my-1" />}
               </div>
               <div className="pb-2">
-                <span
-                  className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${ESTADO_COLOR[h.estado]}`}
-                >
+                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${ESTADO_COLOR[h.estado]}`}>
                   {ESTADO_LABEL[h.estado]}
                 </span>
                 <p className="text-xs text-gray-400 mt-0.5">{fmtDate(h.fecha)}</p>
@@ -329,11 +305,9 @@ export default function EditarReparacionPage() {
         </div>
       </div>
 
-      {/* ── Datos ── */}
+      {/* Datos */}
       <div className="bg-white rounded-2xl border border-gray-200 p-5 space-y-4">
-        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-          Datos de la reparación
-        </p>
+        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Datos de la reparación</p>
 
         <div className="grid grid-cols-2 gap-3">
           <Field label="Nombre">
@@ -400,26 +374,14 @@ export default function EditarReparacionPage() {
         </Field>
 
         <Field label="Nota para el cliente">
-          <textarea
-            value={notaCliente}
-            onChange={(e) => setNotaCliente(e.target.value)}
-            rows={2}
-            className={`${inputCls} resize-none`}
-          />
+          <textarea value={notaCliente} onChange={(e) => setNotaCliente(e.target.value)} rows={2} className={`${inputCls} resize-none`} />
         </Field>
         <Field label="Nota interna">
-          <textarea
-            value={notaInterna}
-            onChange={(e) => setNotaInterna(e.target.value)}
-            rows={2}
-            className={`${inputCls} resize-none`}
-          />
+          <textarea value={notaInterna} onChange={(e) => setNotaInterna(e.target.value)} rows={2} className={`${inputCls} resize-none`} />
         </Field>
 
         {dataError && (
-          <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
-            {dataError}
-          </p>
+          <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-3">{dataError}</p>
         )}
 
         <button

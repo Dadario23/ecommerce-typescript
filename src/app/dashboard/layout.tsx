@@ -17,11 +17,7 @@ const PAGE_TITLES: Record<string, string> = {
   "/dashboard/coupons": "Cupones",
   "/dashboard/customers": "Clientes",
   "/dashboard/analytics": "Analytics",
-  "/dashboard/presupuestos": "Presupuestos",
-  "/dashboard/reparaciones": "Reparaciones",
-  "/dashboard/reparaciones/nueva": "Nueva reparación",
-  "/dashboard/catalogo": "Catálogo de precios",
-  "/dashboard/carousel": "Carousel",
+"/dashboard/carousel": "Carousel",
   "/dashboard/shipping": "Tarifas de envío",
   "/dashboard/settings": "Configuración",
 };

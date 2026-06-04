@@ -34,7 +34,6 @@ export default async function ReparacionesPage() {
 
   return (
     <div className="space-y-5">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold text-gray-900">Reparaciones</h1>
@@ -43,7 +42,7 @@ export default async function ReparacionesPage() {
           </p>
         </div>
         <Link
-          href="/dashboard/reparaciones/nueva"
+          href="/soporte-tecnico/admin/reparaciones/nueva"
           className="flex items-center gap-2 bg-[#1E3A8A] hover:bg-blue-800 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors"
         >
           <Plus className="w-4 h-4" />
@@ -65,21 +64,11 @@ export default async function ReparacionesPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50">
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    Código
-                  </th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    Cliente
-                  </th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    Equipo
-                  </th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    Estado
-                  </th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    Fecha
-                  </th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Código</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Cliente</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Equipo</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Estado</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Fecha</th>
                   <th className="px-4 py-3" />
                 </tr>
               </thead>
@@ -87,35 +76,25 @@ export default async function ReparacionesPage() {
                 {reparaciones.map((r) => (
                   <tr key={String(r._id)} className="hover:bg-gray-50 transition-colors">
                     <td className="px-4 py-3">
-                      <span className="font-mono font-bold text-[#1E3A8A] text-sm">
-                        {r.codigo}
-                      </span>
+                      <span className="font-mono font-bold text-[#1E3A8A] text-sm">{r.codigo}</span>
                     </td>
                     <td className="px-4 py-3">
                       <p className="font-medium text-gray-900">{r.cliente.nombre}</p>
                       <p className="text-xs text-gray-400">{r.cliente.telefono}</p>
                     </td>
                     <td className="px-4 py-3">
-                      <span className="text-base mr-1.5">
-                        {EQUIPO_ICON[r.equipo.tipo] ?? "🔧"}
-                      </span>
-                      <span className="text-gray-700">
-                        {r.equipo.marca} {r.equipo.modelo}
-                      </span>
+                      <span className="text-base mr-1.5">{EQUIPO_ICON[r.equipo.tipo] ?? "🔧"}</span>
+                      <span className="text-gray-700">{r.equipo.marca} {r.equipo.modelo}</span>
                     </td>
                     <td className="px-4 py-3">
-                      <span
-                        className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${ESTADO_COLOR[r.estado]}`}
-                      >
+                      <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${ESTADO_COLOR[r.estado]}`}>
                         {ESTADO_LABEL[r.estado]}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-gray-500 text-xs whitespace-nowrap">
-                      {fmtDate(r.createdAt)}
-                    </td>
+                    <td className="px-4 py-3 text-gray-500 text-xs whitespace-nowrap">{fmtDate(r.createdAt)}</td>
                     <td className="px-4 py-3">
                       <Link
-                        href={`/dashboard/reparaciones/${String(r._id)}`}
+                        href={`/soporte-tecnico/admin/reparaciones/${String(r._id)}`}
                         className="text-xs font-medium text-[#1E3A8A] hover:underline"
                       >
                         Ver →

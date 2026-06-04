@@ -12,7 +12,9 @@ export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   const isProtectedRoute =
-    pathname.startsWith("/dashboard") || pathname.startsWith("/admin");
+    pathname.startsWith("/dashboard") ||
+    pathname.startsWith("/admin") ||
+    pathname.startsWith("/soporte-tecnico/admin");
 
   if (!isProtectedRoute) {
     return NextResponse.next();
@@ -34,5 +36,5 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/admin/:path*"],
+  matcher: ["/dashboard/:path*", "/admin/:path*", "/soporte-tecnico/admin/:path*"],
 };

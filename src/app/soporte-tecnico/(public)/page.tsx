@@ -7,7 +7,7 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import Link from "next/link";
-import TrackingSearch from "./TrackingSearch";
+import TrackingSearch from "../TrackingSearch";
 
 export const revalidate = 300;
 

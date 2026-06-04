@@ -109,9 +109,15 @@ export default function SoporteNavbar() {
                     <>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem asChild>
+                        <Link href="/soporte-tecnico/admin" className="flex items-center gap-2">
+                          <Wrench className="w-4 h-4 text-blue-500" />
+                          <span className="text-blue-600 font-medium">Admin soporte</span>
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild>
                         <Link href="/dashboard" className="flex items-center gap-2">
                           <LayoutDashboard className="w-4 h-4 text-blue-500" />
-                          <span className="text-blue-600 font-medium">Dashboard</span>
+                          <span className="text-blue-600 font-medium">Dashboard tienda</span>
                         </Link>
                       </DropdownMenuItem>
                     </>
@@ -200,14 +206,24 @@ export default function SoporteNavbar() {
                     Mi perfil
                   </Link>
                   {session.user?.role === "admin" && (
-                    <Link
-                      href="/dashboard"
-                      onClick={() => setMobileOpen(false)}
-                      className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm text-blue-400 hover:text-blue-300 hover:bg-white/5 transition-colors"
-                    >
-                      <LayoutDashboard className="w-4 h-4" />
-                      Dashboard
-                    </Link>
+                    <>
+                      <Link
+                        href="/soporte-tecnico/admin"
+                        onClick={() => setMobileOpen(false)}
+                        className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm text-blue-400 hover:text-blue-300 hover:bg-white/5 transition-colors"
+                      >
+                        <Wrench className="w-4 h-4" />
+                        Admin soporte
+                      </Link>
+                      <Link
+                        href="/dashboard"
+                        onClick={() => setMobileOpen(false)}
+                        className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm text-blue-400 hover:text-blue-300 hover:bg-white/5 transition-colors"
+                      >
+                        <LayoutDashboard className="w-4 h-4" />
+                        Dashboard tienda
+                      </Link>
+                    </>
                   )}
                   <button
                     onClick={() => { setMobileOpen(false); signOut({ callbackUrl: "/soporte-tecnico" }); }}
