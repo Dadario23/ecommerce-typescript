@@ -3,13 +3,21 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { useSession } from "next-auth/react";
-import { Store, Search, Wrench, Menu, X } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { useSession, signOut } from "next-auth/react";
+import { Store, Wrench, Menu, X, LogOut, UserCircle, ClipboardList } from "lucide-react";
 import { useState } from "react";
+import { cn } from "@/lib/utils";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const NAV_LINKS = [
-  { href: "/soporte-tecnico", label: "Inicio", exact: true },
+  { href: "/soporte-tecnico",             label: "Inicio",           exact: true  },
   { href: "/soporte-tecnico/seguimiento", label: "Mis reparaciones", exact: false },
 ];
 
@@ -29,26 +37,22 @@ export default function SoporteNavbar() {
 
           {/* Logo + sección */}
           <Link href="/soporte-tecnico" className="flex items-center gap-2.5 shrink-0">
-            <div className="relative w-6 h-6 shrink-0">
+            <div className="relative w-28 h-7 shrink-0">
               <Image
                 src="/logo.svg"
                 alt="Compumobile"
                 fill
-                className="object-contain brightness-0 invert"
+                className="object-contain object-left brightness-0 invert"
               />
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-white font-bold text-sm hidden sm:block">Compumobile</span>
-              <span className="hidden sm:block text-slate-500 text-sm">·</span>
-              <span className="flex items-center gap-1 text-blue-300 text-xs font-semibold uppercase tracking-wider">
-                <Wrench className="w-3 h-3" />
-                Soporte técnico
-              </span>
-            </div>
+            <span className="hidden sm:flex items-center gap-1.5 text-blue-300 text-xs font-semibold uppercase tracking-wider border-l border-white/15 pl-2.5 ml-0.5">
+              <Wrench className="w-3 h-3" />
+              Soporte
+            </span>
           </Link>
 
           {/* Nav links — desktop */}
-          <nav className="hidden md:flex items-center gap-1 ml-6">
+          <nav className="hidden md:flex items-center gap-1 ml-4">
             {NAV_LINKS.map(({ href, label, exact }) => {
               const active = exact ? pathname === href : pathname.startsWith(href);
               return (
@@ -70,17 +74,59 @@ export default function SoporteNavbar() {
 
           {/* Right side */}
           <div className="ml-auto flex items-center gap-2">
-            {/* User avatar — if logged in */}
-            {session?.user && (
-              <div className="hidden sm:flex items-center gap-2 text-slate-400 text-xs">
-                <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center text-white text-[10px] font-bold shrink-0">
-                  {initials}
-                </div>
-                <span className="max-w-24 truncate">{session.user.name?.split(" ")[0]}</span>
-              </div>
+
+            {/* Usuario logueado → dropdown */}
+            {session?.user ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="flex items-center gap-2 text-slate-300 hover:text-white px-2 py-1.5 rounded-lg hover:bg-white/5 transition-colors">
+                    <div className="w-7 h-7 rounded-full bg-blue-500 flex items-center justify-center text-white text-[11px] font-bold shrink-0">
+                      {initials}
+                    </div>
+                    <span className="hidden sm:block text-xs font-medium max-w-24 truncate">
+                      {session.user.name?.split(" ")[0]}
+                    </span>
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-52">
+                  <DropdownMenuLabel className="text-xs text-gray-500 font-normal truncate">
+                    {session.user.email}
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link href="/account/profile" className="flex items-center gap-2">
+                      <UserCircle className="w-4 h-4 text-gray-400" />
+                      Mi perfil
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/account/orders" className="flex items-center gap-2">
+                      <ClipboardList className="w-4 h-4 text-gray-400" />
+                      Mis compras
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={() => signOut({ callbackUrl: "/soporte-tecnico" })}
+                    className="cursor-pointer text-red-600 focus:text-red-600"
+                  >
+                    <LogOut className="w-4 h-4 mr-2" />
+                    Cerrar sesión
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              /* No logueado → botón Ingresar */
+              <Link
+                href={`/login?callbackUrl=${encodeURIComponent(pathname)}`}
+                className="flex items-center gap-1.5 text-xs font-semibold text-slate-300 hover:text-white border border-white/15 hover:border-white/30 bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-lg transition-colors"
+              >
+                <UserCircle className="w-3.5 h-3.5" />
+                Ingresar
+              </Link>
             )}
 
-            {/* Back to store */}
+            {/* Volver a la tienda */}
             <Link
               href="/"
               className="flex items-center gap-1.5 text-xs font-semibold text-slate-300 hover:text-white border border-white/15 hover:border-white/30 bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-lg transition-colors"
@@ -122,14 +168,45 @@ export default function SoporteNavbar() {
               );
             })}
 
-            {session?.user && (
-              <div className="flex items-center gap-2 px-3 py-2 text-slate-500 text-xs border-t border-white/10 mt-2 pt-3">
-                <div className="w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center text-white text-[9px] font-bold">
-                  {initials}
-                </div>
-                {session.user.name}
-              </div>
-            )}
+            <div className="border-t border-white/10 pt-3 mt-2 space-y-1">
+              {session?.user ? (
+                <>
+                  <div className="flex items-center gap-2.5 px-3 py-2 text-slate-400 text-xs">
+                    <div className="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center text-white text-[10px] font-bold shrink-0">
+                      {initials}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-slate-200 font-medium text-sm truncate">{session.user.name}</p>
+                      <p className="truncate text-[11px]">{session.user.email}</p>
+                    </div>
+                  </div>
+                  <Link
+                    href="/account/profile"
+                    onClick={() => setMobileOpen(false)}
+                    className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm text-slate-400 hover:text-white hover:bg-white/5 transition-colors"
+                  >
+                    <UserCircle className="w-4 h-4" />
+                    Mi perfil
+                  </Link>
+                  <button
+                    onClick={() => { setMobileOpen(false); signOut({ callbackUrl: "/soporte-tecnico" }); }}
+                    className="w-full flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm text-red-400 hover:text-red-300 hover:bg-white/5 transition-colors"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    Cerrar sesión
+                  </button>
+                </>
+              ) : (
+                <Link
+                  href={`/login?callbackUrl=${encodeURIComponent(pathname)}`}
+                  onClick={() => setMobileOpen(false)}
+                  className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm text-slate-300 hover:text-white hover:bg-white/5 transition-colors"
+                >
+                  <UserCircle className="w-4 h-4" />
+                  Ingresar
+                </Link>
+              )}
+            </div>
           </div>
         )}
       </header>

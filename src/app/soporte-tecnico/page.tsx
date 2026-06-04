@@ -1,15 +1,13 @@
-import ChatBot from "./ChatBot";
 import {
   Smartphone,
   Building2,
-  Wrench,
   Shield,
   Clock,
   MessageCircle,
   CheckCircle2,
-  Search,
 } from "lucide-react";
 import Link from "next/link";
+import TrackingSearch from "./TrackingSearch";
 
 export const revalidate = 300;
 
@@ -112,55 +110,59 @@ export default function SoporteTecnicoPage() {
           </div>
         </div>
 
-        {/* ── CHATBOT SECTION ── */}
-        <div className="mt-6 bg-white rounded-2xl border border-gray-100 shadow-sm p-5 md:p-6">
-          {/* Header */}
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
-              <Wrench className="w-4.5 h-4.5 text-[#1E3A8A]" />
-            </div>
-            <div>
-              <h2 className="font-bold text-gray-900">Autopresupuesto instantáneo</h2>
-              <p className="text-xs text-gray-400">Obtené el precio de tu reparación en segundos</p>
+        {/* ── CHATBOT CTA ── */}
+        <div className="mt-6 bg-white rounded-2xl border border-gray-100 shadow-sm p-5 flex items-center gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-[#1E3A8A] flex items-center justify-center shrink-0 shadow-md">
+            <MessageCircle className="w-6 h-6 text-white" fill="currentColor" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-bold text-gray-900">Autopresupuesto instantáneo</p>
+            <p className="text-sm text-gray-500 mt-0.5">
+              Tocá el botón azul en la esquina inferior derecha para obtener el precio de tu reparación en segundos.
+            </p>
+            <div className="flex flex-wrap gap-2 mt-3">
+              {[
+                { icon: Clock,        text: "Respuesta en el día" },
+                { icon: Shield,       text: "Repuestos de calidad" },
+                { icon: CheckCircle2, text: "Garantía incluida" },
+              ].map(({ icon: Icon, text }) => (
+                <span
+                  key={text}
+                  className="flex items-center gap-1.5 text-xs text-gray-500 bg-gray-50 px-3 py-1.5 rounded-full border border-gray-100"
+                >
+                  <Icon className="w-3.5 h-3.5 text-[#1E3A8A]" />
+                  {text}
+                </span>
+              ))}
             </div>
           </div>
-
-          {/* Trust badges */}
-          <div className="flex flex-wrap gap-2 mb-5 mt-3">
-            {[
-              { icon: Clock,        text: "Respuesta en el día" },
-              { icon: Shield,       text: "Repuestos de calidad" },
-              { icon: CheckCircle2, text: "Garantía incluida" },
-            ].map(({ icon: Icon, text }) => (
-              <span
-                key={text}
-                className="flex items-center gap-1.5 text-xs text-gray-500 bg-gray-50 px-3 py-1.5 rounded-full border border-gray-100"
-              >
-                <Icon className="w-3.5 h-3.5 text-[#1E3A8A]" />
-                {text}
-              </span>
-            ))}
-          </div>
-
-          <ChatBot />
         </div>
 
-        {/* ── TRACKING CTA ── */}
-        <Link
-          href="/soporte-tecnico/seguimiento"
-          className="mt-4 flex items-center justify-between bg-white rounded-2xl border border-gray-100 shadow-sm px-5 py-4 hover:border-blue-200 hover:bg-blue-50 transition-colors group"
-        >
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center shrink-0 group-hover:bg-blue-100 transition-colors">
-              <Search className="w-4 h-4 text-[#1E3A8A]" />
+        {/* ── TRACKING ── */}
+        <div className="mt-4 rounded-2xl border-2 border-[#1E3A8A] bg-linear-to-br from-blue-50 to-white shadow-sm overflow-hidden">
+          <div className="px-5 pt-5 pb-2 flex items-start gap-3">
+            <div className="w-10 h-10 rounded-xl bg-[#1E3A8A] flex items-center justify-center shrink-0 shadow-md">
+              <span className="text-lg">🔍</span>
             </div>
             <div>
-              <p className="font-bold text-gray-900 text-sm">Seguí tu reparación</p>
-              <p className="text-xs text-gray-400">Consultá el estado de tu equipo con tu código</p>
+              <p className="font-bold text-gray-900">Seguí tu reparación</p>
+              <p className="text-sm text-gray-500 mt-0.5">
+                Ingresá el código que te dio el técnico y consultá el estado de tu equipo en tiempo real.
+              </p>
             </div>
           </div>
-          <span className="text-[#1E3A8A] font-bold text-sm">Ver →</span>
-        </Link>
+
+          <div className="px-5 pb-5">
+            <TrackingSearch />
+            <p className="text-xs text-gray-400 mt-2">
+              El código tiene el formato <span className="font-mono font-semibold text-gray-500">CM-0001</span>. Si no lo tenés,{" "}
+              <Link href="/soporte-tecnico/seguimiento" className="text-[#1E3A8A] hover:underline font-medium">
+                ingresá con tu cuenta
+              </Link>{" "}
+              para ver todos tus equipos.
+            </p>
+          </div>
+        </div>
 
         {/* ── ENTERPRISE CTA ── */}
         <div className="mt-5 bg-gray-900 text-white rounded-2xl p-5 md:p-7 flex flex-col md:flex-row items-center justify-between gap-4">

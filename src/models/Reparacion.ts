@@ -14,6 +14,12 @@ export interface IHistorialItem {
   nota?: string;
 }
 
+export interface IPago {
+  estado: "pendiente" | "aprobado" | "rechazado";
+  mpId?: string;
+  fecha?: Date;
+}
+
 export interface IReparacion extends Document {
   codigo: string;
   cliente: {
@@ -29,6 +35,7 @@ export interface IReparacion extends Document {
   };
   fallas: string[];
   presupuesto?: number;
+  pago?: IPago;
   estado: EstadoReparacion;
   historial: IHistorialItem[];
   notaInterna?: string;
@@ -66,6 +73,11 @@ const ReparacionSchema = new Schema(
     },
     fallas: [{ type: String }],
     presupuesto: { type: Number },
+    pago: {
+      estado: { type: String, enum: ["pendiente", "aprobado", "rechazado"] },
+      mpId:   { type: String },
+      fecha:  { type: Date },
+    },
     estado: {
       type: String,
       required: true,

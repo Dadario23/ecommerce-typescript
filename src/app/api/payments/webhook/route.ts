@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import Order, { IOrderItem } from "@/models/Order";
 import Product from "@/models/Product";
+import Reparacion from "@/models/Reparacion";
 import { Payment } from "mercadopago";
 import client from "@/lib/mercadopago";
 import { sendOrderConfirmation } from "@/lib/email";
@@ -50,9 +51,27 @@ export async function POST(request: NextRequest) {
       const payment = new Payment(client);
       const paymentData = await payment.get({ id: data.id });
 
-      const orderId = paymentData.external_reference;
+      const externalRef   = paymentData.external_reference ?? "";
       const paymentStatus = paymentData.status;
 
+      // ── Pago de reparación ──────────────────────────────────────────
+      if (externalRef.startsWith("REP-")) {
+        const repId = externalRef.slice(4);
+        const rep = await Reparacion.findById(repId);
+        if (!rep) {
+          return NextResponse.json({ error: "Reparación no encontrada" }, { status: 404 });
+        }
+        if (paymentStatus === "approved") {
+          rep.pago = { estado: "aprobado", mpId: String(paymentData.id), fecha: new Date() };
+        } else if (paymentStatus === "rejected") {
+          rep.pago = { estado: "rechazado", mpId: String(paymentData.id), fecha: new Date() };
+        }
+        await rep.save();
+        return NextResponse.json({ success: true });
+      }
+
+      // ── Pago de orden de tienda ─────────────────────────────────────
+      const orderId = externalRef;
       const order = await Order.findById(orderId);
       if (!order) {
         return NextResponse.json(

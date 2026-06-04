@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
-import { MessageCircle, RefreshCw, Search } from "lucide-react";
+import { MessageCircle, RefreshCw, Search, X } from "lucide-react";
 
 // ── Types ──────────────────────────────────────────────────────────────
 interface Msg {
@@ -166,7 +166,7 @@ async function fetchCatalog(device: DeviceType): Promise<{ brands: string[]; mod
 }
 
 // ── Main component ────────────────────────────────────────────────────
-export default function ChatBot() {
+export default function ChatBot({ onClose }: { onClose?: () => void } = {}) {
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const [typing, setTyping] = useState(false);
   const [step, setStep] = useState<Step>("init");
@@ -437,9 +437,7 @@ export default function ChatBot() {
     setNameVal("");
     setUserName(name);
     await botSay(
-      isMobile
-        ? `¡Listo, <strong>${name}</strong>! Cuando quieras, envianos el resumen por WhatsApp y coordinamos. 🚀`
-        : `¡Listo, <strong>${name}</strong>! Tu presupuesto está listo. Hacé clic en el botón para enviarlo y te contactamos pronto. 🚀`,
+      `¡Listo, <strong>${name}</strong>! Cuando quieras, envianos el resumen por WhatsApp y coordinamos. 🚀`,
       800,
     );
     setStep("done");
@@ -589,9 +587,20 @@ export default function ChatBot() {
             <p className="font-bold text-white text-sm leading-tight">Asistente</p>
             <p className="text-blue-200 text-xs">Presupuestos al instante</p>
           </div>
-          <div className="ml-auto flex items-center gap-1.5 text-xs text-blue-200">
-            <span className="w-2 h-2 rounded-full bg-green-400 inline-block" />
-            En línea
+          <div className="ml-auto flex items-center gap-2">
+            <div className="flex items-center gap-1.5 text-xs text-blue-200">
+              <span className="w-2 h-2 rounded-full bg-green-400 inline-block" />
+              En línea
+            </div>
+            {onClose && (
+              <button
+                onClick={onClose}
+                className="p-1 rounded-full hover:bg-white/20 transition-colors text-white/70 hover:text-white"
+                aria-label="Cerrar"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
           </div>
         </div>
 
@@ -950,7 +959,7 @@ export default function ChatBot() {
           {/* ── Done ── */}
           {step === "done" && (
             <div className="flex flex-col gap-2">
-              {isMobile ? (
+              {isMobile || !session ? (
                 <button
                   type="button"
                   onClick={handleMobileWA}

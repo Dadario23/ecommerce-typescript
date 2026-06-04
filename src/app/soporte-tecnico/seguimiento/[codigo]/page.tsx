@@ -1,9 +1,9 @@
 "use client";
 
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { useEffect, useState, useRef, useCallback } from "react";
 import Link from "next/link";
-import { ArrowLeft, MessageCircle, Loader2, RefreshCw, AlertCircle } from "lucide-react";
+import { ArrowLeft, MessageCircle, Loader2, RefreshCw, AlertCircle, CreditCard, CheckCircle2, XCircle } from "lucide-react";
 import {
   FLOW_ORDER,
   ESTADO_LABEL,
@@ -44,10 +44,18 @@ interface Reparacion {
   equipo: { tipo: string; marca: string; modelo: string };
   fallas: string[];
   presupuesto?: number;
+  pago?: { estado: "pendiente" | "aprobado" | "rechazado" };
   estado: EstadoReparacion;
   historial: HistorialItem[];
   notaCliente?: string;
 }
+
+const PAYABLE_ESTADOS: EstadoReparacion[] = [
+  "diagnosticado",
+  "en_reparacion",
+  "esperando_repuestos",
+  "listo",
+];
 
 function fmtDate(d: string) {
   return new Date(d).toLocaleString("es-AR", {
@@ -64,12 +72,16 @@ function isTerminal(estado: EstadoReparacion) {
 }
 
 export default function SeguimientoDetailPage() {
-  const { codigo } = useParams<{ codigo: string }>();
-  const [rep, setRep] = useState<Reparacion | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [notFound, setNotFound] = useState(false);
+  const { codigo }      = useParams<{ codigo: string }>();
+  const searchParams    = useSearchParams();
+  const pagoResult      = searchParams.get("pago"); // "ok" | "error" | "pendiente" | null
+
+  const [rep, setRep]             = useState<Reparacion | null>(null);
+  const [loading, setLoading]     = useState(true);
+  const [notFound, setNotFound]   = useState(false);
   const [statusChanged, setStatusChanged] = useState(false);
-  const [lastChecked, setLastChecked] = useState<Date | null>(null);
+  const [lastChecked, setLastChecked]     = useState<Date | null>(null);
+  const [paying, setPaying]       = useState(false);
   const prevEstado = useRef<EstadoReparacion | null>(null);
   const changeTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -149,10 +161,34 @@ export default function SeguimientoDetailPage() {
     );
   }
 
-  const terminal = isTerminal(rep.estado);
+  const terminal   = isTerminal(rep.estado);
   const currentIdx = FLOW_ORDER.indexOf(rep.estado);
   const waMsg = `Hola! Quisiera consultar sobre mi reparación ${rep.codigo} (${rep.equipo.marca} ${rep.equipo.modelo}).`;
   const waUrl = `https://wa.me/${WA}?text=${encodeURIComponent(waMsg)}`;
+
+  const canPay =
+    !!rep.presupuesto &&
+    rep.presupuesto > 0 &&
+    PAYABLE_ESTADOS.includes(rep.estado) &&
+    rep.pago?.estado !== "aprobado";
+
+  async function handlePagar() {
+    if (!codigo || paying) return;
+    setPaying(true);
+    try {
+      const res = await fetch("/api/payments/reparacion-preference", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ codigo }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      window.location.href = data.initPoint;
+    } catch (err) {
+      alert((err as Error).message || "Error al iniciar el pago. Intentá de nuevo.");
+      setPaying(false);
+    }
+  }
 
   return (
     <main className="pt-20 pb-20 bg-gray-50 min-h-screen">
@@ -356,6 +392,69 @@ export default function SeguimientoDetailPage() {
             </div>
           )}
         </div>
+
+        {/* ── Resultado del pago (vuelta desde MP) ── */}
+        {pagoResult === "ok" || rep.pago?.estado === "aprobado" ? (
+          <div className="flex items-center gap-3 bg-green-50 border border-green-200 rounded-2xl px-5 py-4">
+            <CheckCircle2 className="w-5 h-5 text-green-600 shrink-0" />
+            <div>
+              <p className="font-bold text-green-800 text-sm">¡Pago recibido!</p>
+              <p className="text-xs text-green-700 mt-0.5">
+                Tu pago fue procesado correctamente. Te avisaremos cuando tu equipo esté listo para retirar.
+              </p>
+            </div>
+          </div>
+        ) : pagoResult === "error" ? (
+          <div className="flex items-center gap-3 bg-red-50 border border-red-200 rounded-2xl px-5 py-4">
+            <XCircle className="w-5 h-5 text-red-500 shrink-0" />
+            <div>
+              <p className="font-bold text-red-700 text-sm">El pago no se completó</p>
+              <p className="text-xs text-red-600 mt-0.5">
+                Podés intentarlo de nuevo o consultarnos por WhatsApp.
+              </p>
+            </div>
+          </div>
+        ) : pagoResult === "pendiente" ? (
+          <div className="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-2xl px-5 py-4">
+            <Loader2 className="w-5 h-5 text-amber-500 shrink-0" />
+            <div>
+              <p className="font-bold text-amber-700 text-sm">Pago en proceso</p>
+              <p className="text-xs text-amber-600 mt-0.5">
+                Tu pago está siendo verificado. Te notificaremos cuando se confirme.
+              </p>
+            </div>
+          </div>
+        ) : null}
+
+        {/* ── Pagar con Mercado Pago ── */}
+        {canPay && (
+          <div className="rounded-2xl border-2 border-[#1E3A8A] bg-blue-50 p-5 space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="font-bold text-gray-900 text-sm">Pagá tu reparación online</p>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Presupuesto aprobado · tarjeta, transferencia o cuotas
+                </p>
+              </div>
+              <div className="text-right shrink-0">
+                <p className="text-2xl font-extrabold text-[#1E3A8A]">
+                  ${rep.presupuesto!.toLocaleString("es-AR")}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={handlePagar}
+              disabled={paying}
+              className="w-full flex items-center justify-center gap-2 bg-[#1E3A8A] hover:bg-blue-800 disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold text-sm py-3.5 rounded-xl transition-colors"
+            >
+              {paying ? (
+                <><Loader2 className="w-4 h-4 animate-spin" /> Redirigiendo…</>
+              ) : (
+                <><CreditCard className="w-4 h-4" /> Pagar con Mercado Pago</>
+              )}
+            </button>
+          </div>
+        )}
 
         {/* WhatsApp CTA */}
         <a
