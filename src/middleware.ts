@@ -27,7 +27,7 @@ export async function middleware(req: NextRequest) {
 
   const role = token.role as string | undefined;
 
-  const adminOnly = pathname.startsWith("/dashboard") || pathname.startsWith("/admin");
+const adminOnly = pathname.startsWith("/dashboard") || pathname.startsWith("/admin");
   const allowedRoles = adminOnly
     ? ["admin", "superadmin"]
     : ["admin", "superadmin", "receptionist", "technician"];
@@ -40,5 +40,5 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/admin/:path*", "/soporte-tecnico/admin/:path*"],
+  matcher: ["/dashboard/(.*)", "/admin/(.*)", "/soporte-tecnico/admin(.*)"],
 };

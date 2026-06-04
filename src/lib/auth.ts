@@ -59,9 +59,16 @@ export const authOptions: AuthOptions = {
             role: "user",
           });
         } else {
-          existingUser.name = user.name || existingUser.name;
-          existingUser.image = user.image || existingUser.image;
-          await existingUser.save();
+          await User.updateOne(
+            { email: user.email },
+            {
+              $set: {
+                name: user.name || existingUser.name,
+                image: user.image || existingUser.image,
+              },
+            },
+            { runValidators: false },
+          );
         }
       }
 
