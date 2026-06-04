@@ -4,7 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
-import { Store, Wrench, Menu, X, LogOut, UserCircle, ClipboardList } from "lucide-react";
+import { Store, Wrench, Menu, X, LogOut, UserCircle, ClipboardList, LayoutDashboard } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import {
@@ -105,6 +105,17 @@ export default function SoporteNavbar() {
                       Mis compras
                     </Link>
                   </DropdownMenuItem>
+                  {session.user?.role === "admin" && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem asChild>
+                        <Link href="/dashboard" className="flex items-center gap-2">
+                          <LayoutDashboard className="w-4 h-4 text-blue-500" />
+                          <span className="text-blue-600 font-medium">Dashboard</span>
+                        </Link>
+                      </DropdownMenuItem>
+                    </>
+                  )}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
                     onClick={() => signOut({ callbackUrl: "/soporte-tecnico" })}
@@ -188,6 +199,16 @@ export default function SoporteNavbar() {
                     <UserCircle className="w-4 h-4" />
                     Mi perfil
                   </Link>
+                  {session.user?.role === "admin" && (
+                    <Link
+                      href="/dashboard"
+                      onClick={() => setMobileOpen(false)}
+                      className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm text-blue-400 hover:text-blue-300 hover:bg-white/5 transition-colors"
+                    >
+                      <LayoutDashboard className="w-4 h-4" />
+                      Dashboard
+                    </Link>
+                  )}
                   <button
                     onClick={() => { setMobileOpen(false); signOut({ callbackUrl: "/soporte-tecnico" }); }}
                     className="w-full flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm text-red-400 hover:text-red-300 hover:bg-white/5 transition-colors"
