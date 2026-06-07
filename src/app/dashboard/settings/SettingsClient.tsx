@@ -19,6 +19,7 @@ interface Settings {
   facebookUrl: string;
   whatsappNumber: string;
   homeFeaturedMode: "products" | "categories";
+  shippingEnabled: boolean;
 }
 
 interface Props {
@@ -75,7 +76,7 @@ export default function SettingsClient({ initialSettings, adminName, adminEmail 
   const [saving, setSaving] = useState<string | null>(null);
   const [flash, setFlash] = useState<{ section: string; ok: boolean } | null>(null);
 
-  const set = (field: keyof Settings, value: string | number) =>
+  const set = (field: keyof Settings, value: string | number | boolean) =>
     setData((d) => ({ ...d, [field]: value }));
 
   const save = async (section: string, payload: Partial<Settings>) => {
@@ -207,8 +208,40 @@ export default function SettingsClient({ initialSettings, adminName, adminEmail 
         <SectionTitle
           icon={Truck}
           title="Configuración de envío"
-          description="Costos y umbrales para los envíos"
+          description="Costos, umbrales y disponibilidad de envíos"
         />
+
+        {/* Toggle envíos activos */}
+        <div className={`flex items-center justify-between p-4 rounded-xl border-2 mb-4 transition-colors ${
+          data.shippingEnabled
+            ? "border-green-200 bg-green-50"
+            : "border-red-200 bg-red-50"
+        }`}>
+          <div>
+            <p className={`text-sm font-semibold ${data.shippingEnabled ? "text-green-800" : "text-red-800"}`}>
+              {data.shippingEnabled ? "Envíos activos" : "Envíos desactivados"}
+            </p>
+            <p className="text-xs text-gray-500 mt-0.5">
+              {data.shippingEnabled
+                ? "Los clientes ven opciones y precios de envío normalmente."
+                : "Se muestra \"Acordar con el vendedor\" en los productos. En listados no se muestra info de envío."}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => set("shippingEnabled", !data.shippingEnabled)}
+            className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${
+              data.shippingEnabled ? "bg-green-500" : "bg-gray-300"
+            }`}
+          >
+            <span
+              className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ${
+                data.shippingEnabled ? "translate-x-5" : "translate-x-0"
+              }`}
+            />
+          </button>
+        </div>
+
         <div className="grid grid-cols-2 gap-4">
           <Field
             label="Costo de envío ($)"
@@ -252,6 +285,7 @@ export default function SettingsClient({ initialSettings, adminName, adminEmail 
           payload={{
             shippingCost: data.shippingCost,
             freeShippingThreshold: data.freeShippingThreshold,
+            shippingEnabled: data.shippingEnabled,
           }}
         />
       </div>

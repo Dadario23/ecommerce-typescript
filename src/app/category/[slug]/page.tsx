@@ -7,6 +7,7 @@ import Product from "@/models/Product";
 import CategoryClient from "@/components/category/CategoryClient";
 import type { Metadata } from "next";
 import { slugify } from "@/lib/slugify";
+import { getShippingEnabled } from "@/lib/getShippingEnabled";
 
 export const revalidate = 60;
 
@@ -73,7 +74,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function CategoryPage({ params }: Props) {
   const { slug } = await params;
-  const data = await getCategoryAndProducts(slug);
+  const [data, shippingEnabled] = await Promise.all([
+    getCategoryAndProducts(slug),
+    getShippingEnabled(),
+  ]);
 
   if (!data) notFound();
 
@@ -81,6 +85,7 @@ export default async function CategoryPage({ params }: Props) {
     <CategoryClient
       categoryName={data.category.name}
       initialProducts={data.products}
+      shippingEnabled={shippingEnabled}
     />
   );
 }

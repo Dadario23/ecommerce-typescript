@@ -23,9 +23,10 @@ interface Props {
   product: Product;
   listView?: boolean;
   shippingZone?: ShippingZoneResult;
+  shippingEnabled?: boolean;
 }
 
-export default function CategoryProductCard({ product, listView = false, shippingZone }: Props) {
+export default function CategoryProductCard({ product, listView = false, shippingZone, shippingEnabled = true }: Props) {
   const image       = product.images?.[0] ?? "";
   const priceDiff   = product.compareAtPrice ? product.compareAtPrice - product.price : 0;
   const hasDiscount = !!(product.compareAtPrice && product.compareAtPrice > product.price && priceDiff >= 500);
@@ -100,7 +101,7 @@ export default function CategoryProductCard({ product, listView = false, shippin
           </div>
 
           {/* Shipping badge */}
-          {!outOfStock && shippingZone && (
+          {!outOfStock && shippingEnabled && shippingZone && (
             <ShippingBadge
               freeShipping={product.freeShipping ?? false}
               shippingTypes={shippingTypes}
@@ -172,7 +173,7 @@ export default function CategoryProductCard({ product, listView = false, shippin
               12x ${installment.toLocaleString("es-AR")}
             </p>
           )}
-          {!outOfStock && (shippingTypes.includes("flex") || product.freeShipping) && (
+          {!outOfStock && shippingEnabled && (shippingTypes.includes("flex") || product.freeShipping) && (
             <span className={`mt-1 inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded w-fit ${
               product.freeShipping ? "bg-green-50 text-green-700" : "bg-green-50 text-green-700"
             }`}>

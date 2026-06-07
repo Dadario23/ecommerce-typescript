@@ -32,6 +32,7 @@ interface Product {
 interface CategoryClientProps {
   categoryName: string;
   initialProducts: Product[];
+  shippingEnabled?: boolean;
 }
 
 type SortOption = "newest" | "price-asc" | "price-desc" | "discount";
@@ -45,7 +46,7 @@ const SORT_LABELS: Record<SortOption, string> = {
 
 const ITEMS_PER_PAGE = 12;
 
-export default function CategoryClient({ categoryName, initialProducts }: CategoryClientProps) {
+export default function CategoryClient({ categoryName, initialProducts, shippingEnabled = true }: CategoryClientProps) {
   const [page, setPage]                   = useState(1);
   const [sort, setSort]                   = useState<SortOption>("newest");
   const [sortOpen, setSortOpen]           = useState(false);
@@ -183,6 +184,7 @@ export default function CategoryClient({ categoryName, initialProducts }: Catego
                     product={product}
                     listView
                     shippingZone={shippingZone}
+                    shippingEnabled={shippingEnabled}
                   />
                 ))}
               </div>

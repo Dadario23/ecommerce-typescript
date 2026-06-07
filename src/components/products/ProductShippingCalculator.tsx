@@ -7,6 +7,7 @@ import { useShippingZone } from "@/hooks/useShippingZone";
 interface Props {
   shippingTypes: string[];
   freeShipping?: boolean;
+  shippingEnabled?: boolean;
 }
 
 const WHATSAPP = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? "5491150610043";
@@ -15,12 +16,34 @@ function isBeforeNoon() {
   return new Date().getHours() < 12;
 }
 
-export default function ProductShippingCalculator({ shippingTypes, freeShipping = false }: Props) {
+export default function ProductShippingCalculator({ shippingTypes, freeShipping = false, shippingEnabled = true }: Props) {
   const { zone, source, loading } = useShippingZone();
 
   const hasFlex     = shippingTypes.includes("flex");
   const hasStandard = shippingTypes.includes("standard");
   const today = isBeforeNoon();
+
+  if (!shippingEnabled) {
+    return (
+      <div className="border border-gray-100 rounded-2xl overflow-hidden">
+        <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-100 bg-gray-50">
+          <Truck className="w-4 h-4 text-gray-500" />
+          <span className="text-sm font-semibold text-gray-700">Opciones de envío</span>
+        </div>
+        <div className="p-4">
+          <div className="flex items-center gap-3 p-3 bg-amber-50 border border-amber-200 rounded-xl">
+            <div className="w-8 h-8 bg-amber-100 rounded-lg flex items-center justify-center shrink-0">
+              <Truck className="w-4 h-4 text-amber-600" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-gray-800">Acordar con el vendedor</p>
+              <p className="text-xs text-gray-500">Contactanos para coordinar el envío de tu pedido</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="border border-gray-100 rounded-2xl overflow-hidden">

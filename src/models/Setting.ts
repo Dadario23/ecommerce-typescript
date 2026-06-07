@@ -12,6 +12,7 @@ export interface ISetting extends Document {
   whatsappNumber: string;
   carouselImages: string[];
   homeFeaturedMode: "products" | "categories";
+  shippingEnabled: boolean;
   updatedAt: Date;
 }
 
@@ -28,6 +29,7 @@ const SettingSchema = new Schema(
     whatsappNumber:        { type: String, default: "" },
     carouselImages:        { type: [String], default: [] },
     homeFeaturedMode:      { type: String, enum: ["products", "categories"], default: "products" },
+    shippingEnabled:       { type: Boolean, default: true },
   },
   { timestamps: true }
 );

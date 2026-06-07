@@ -14,7 +14,6 @@ import {
   Search,
   LayoutDashboard,
   ClipboardList,
-  MapPin,
   Lock,
   ChevronRight,
   Wrench,
@@ -167,13 +166,6 @@ export default function Navbar({ initialCategories = [] }: { initialCategories?:
                       <Link href="/account/favorites" className="flex items-center gap-2">
                         <Heart className="w-4 h-4 text-gray-400" />
                         Mis favoritos
-                      </Link>
-                    </DropdownMenuItem>
-
-                    <DropdownMenuItem asChild>
-                      <Link href="/account/addresses" className="flex items-center gap-2">
-                        <MapPin className="w-4 h-4 text-gray-400" />
-                        Mis direcciones
                       </Link>
                     </DropdownMenuItem>
 
@@ -383,16 +375,6 @@ export default function Navbar({ initialCategories = [] }: { initialCategories?:
                       >
                         <Heart className="w-4 h-4 text-gray-400" />
                         Mis favoritos
-                      </Link>
-                    </li>
-                    <li>
-                      <Link
-                        href="/account/addresses"
-                        onClick={() => setMobileMenuOpen(false)}
-                        className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-blue-50"
-                      >
-                        <MapPin className="w-4 h-4 text-gray-400" />
-                        Mis direcciones
                       </Link>
                     </li>
                     {session.user?.role === "admin" && (

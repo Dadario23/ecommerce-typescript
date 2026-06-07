@@ -6,6 +6,7 @@ import Product, { IProduct } from "@/models/Product";
 import Review from "@/models/Review";
 import ProductPageClient from "./ProductPageClient";
 import type { Metadata } from "next";
+import { getShippingEnabled } from "@/lib/getShippingEnabled";
 
 export const revalidate = 60;
 
@@ -68,7 +69,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
   const productId = String(product._id);
 
   // Fetch related data in parallel on the server — no client-side waterfalls.
-  const [similarProducts, initialReviews] = await Promise.all([
+  const [similarProducts, initialReviews, shippingEnabled] = await Promise.all([
     categoryId
       ? Product.find({ category: categoryId, _id: { $ne: productId }, stock: { $gt: 0 }, isActive: { $ne: false } })
           .sort({ featured: -1, avgRating: -1, createdAt: -1 })
@@ -81,6 +82,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
       .sort({ createdAt: -1 })
       .lean()
       .then((docs) => JSON.parse(JSON.stringify(docs))),
+    getShippingEnabled(),
   ]);
 
   const jsonLd = {
@@ -113,6 +115,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
         product={product}
         similarProducts={similarProducts}
         initialReviews={initialReviews}
+        shippingEnabled={shippingEnabled}
       />
     </>
   );

@@ -17,12 +17,14 @@ interface ProductPageClientProps {
   product: IProduct;
   similarProducts: SimilarProduct[];
   initialReviews: SerializedReview[];
+  shippingEnabled?: boolean;
 }
 
 export default function ProductPageClient({
   product,
   similarProducts,
   initialReviews,
+  shippingEnabled = true,
 }: ProductPageClientProps) {
   const homeDelivery = product.homeDelivery ?? true;
 
@@ -72,6 +74,7 @@ export default function ProductPageClient({
               <ProductShippingCalculator
                 shippingTypes={product.shippingTypes ?? ["flex", "standard"]}
                 freeShipping={product.freeShipping ?? false}
+                shippingEnabled={shippingEnabled}
               />
             </div>
           </div>

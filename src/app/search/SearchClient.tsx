@@ -56,7 +56,11 @@ function ProductSkeleton() {
   );
 }
 
-export default function SearchClient() {
+interface Props {
+  shippingEnabled?: boolean;
+}
+
+export default function SearchClient({ shippingEnabled = true }: Props) {
   const searchParams = useSearchParams();
   const query = searchParams.get("q") ?? "";
   const shippingZone = useShippingZone();
@@ -259,7 +263,7 @@ export default function SearchClient() {
             ) : paginatedProducts.length > 0 ? (
               <div className="flex flex-col gap-3">
                 {paginatedProducts.map((product) => (
-                  <CategoryProductCard key={product._id} product={product} listView shippingZone={shippingZone} />
+                  <CategoryProductCard key={product._id} product={product} listView shippingZone={shippingZone} shippingEnabled={shippingEnabled} />
                 ))}
               </div>
             ) : (

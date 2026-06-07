@@ -11,6 +11,7 @@ async function getSettings() {
     storeDescription: string; shippingCost: number;
     freeShippingThreshold: number; instagramUrl: string;
     facebookUrl: string; whatsappNumber: string;
+    shippingEnabled: boolean;
   }>();
   if (!doc) {
     const created = await Setting.create({});
@@ -38,7 +39,7 @@ export async function PUT(req: Request) {
     "storeName", "storeEmail", "storePhone", "storeDescription",
     "shippingCost", "freeShippingThreshold",
     "instagramUrl", "facebookUrl", "whatsappNumber",
-    "carouselImages", "homeFeaturedMode",
+    "carouselImages", "homeFeaturedMode", "shippingEnabled",
   ];
   const update: Record<string, unknown> = {};
   for (const key of allowed) {
