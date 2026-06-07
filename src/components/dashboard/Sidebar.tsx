@@ -66,7 +66,7 @@ const NAV_SECTIONS: NavSection[] = [
         ],
       },
       { href: "/dashboard/carousel", label: "Carousel", icon: GalleryHorizontal },
-      { href: "/dashboard/shipping", label: "Tarifas de envío", icon: Truck },
+      { href: "/dashboard/shipping", label: "Envíos", icon: Truck },
     ],
   },
   {

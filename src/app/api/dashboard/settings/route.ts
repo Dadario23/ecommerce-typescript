@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { connectDB } from "@/lib/mongodb";
 import Setting from "@/models/Setting";
+import { isAdmin } from "@/lib/roles";
 
 async function getSettings() {
   await connectDB();
@@ -22,7 +23,7 @@ async function getSettings() {
 
 export async function GET() {
   const session = await getServerSession(authOptions);
-  if (!session || session.user?.role !== "admin")
+  if (!session || !isAdmin(session.user?.role))
     return NextResponse.json({ error: "No autorizado" }, { status: 403 });
 
   const settings = await getSettings();
@@ -31,7 +32,7 @@ export async function GET() {
 
 export async function PUT(req: Request) {
   const session = await getServerSession(authOptions);
-  if (!session || session.user?.role !== "admin")
+  if (!session || !isAdmin(session.user?.role))
     return NextResponse.json({ error: "No autorizado" }, { status: 403 });
 
   const body = await req.json();

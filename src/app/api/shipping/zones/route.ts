@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { connectDB } from "@/lib/mongodb";
 import ShippingConfig from "@/models/ShippingConfig";
+import { isAdmin } from "@/lib/roles";
 
 const DEFAULT_ZONES = [
   {
@@ -69,7 +70,7 @@ export async function GET() {
 export async function PUT(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session || session.user?.role !== "admin") {
+    if (!session || !isAdmin(session.user?.role)) {
       return NextResponse.json({ error: "No autorizado" }, { status: 403 });
     }
 
