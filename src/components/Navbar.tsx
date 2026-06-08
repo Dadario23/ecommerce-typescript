@@ -29,6 +29,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import NavbarSearch from "./NavbarSearch";
+import NotificationBell from "./NotificationBell";
 import { useSession, signOut } from "next-auth/react";
 import { useCartWithSession } from "@/hooks/useCartWithSession";
 import { useCartUI } from "@/store/useCartUI";
@@ -210,6 +211,9 @@ export default function Navbar({ initialCategories = [] }: { initialCategories?:
                   <Heart className="w-5 h-5" />
                 </Link>
               )}
+
+              {/* Notifications */}
+              {session && <NotificationBell />}
 
               {/* Cart */}
               <button

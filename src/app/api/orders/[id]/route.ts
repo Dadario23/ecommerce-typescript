@@ -4,6 +4,7 @@ import Order, { IOrderItem } from "@/models/Order";
 import Product from "@/models/Product";
 import { authOptions } from "@/lib/auth";
 import { connectDB } from "@/lib/mongodb";
+import { notifyOrderStatusChange } from "@/lib/notify";
 
 export async function GET(
   _request: NextRequest,
@@ -63,8 +64,12 @@ export async function PATCH(
       if (!VALID_STATUSES.includes(body.status)) {
         return NextResponse.json({ error: "Estado inválido" }, { status: 400 });
       }
+      const prevStatus = order.status;
       order.status = body.status;
       await order.save();
+      if (prevStatus !== body.status) {
+        await notifyOrderStatusChange(order, body.status);
+      }
       return NextResponse.json({ success: true, status: order.status });
     }
 
