@@ -4,10 +4,11 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
-import { Store, Wrench, Menu, X, LogOut, UserCircle, ClipboardList, LayoutDashboard } from "lucide-react";
+import { Wrench, Menu, X, LogOut, UserCircle, ClipboardList, LayoutDashboard } from "lucide-react";
 import { isAdmin, isStaff } from "@/lib/roles";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import NotificationBell from "@/components/NotificationBell";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -37,7 +38,7 @@ export default function SoporteNavbar() {
         <div className="max-w-5xl mx-auto px-4 h-14 flex items-center gap-4">
 
           {/* Logo + sección */}
-          <Link href="/soporte-tecnico" className="flex items-center gap-2.5 shrink-0">
+          <Link href="/" className="flex items-center shrink-0">
             <div className="relative w-28 h-7 shrink-0">
               <Image
                 src="/logo.svg"
@@ -46,10 +47,6 @@ export default function SoporteNavbar() {
                 className="object-contain object-left brightness-0 invert"
               />
             </div>
-            <span className="hidden sm:flex items-center gap-1.5 text-blue-300 text-xs font-semibold uppercase tracking-wider border-l border-white/15 pl-2.5 ml-0.5">
-              <Wrench className="w-3 h-3" />
-              Soporte
-            </span>
           </Link>
 
           {/* Nav links — desktop */}
@@ -75,6 +72,7 @@ export default function SoporteNavbar() {
 
           {/* Right side */}
           <div className="ml-auto flex items-center gap-2">
+            {session?.user && <NotificationBell />}
 
             {/* Usuario logueado → dropdown */}
             {session?.user ? (
@@ -145,16 +143,6 @@ export default function SoporteNavbar() {
                 Ingresar
               </Link>
             )}
-
-            {/* Volver a la tienda */}
-            <Link
-              href="/"
-              className="flex items-center gap-1.5 text-xs font-semibold text-slate-300 hover:text-white border border-white/15 hover:border-white/30 bg-white/5 hover:bg-white/10 px-3 py-1.5 rounded-lg transition-colors"
-            >
-              <Store className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Ir a la tienda</span>
-              <span className="sm:hidden">Tienda</span>
-            </Link>
 
             {/* Mobile hamburger */}
             <button

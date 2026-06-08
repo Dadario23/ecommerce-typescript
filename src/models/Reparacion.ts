@@ -41,6 +41,8 @@ export interface IReparacion extends Document {
   historial: IHistorialItem[];
   notaInterna?: string;
   notaCliente?: string;
+  tipoAcceso?: "pin" | "patron" | "contrasena" | "sin_acceso";
+  codigoAcceso?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -87,8 +89,10 @@ const ReparacionSchema = new Schema(
       default: "recibido",
     },
     historial: [HistorialSchema],
-    notaInterna: { type: String },
-    notaCliente: { type: String },
+    notaInterna:  { type: String },
+    notaCliente:  { type: String },
+    tipoAcceso:   { type: String, enum: ["pin", "patron", "contrasena", "sin_acceso"] },
+    codigoAcceso: { type: String },
   },
   { timestamps: true },
 );

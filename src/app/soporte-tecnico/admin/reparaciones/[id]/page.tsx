@@ -12,7 +12,12 @@ import {
   MessageCircle,
   Plus,
   X,
+  Lock,
+  Eye,
+  EyeOff,
+  Pencil,
 } from "lucide-react";
+import PatternLock, { PatternDisplay } from "@/components/PatternLock";
 import {
   ESTADOS,
   ESTADO_LABEL,
@@ -37,8 +42,12 @@ interface Reparacion {
   historial: HistorialItem[];
   notaInterna?: string;
   notaCliente?: string;
+  tipoAcceso?: "pin" | "patron" | "contrasena" | "sin_acceso";
+  codigoAcceso?: string;
   createdAt: string;
 }
+
+type TipoAcceso = "pin" | "patron" | "contrasena" | "sin_acceso";
 
 const EQUIPO_ICON: Record<string, string> = { celular: "📱", laptop: "💻", pc: "🖥️" };
 
@@ -79,6 +88,13 @@ export default function EditarReparacionPage() {
   const [dataError, setDataError] = useState("");
   const [dataOk, setDataOk] = useState(false);
 
+  const [tipoAcceso, setTipoAcceso] = useState<TipoAcceso | "">("");
+  const [codigoAcceso, setCodigoAcceso] = useState("");
+  const [showCodigo, setShowCodigo] = useState(false);
+  const [editingAcceso, setEditingAcceso] = useState(false);
+  const [savingAcceso, setSavingAcceso] = useState(false);
+  const [accesoOk, setAccesoOk] = useState(false);
+
   useEffect(() => {
     if (!id) return;
     fetch(`/api/reparaciones/${id}`)
@@ -94,6 +110,9 @@ export default function EditarReparacionPage() {
         setPresupuesto(data.presupuesto ? String(data.presupuesto) : "");
         setNotaCliente(data.notaCliente ?? "");
         setNotaInterna(data.notaInterna ?? "");
+        setTipoAcceso(data.tipoAcceso ?? "");
+        setCodigoAcceso(data.codigoAcceso ?? "");
+        setEditingAcceso(!data.tipoAcceso);
       })
       .catch(() => {})
       .finally(() => setFetching(false));
@@ -125,6 +144,31 @@ export default function EditarReparacionPage() {
       alert("Error al cambiar el estado");
     } finally {
       setSavingStatus(false);
+    }
+  }
+
+  async function saveAcceso() {
+    setSavingAcceso(true);
+    try {
+      const res = await fetch(`/api/reparaciones/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tipoAcceso: tipoAcceso || null,
+          codigoAcceso: tipoAcceso && tipoAcceso !== "sin_acceso" ? codigoAcceso.trim() || null : null,
+        }),
+      });
+      if (res.ok) {
+        const updated: Reparacion = await res.json();
+        setRep(updated);
+        setEditingAcceso(false);
+        setAccesoOk(true);
+        setTimeout(() => setAccesoOk(false), 2500);
+      }
+    } catch {
+      // silent
+    } finally {
+      setSavingAcceso(false);
     }
   }
 
@@ -303,6 +347,160 @@ export default function EditarReparacionPage() {
             </div>
           ))}
         </div>
+      </div>
+
+      {/* Datos de acceso */}
+      <div className="bg-white rounded-2xl border border-amber-200 p-5 space-y-4">
+        <div className="flex items-center gap-2">
+          <Lock className="w-4 h-4 text-amber-500 shrink-0" />
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider flex-1">Datos de acceso</p>
+          <span className="text-[10px] font-semibold text-amber-600 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">Solo staff</span>
+        </div>
+
+        {!editingAcceso && tipoAcceso ? (
+          /* ── VIEW MODE ── */
+          <div className="space-y-3">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-[11px] text-gray-400 mb-1">Tipo de acceso</p>
+                <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-amber-800 bg-amber-50 border border-amber-300 px-3 py-1 rounded-lg">
+                  <Lock className="w-3 h-3" />
+                  {tipoAcceso === "pin" ? "PIN" : tipoAcceso === "patron" ? "Patrón" : tipoAcceso === "contrasena" ? "Contraseña" : "Sin acceso"}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingAcceso(true)}
+                className="flex items-center gap-1.5 text-xs text-amber-600 hover:text-amber-800 border border-amber-200 hover:border-amber-400 bg-amber-50 hover:bg-amber-100 px-3 py-1.5 rounded-lg transition-colors shrink-0"
+              >
+                <Pencil className="w-3 h-3" />
+                Editar
+              </button>
+            </div>
+
+            {tipoAcceso !== "sin_acceso" && (
+              codigoAcceso ? (
+                tipoAcceso === "patron" ? (
+                  <div className="flex flex-col items-center gap-1.5 py-2">
+                    <p className="text-[11px] text-gray-400">Patrón guardado</p>
+                    <PatternDisplay pattern={codigoAcceso} size={130} />
+                  </div>
+                ) : (
+                  <div>
+                    <p className="text-[11px] text-gray-400 mb-1.5">
+                      {tipoAcceso === "pin" ? "Código PIN" : "Contraseña"}
+                    </p>
+                    <div className="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+                      <code className="flex-1 font-mono text-base font-bold text-amber-900 tracking-widest select-all">
+                        {showCodigo ? codigoAcceso : "•".repeat(Math.min(codigoAcceso.length || 8, 12))}
+                      </code>
+                      <button
+                        type="button"
+                        onClick={() => setShowCodigo((p) => !p)}
+                        className="text-amber-600 hover:text-amber-900 transition-colors p-1"
+                      >
+                        {showCodigo ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                      </button>
+                    </div>
+                  </div>
+                )
+              ) : (
+                <p className="text-xs text-amber-600 italic">
+                  No hay código guardado — hacé clic en Editar para ingresarlo.
+                </p>
+              )
+            )}
+          </div>
+        ) : (
+          /* ── EDIT MODE ── */
+          <>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-gray-700">Tipo de acceso</label>
+              <div className="flex flex-wrap gap-2">
+                {(rep.equipo.tipo === "celular"
+                  ? [{ val: "pin", label: "PIN" }, { val: "patron", label: "Patrón" }, { val: "sin_acceso", label: "Sin acceso" }]
+                  : [{ val: "contrasena", label: "Contraseña" }, { val: "sin_acceso", label: "Sin acceso" }]
+                ).map(({ val, label }) => (
+                  <button
+                    key={val}
+                    type="button"
+                    onClick={() => setTipoAcceso(val as TipoAcceso)}
+                    className={`px-4 py-2 rounded-xl border text-sm font-medium transition-colors ${
+                      tipoAcceso === val
+                        ? "bg-amber-500 text-white border-amber-500"
+                        : "bg-white text-gray-600 border-gray-200 hover:border-amber-300 hover:text-amber-700"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {tipoAcceso === "patron" && (
+              <div className="space-y-3">
+                {codigoAcceso ? (
+                  <div className="flex flex-col items-center gap-2">
+                    <PatternDisplay pattern={codigoAcceso} size={120} />
+                    <button type="button"
+                      onClick={() => setCodigoAcceso("")}
+                      className="flex items-center gap-1.5 text-xs text-amber-600 hover:text-amber-800 font-medium hover:underline">
+                      <Pencil className="w-3 h-3" />
+                      Cambiar patrón
+                    </button>
+                  </div>
+                ) : (
+                  <PatternLock onConfirm={(p) => setCodigoAcceso(p)} onCancel={undefined} />
+                )}
+              </div>
+            )}
+
+            {tipoAcceso && tipoAcceso !== "sin_acceso" && tipoAcceso !== "patron" && (
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-gray-700">
+                  {tipoAcceso === "pin" ? "Código PIN" : "Contraseña"}
+                </label>
+                <div className="relative">
+                  <input
+                    type={showCodigo ? "text" : "password"}
+                    value={codigoAcceso}
+                    onChange={(e) => setCodigoAcceso(e.target.value)}
+                    placeholder="••••••••"
+                    className={`${inputCls} pr-10`}
+                  />
+                  <button type="button" onClick={() => setShowCodigo((p) => !p)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                    {showCodigo ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={saveAcceso}
+                disabled={savingAcceso || !tipoAcceso}
+                className="flex items-center gap-2 bg-amber-500 hover:bg-amber-600 text-white text-sm font-bold px-4 py-2 rounded-xl transition-colors disabled:opacity-50"
+              >
+                {savingAcceso && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                {accesoOk ? <><Check className="w-3.5 h-3.5" /> Guardado</> : "Guardar acceso"}
+              </button>
+              {rep.tipoAcceso && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTipoAcceso(rep.tipoAcceso ?? "");
+                    setCodigoAcceso(rep.codigoAcceso ?? "");
+                    setEditingAcceso(false);
+                  }}
+                  className="text-sm text-gray-500 hover:text-gray-700 px-3 py-2 rounded-xl border border-gray-200 hover:border-gray-300 transition-colors"
+                >
+                  Cancelar
+                </button>
+              )}
+            </div>
+          </>
+        )}
       </div>
 
       {/* Datos */}

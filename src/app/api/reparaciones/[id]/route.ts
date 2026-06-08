@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { connectDB } from "@/lib/mongodb";
 import Reparacion, { EstadoReparacion } from "@/models/Reparacion";
 import { isAdmin, isStaff } from "@/lib/roles";
+import { notifyRepairStatusChange } from "@/lib/notify";
 
 export async function GET(
   _req: NextRequest,
@@ -51,19 +52,24 @@ export async function PUT(
       return NextResponse.json({ error: "No autorizado" }, { status: 403 });
     }
     const { estado, nota, notaInterna } = body;
-    if (estado && estado !== rep.estado) {
+    const prevEstado = rep.estado;
+    if (estado && estado !== prevEstado) {
       rep.historial.push({ estado: estado as EstadoReparacion, fecha: new Date(), nota: nota || undefined });
       rep.estado = estado;
     }
     if (notaInterna !== undefined) rep.notaInterna = notaInterna;
     await rep.save();
+    if (estado && estado !== prevEstado) {
+      await notifyRepairStatusChange(rep, estado);
+    }
     return NextResponse.json(rep);
   }
 
   // Receptionist + admin: full edit
-  const { estado, nota, notaInterna, notaCliente, presupuesto, cliente, equipo, fallas } = body;
+  const { estado, nota, notaInterna, notaCliente, presupuesto, cliente, equipo, fallas, tipoAcceso, codigoAcceso } = body;
 
-  if (estado && estado !== rep.estado) {
+  const prevEstado = rep.estado;
+  if (estado && estado !== prevEstado) {
     rep.historial.push({ estado: estado as EstadoReparacion, fecha: new Date(), nota: nota || undefined });
     rep.estado = estado;
   }
@@ -72,7 +78,9 @@ export async function PUT(
   if (presupuesto  !== undefined) rep.presupuesto  = presupuesto === "" ? undefined : Number(presupuesto);
   if (cliente) Object.assign(rep.cliente, cliente);
   if (equipo)  Object.assign(rep.equipo,  equipo);
-  if (fallas)  rep.fallas = fallas;
+  if (fallas)       rep.fallas = fallas;
+  if (tipoAcceso   !== undefined) rep.tipoAcceso   = tipoAcceso   || undefined;
+  if (codigoAcceso !== undefined) rep.codigoAcceso = codigoAcceso || undefined;
 
   // Admin only: assign technician
   if (isAdmin(role) && "assignedTo" in body) {
@@ -80,5 +88,8 @@ export async function PUT(
   }
 
   await rep.save();
+  if (estado && estado !== prevEstado) {
+    await notifyRepairStatusChange(rep, estado);
+  }
   return NextResponse.json(rep);
 }

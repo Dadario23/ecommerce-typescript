@@ -12,7 +12,6 @@ import {
   BookOpen,
   Users,
   BarChart2,
-  Store,
   LogOut,
   Menu,
   X,
@@ -22,6 +21,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import NotificationBell from "@/components/NotificationBell";
 
 const ALL_NAV_ITEMS = [
   { href: "/soporte-tecnico/admin",              label: "Overview",      icon: LayoutDashboard, exact: true,  roles: ["admin","superadmin","receptionist","technician"] },
@@ -62,14 +62,14 @@ function Sidebar({ collapsed, onToggle, role }: { collapsed: boolean; onToggle: 
         )}
       >
         {!collapsed && (
-          <div className="relative flex-1 h-9">
+          <Link href="/" className="relative flex-1 h-9 block">
             <Image
               src="/logo.svg"
               alt="Compumobile"
               fill
               className="object-contain object-center brightness-0 invert"
             />
-          </div>
+          </Link>
         )}
         <button
           onClick={onToggle}
@@ -137,19 +137,6 @@ function Sidebar({ collapsed, onToggle, role }: { collapsed: boolean; onToggle: 
             <Wrench className="w-4 h-4 shrink-0" />
             {!collapsed && <span className="whitespace-nowrap">Ver soporte</span>}
           </Link>
-          {["admin", "superadmin"].includes(role) && (
-            <Link
-              href="/dashboard"
-              title={collapsed ? "Dashboard tienda" : undefined}
-              className={cn(
-                "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-slate-400 hover:bg-white/5 hover:text-white transition-colors",
-                collapsed && "justify-center px-2",
-              )}
-            >
-              <Store className="w-4 h-4 shrink-0" />
-              {!collapsed && <span className="whitespace-nowrap">Dashboard tienda</span>}
-            </Link>
-          )}
         </div>
       </nav>
 
@@ -238,17 +225,20 @@ export default function SoporteAdminLayout({ children }: { children: React.React
             <button onClick={() => setMobileOpen(true)} className="lg:hidden text-gray-500 hover:text-gray-700">
               <Menu className="w-5 h-5" />
             </button>
-            <h1 className="text-sm font-semibold text-gray-800">{pageTitle}</h1>
+            {/* Logo en mobile (sidebar oculto) */}
+            <Link href="/" className="lg:hidden relative w-32 h-7 shrink-0">
+              <Image
+                src="/logo.svg"
+                alt="Compumobile"
+                fill
+                className="object-contain object-left"
+              />
+            </Link>
+            <h1 className="hidden lg:block text-sm font-semibold text-gray-800">{pageTitle}</h1>
           </div>
 
           <div className="flex items-center gap-2">
-            <Link
-              href="/soporte-tecnico"
-              className="hidden sm:flex items-center gap-1.5 text-xs text-gray-500 hover:text-[#1E3A8A] font-medium px-3 py-1.5 rounded-lg border border-gray-200 hover:border-blue-300 transition-colors"
-            >
-              <Wrench className="w-3.5 h-3.5" />
-              Ver soporte
-            </Link>
+            <NotificationBell buttonClassName="relative p-2 text-gray-500 hover:text-gray-700 rounded-full hover:bg-gray-100 transition-colors" />
             <div className="flex items-center gap-2 pl-2 border-l border-gray-100">
               <div className="w-7 h-7 rounded-full bg-[#1E3A8A] flex items-center justify-center text-white text-[10px] font-bold">
                 {initials}
