@@ -16,6 +16,7 @@ import {
   Eye,
   EyeOff,
   Pencil,
+  Printer,
 } from "lucide-react";
 import PatternLock, { PatternDisplay } from "@/components/PatternLock";
 import {
@@ -260,6 +261,28 @@ export default function EditarReparacionPage() {
         </button>
         <a href={trackingUrl} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-700">
           <ExternalLink className="w-4 h-4" />
+        </a>
+      </div>
+
+      {/* Acciones de impresión */}
+      <div className="grid grid-cols-2 gap-2">
+        <a
+          href={`/soporte-tecnico/admin/reparaciones/${id}/ticket`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center justify-center gap-2 py-2.5 text-sm font-semibold text-[#1E3A8A] border border-[#1E3A8A]/30 bg-blue-50/50 rounded-2xl hover:bg-blue-100 transition-colors"
+        >
+          <Printer className="w-4 h-4" />
+          Ticket de recepción
+        </a>
+        <a
+          href={`/soporte-tecnico/admin/reparaciones/${id}/etiqueta`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center justify-center gap-2 py-2.5 text-sm font-semibold text-gray-600 border border-gray-200 bg-gray-50 rounded-2xl hover:bg-gray-100 transition-colors"
+        >
+          <Printer className="w-4 h-4" />
+          Etiqueta QR
         </a>
       </div>
 
